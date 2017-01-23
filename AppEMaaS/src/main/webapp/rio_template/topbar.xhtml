@@ -1,0 +1,40 @@
+<ui:composition 
+
+    xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:f="http://java.sun.com/jsf/core"
+    xmlns:h="http://java.sun.com/jsf/html"
+    xmlns:ui="http://java.sun.com/jsf/facelets">
+    
+    
+    <div id="layout-topbar">
+    	<div id="logo" class="Fleft">
+        	<a href="/BigSeaT4-4Imp/index.xhtml"><h:graphicImage name="images/BigSeaT44Imp.svg" styleClass="Fleft" library="rio-layout" /></a>
+            <a id="mobile-menu-button" class="Fright ShowOnMobile ripplelink Unselectable ShadowEffect"><i class="icon-add186"></i></a>
+        </div>
+        
+        <a class="ripplelink WhiteBlue Fright ShowOnMobile" id="show-top-menu"><i class="icon-show8"></i></a>
+        
+        <ul id="top-menu" class="ShowOnDesktop">
+            <li>
+                <a class="ripplelink"><i class="icon-search100"></i> <span class="Txt">Pesquisa</span></a>
+                <ul>
+                    <li><input type="text" placeholder="Search"/></li>
+                </ul>
+            </li>
+            <li>
+                <a class="ripplelink"><i class="icon-set6"></i> <span class="Txt">Tarefas</span></a>
+                <ul>
+                    <li><a href="#">13 Novas Tarefas</a></li>
+                </ul>
+            </li>
+            <li>
+                <a class="ripplelink"><i class="icon-notifications1"></i> <span class="Txt">Alertas</span></a>
+                <ul>
+                    <li><a href="#">5 Alertas</a></li>
+                </ul>
+            </li>
+            <li><a href="#" class="ripplelink"><i class="icon-wifi83"></i> <span class="Txt">Configurações</span></a></li>
+        </ul>
+    </div>
+    
+</ui:composition>

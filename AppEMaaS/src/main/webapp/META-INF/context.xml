@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context antiResourceLocking="true" privileged="false" antiJARLocking="true" reloadable="false"
+	clearReferencesThreadLocals="true" clearReferencesStopThreads="true"
+	clearReferencesStopTimerThreads="true">
+	
+	    
+    <Resource name="jdbc/BigSeaT4-4Imp" auth="Application"
+		type="javax.sql.DataSource" maxActive="20" maxIdle="2" removeAbandoned="true"
+		removeAbandonedTimeout="55" maxWait="10000"  
+		driverClassName="com.mysql.jdbc.Driver"
+		url="jdbc:mysql://localhost/BigSeaT4_4Imp?autoReconnectForPools=true&amp;autoReconnect=false&amp;useOldAliasMetadataBehavior=true"
+		username="root" password="" />
+
+</Context>

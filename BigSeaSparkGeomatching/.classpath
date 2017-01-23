@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" output="target/classes" path="src/main/java">
+		<attributes>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry excluding="**" kind="src" output="target/classes" path="src/main/resources">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="target/test-classes" path="src/test/java">
+		<attributes>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry excluding="**" kind="src" output="target/test-classes" path="src/test/resources">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jre1.8.0_91">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="genericEntityLibs/bson-3.0.4-javadoc.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/commons-configuration-1.8.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/commons-lang-2.6.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/commons-logging-1.1.1.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/hadoop-common-2.2.0.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/hbase-0.92.1.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/jackson-core-lgpl-1.7.5.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/junit-4.8.2.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/log4j-1.2.16.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/mongo-java-driver-2.12.3 (1).jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/mysql-connector-java-5.1.15.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/ojdbc6.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/pojava-2.6.1.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/postgresql-9.0-801.jdbc4.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/simmetrics-1.6.2.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/slf4j-api-1.7.5.jar"/>
+	<classpathentry kind="lib" path="genericEntityLibs/zookeeper-3.4.3.jar"/>
+	<classpathentry kind="output" path="target/classes"/>
+</classpath>

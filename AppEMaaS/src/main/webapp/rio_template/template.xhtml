@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui">
+
+    <h:head>
+        <f:facet name="first">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+            <meta name="apple-mobile-web-app-capable" content="yes" />
+            
+            <link rel="shortcut icon" type="image/x-icon" href="#{resource['imagens/favicon.ico']}"/>
+        </f:facet>
+        
+        <title>PrimeFaces Rio- Projeto Modelo BigSeaT4-4Imp</title>
+        
+        <h:outputScript name="js/ripple-effect.js" library="rio-layout" />
+        <h:outputScript name="js/perfect-scrollbar.js" library="rio-layout" />
+        <h:outputScript name="js/layout.js" library="rio-layout" />
+
+        <ui:insert name="head" />
+    </h:head>
+
+    <h:body>
+        
+        <ui:include src="topbar.xhtml" />
+        
+        <div id="wrapper">
+            <div id="wrapperIndent">
+
+                <ui:include src="layoutmenu.xhtml" />
+
+                <div id="layout-portlets-cover">
+                    
+                     <ui:insert name="content">
+                        Template
+                    </ui:insert>
+                    
+                    <div class="Container100">
+                        <div class="ContainerIndent Fs12 BoldGray FontRobotoRegular">
+                            <div class="EmptyBox10"></div>
+                            <i class="icon-mountains14 Fs16 Fleft"></i> PrimeFaces Rio Theme And Layout  |  All rights reserved.
+                            <div class="EmptyBox10"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p:ajaxStatus style="width:32px;height:32px;position:fixed;right:7px;bottom:7px">
+                    <f:facet name="start">
+                        <p:graphicImage name="images/preloader.gif" library="rio-layout"/>
+                    </f:facet>
+
+                    <f:facet name="complete">
+                        <h:outputText value="" />
+                    </f:facet>
+                </p:ajaxStatus>
+            </div>
+        </div>
+
+        <h:outputStylesheet name="css/core-layout.css" library="rio-layout" />
+        <h:outputStylesheet name="css/animate.css" library="rio-layout" />
+        <h:outputStylesheet name="css/rio-font.css" library="rio-layout" />
+        <h:outputStylesheet name="css/ripple-effect.css" library="rio-layout" />
+        <h:outputStylesheet name="css/perfect-scrollbar.css" library="rio-layout" />
+        <h:outputStylesheet name="css/font-awesome.css" library="rio-layout" />
+        <h:outputStylesheet name="css/rio-layout.css" library="rio-layout" />
+    </h:body>
+
+</html>

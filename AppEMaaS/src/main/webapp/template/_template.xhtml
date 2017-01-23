@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:p="http://primefaces.org/ui">
+<h:head>
+	<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+	<title>BIG-DIVERS - BigSeaT4-4Imp</title>
+	<h:outputStylesheet library="css" name="style.css" />
+
+</h:head>
+<h:body>
+	<div id="cabecalho">
+	<p:growl id="messages" autoUpdate="true" showDetail="true" />
+	<h1> BIG-DIVERS - BigSeaT4-4Imp </h1>
+		<h:graphicImage library="imagens" name="BigSeaT4-4Imp.png" width="150"
+			id="logoCompany" />
+	</div>
+	
+	<div style="height: 3px; background-color: #332466; width: 100%" />
+	
+			<p:menubar style="background: none;background-color: #8B999E; ">
+				 <p:menuitem value="Início" url="index.xhtml" />
+				<p:submenu label="Cursos">
+					<p:menuitem value="Listar" url="/cursos.xhtml" />
+					<p:menuitem value="Cadastrar Disciplinas" url="/disciplinas.xhtml" />
+				</p:submenu>
+				
+				<p:submenu label="Alunos">
+		                <p:menuitem value="Cadastrar" url="cadastrarAlunos.xhtml" />
+		                <p:menuitem value="Matricular em Turmas" url="matricularEmDisciplina.xhtml" />  
+		       </p:submenu>
+		       <p:menuitem value="Digitação de Notas" url="digitacaoDeNotas.xhtml" />
+	       </p:menubar>
+	   
+	<div id="conteudo">
+		<ui:insert name="corpo"/>	
+	</div>
+	<div id="rodape">Processo Seletivo @2015</div>
+</h:body>
+</html>

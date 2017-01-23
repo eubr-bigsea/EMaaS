@@ -1,0 +1,55 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:p="http://primefaces.org/ui"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:c="http://java.sun.com/jsp/jstl/core">
+
+	<p:dialog header="Escolher Município" widgetVar="var#{dialogId}"
+		closeOnEscape="true" maximizable="false" minimizable="false"
+		resizable="false" id="id#{dialogId}" modal="true" onHide="entityTable.clearFilters(),entityTableMunicipio.clearFilters()">
+		<h:form id="form#{dialogId}">
+			<h:panelGrid columns="2" cellpadding="5"
+				columnClasses="columnVerticalAlign">
+				<p:dataTable var="objeto" value="#{ufList}" sortMode="multiple"
+					rows="10" paginator="true" rowKey="#{objeto.id}"
+					selection="#{selectedEntityUF}" selectionMode="single"
+					style="width:100%; white-space: pre-wrap;" widgetVar="entityTable"
+					emptyMessage="Nenhum registro encontrado.">
+
+					<p:column sortBy="#{objeto.nome}" headerText="Estado"
+						filterMatchMode="contains" filterBy="#{objeto.nome}">
+						<h:outputText value="#{objeto.nome}" />
+					</p:column>
+
+					<p:ajax event="rowSelect"
+						update=":form#{dialogId}:idEntityTableMunicipio"
+						listener="#{beanEntity.filterMunicipioByUF}"/>
+				</p:dataTable>
+
+				<p:dataTable var="objeto" value="#{municipiosList}"
+					sortMode="multiple" rows="10" paginator="true"
+					rowKey="#{objeto.id}" selection="#{selectedEntity}"
+					selectionMode="single" style="width:100%;"
+					widgetVar="entityTableMunicipio" id="idEntityTableMunicipio"
+					emptyMessage="Nenhum registro encontrado.">
+
+					<p:column sortBy="#{objeto.nome}" headerText="Município"
+						filterMatchMode="contains" filterBy="#{objeto.nome}">
+						<h:outputText value="#{objeto.nome}" />
+					</p:column>
+					<p:ajax event="rowSelect"
+						update=":form#{dialogId}:botaoAdicionar#{dialogId}" />
+				</p:dataTable>
+			</h:panelGrid>
+			<p:commandButton id="botaoAdicionar#{dialogId}"
+				disabled="#{empty selectedEntity}"
+				actionListener="#{beanEntity.addMunicipioToList}"
+				update=":#{formId}#{tabViewId}:#{inputText}" value="Selecionar"
+				oncomplete="var#{dialogId}.hide()" />
+
+		</h:form>
+
+	</p:dialog>
+
+</ui:composition>

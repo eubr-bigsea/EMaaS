@@ -1,0 +1,41 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:p="http://primefaces.org/ui" xmlns:pr="http://primefaces.org/rio">
+
+	<div class="Animated05" id="layout-menu-cover">
+		<ul class="layout-menu">
+			<li><a class="menulink ripplelink"> <i
+					class="icon-round58 Fs40"></i> <span class="Fs18">Admin<i class="icon-downwards Fright Fs20"></i><br />
+					<span class="Fs12 FontRobotoLight">BIG-Divers</span>
+				</span>
+			</a>
+				<ul>
+					<li><a href="#" class="menulink ripplelink"><i
+							class="icon-user158 Fs16"></i> User Profile</a></li>
+					<li><a href="#" class="menulink ripplelink"><i
+							class="icon-two385 Fs16"></i> Change</a></li>
+					<li><a href="#" class="menulink ripplelink"><i
+							class="icon-settings49 Fs16"></i> Settings </a></li>
+					<li>
+						<h:form id="formLogout">
+							<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
+							<h:commandLink id="logout" 
+								action="#{loginBean.logout}" styleClass="menulink ripplelink">								
+								<i class="icon-thermostat1 Fs16"> Logout</i>
+							</h:commandLink>
+						</h:form>
+					</li>
+				</ul></li>
+		</ul>
+		<div class="Separator"></div>
+		<h:form>
+			<pr:menu>
+				<p:menuitem id="rm_icons" value="Files" icon="icon-receipt9" outcome="/protegidos/files/gerenciador.xhtml"/>
+				<p:separator />
+			</pr:menu>
+		</h:form>
+	</div>
+
+</ui:composition>

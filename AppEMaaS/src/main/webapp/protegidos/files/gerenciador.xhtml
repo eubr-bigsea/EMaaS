@@ -1,0 +1,441 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:p="http://primefaces.org/ui"
+	xmlns:c="http://java.sun.com/jstl/core"
+	xmlns:pe="http://primefaces.org/ui/extensions"
+	template="/rio_template/template.xhtml">
+
+	<ui:define name="content">
+		<div class="Container100">
+			<div class="ContainerIndent">
+
+				<p:breadCrumb>
+					<p:menuitem value="Home" url="../../index.xhtml" />
+					<p:menuitem value="Files" url="/protegidos/files/gerenciador.xhtml" />
+				</p:breadCrumb>
+
+				<p:layout style="min-width:400px;min-height:700px;">
+					<p:layoutUnit position="west" size="400">
+						<p:tabView id="idTabView" dynamic="true" cache="true">
+							<p:tab title="Jars" id="tabJars">
+								<h:panelGrid columns="2" cellpadding="10">
+
+									<h:form id="formJars">
+										<p:growl id="messages" showDetail="true" />
+										<p:tree value="#{jobBean.jars}" id="jars" var="jar"
+											selectionMode="single" selection="#{jobBean.selectedNode}">
+											<p:ajax event="contextMenu"
+												listener="#{jobBean.onNodeSelect}" />
+
+											<p:treeNode expandedIcon="ui-icon-folder-open"
+												collapsedIcon="ui-icon-folder-collapsed">
+												<h:outputText value="#{jar.name}" />
+											</p:treeNode>
+
+											<p:treeNode type="jar" icon="ui-icon-document">
+												<h:outputText value="#{jar.name}" />
+											</p:treeNode>
+										</p:tree>
+
+										<p:contextMenu for="jars">
+											<p:menuitem value="Send jar" update="jars"
+												icon="ui-icon-upload"
+												onclick="PF('varDialogSendJar').show()" />
+										</p:contextMenu>
+										<p:contextMenu for="jars" nodeType="jar">
+											<p:menuitem value="SubmitJob"
+												update="jars idDialogSubmitJob messages"
+												oncomplete="PF('varDialogSubmitJob').show()"
+												actionListener="#{jobBean.searchClasses}" process="@form"
+												icon="ui-icon-upload" />
+											<p:menuitem value="Download Jar" update="jars messages"
+												action="#{jobBean.downloadFile}" icon="ui-icon-carat-1-s"
+												process="@form" />
+											<p:menuitem value="Delete JAR" update="jars"
+												onclick="PF('varDeleteJar').show()" icon="ui-icon-trash" />
+										</p:contextMenu>
+									</h:form>
+								</h:panelGrid>
+							</p:tab>
+							<p:tab title="Libs">
+								<h:panelGrid columns="2" cellpadding="10">
+
+									<h:outputText value="Libs" />
+								</h:panelGrid>
+							</p:tab>
+							<p:tab id="tabFiles" title="Files">
+								<h:panelGrid columns="2" cellpadding="10">
+
+									<h:form id="formFiles">
+										<p:growl id="messages" showDetail="true" />
+										<p:tree value="#{fileBean.files}" id="docs" var="doc"
+											selectionMode="single" selection="#{fileBean.selectedNode}">
+											<p:ajax event="contextMenu"
+												listener="#{fileBean.onSelectContextMenu}" />
+
+											<p:ajax event="select" listener="#{fileBean.onNodeSelect}"
+												update=":idAccordion :idAccordion:pnlContentFile" />
+
+											<p:treeNode expandedIcon="ui-icon-folder-open"
+												collapsedIcon="ui-icon-folder-collapsed">
+												<h:outputText value="#{doc.name}" />
+											</p:treeNode>
+
+											<p:treeNode type="document" icon="ui-icon-document">
+												<h:outputText value="#{doc.name}" />
+											</p:treeNode>
+										</p:tree>
+										<p:contextMenu for="docs">
+											<p:menuitem value="Create Directory"
+												onclick="PF('varDialogCreate').show()" icon="ui-icon-newwin" />
+											<p:menuitem value="Rename Directory" update="docs"
+												onclick="PF('varDialogRenameDirec').show()"
+												icon="ui-icon-pencil" />
+											<p:menuitem value="Delete Directory"
+												onclick="PF('varDialogDelDirec').show()"
+												icon="ui-icon-trash" />
+											<p:menuitem value="Upload File" update="docs"
+												onclick="PF('varDialogUpload').show()" icon="ui-icon-upload" />
+										</p:contextMenu>
+
+										<p:contextMenu for="docs" nodeType="document">
+											<p:menuitem value="Rename File" update="docs"
+												onclick="PF('varDialogRenameFile').show()"
+												icon="ui-icon-pencil" />
+											<p:menuitem value="Delete File" update="docs"
+												onclick="PF('varDialogDelFile').show()" icon="ui-icon-trash" />
+											<p:menuitem value="Download File" update="docs messages"
+												action="#{fileBean.downloadFile}" icon="ui-icon-carat-1-s"
+												process="@form" />
+											<p:separator />
+										</p:contextMenu>
+
+										<p:contextMenu for="formFiles">
+											<p:menuitem value="Create Directory"
+												onclick="PF('varDialogCreate').show()" icon="ui-icon-newwin"
+												actionListener="#{fileBean.setSelectedPathToRoot}" />
+										</p:contextMenu>
+									</h:form>
+								</h:panelGrid>
+							</p:tab>
+						</p:tabView>
+
+					</p:layoutUnit>
+					<p:layoutUnit position="center">
+						<p:accordionPanel id="idAccordion"
+							activeIndex="#{fileBean.activeIndex}">
+							<p:tab id="pnlContentFile" widgetVar="panelContentFile"
+								title="File Content">
+								<h:form>
+									<p:dataScroller value="#{fileBean.fileRows}" var="fileRow"
+										chunkSize="1000" mode="inline" scrollHeight="625">
+										<h:outputText value="#{fileRow.row}"/>
+									</p:dataScroller>
+								</h:form>
+
+							</p:tab>
+							<p:tab id="pnlContentJar" widgetVar="panelContentJar"
+								title="Job Execution">
+								<h:outputFormat id="outJar"
+									style="background:transparent; width:90%;"
+									value="#{jobBean.fileResult}" escape="false"/>
+							</p:tab>
+						</p:accordionPanel>
+					</p:layoutUnit>
+				</p:layout>
+			</div>
+		</div>
+
+		<p:dialog header="Create Directory" widgetVar="varDialogCreate"
+			modal="true" closeOnEscape="true" maximizable="false"
+			minimizable="false" resizable="false" id="idDialogCreate">
+			<h:form id="formCreateDirectory">
+				<p:growl id="messages" showDetail="true" />
+				<h:panelGrid columns="6" cellpadding="5">
+					<h:outputText value="Name Directory: " />
+					<p:inputText id="nameDir" value="#{fileBean.nameDirectory}" />
+					<br />
+					<p:commandButton icon="ui-icon-document" value="Create"
+						id="buttonCreateDir" action="#{fileBean.createDirectory}"
+						update=":idTabView:formFiles formFiles:docs treeChooseFolder:treeDocs messages"
+						onclick="PF('varDialogCreate').hide()" />
+				</h:panelGrid>
+			</h:form>
+		</p:dialog>
+
+		<p:dialog header="Rename Directory" widgetVar="varDialogRenameDirec"
+			modal="true" closeOnEscape="true" maximizable="false"
+			minimizable="false" resizable="false" id="idDialogRenameDirec">
+			<h:form id="formRenameDirec">
+				<h:panelGrid columns="6" cellpadding="5">
+					<p:growl id="messages" showDetail="true" />
+					<h:outputText value="New Name: " />
+					<p:inputText id="newPath" value="#{fileBean.newName}" />
+					<br />
+					<p:commandButton icon="ui-icon-pencil" value="Send"
+						id="buttonRenameDirec" action="#{fileBean.renameFile}"
+						update=":idTabView:formFiles formFiles:docs treeChooseFolder:treeDocs messages"
+						onclick="PF('varDialogRenameDirec').hide()" />
+				</h:panelGrid>
+			</h:form>
+		</p:dialog>
+
+		<p:dialog header="Are you sure?" widgetVar="varDialogDelDirec"
+			modal="true" closeOnEscape="true" maximizable="false"
+			minimizable="false" resizable="false" id="idDialogDelDirec">
+			<h:form id="formDelDirec">
+				<h:panelGrid columns="6" cellpadding="5">
+					<p:growl id="messages" showDetail="true" />
+					<p:commandButton icon="ui-icon-trash" value="OK"
+						id="buttonDelDirec" action="#{fileBean.deleteDirectory}"
+						update=":idTabView:formFiles formFiles:docs treeChooseFolder:treeDocs messages"
+						style="width: 100px;" onclick="PF('varDialogDelDirec').hide()" />
+					<p:commandButton icon="ui-icon-cancel" value="Cancel"
+						id="buttonDelDirecCancel" style="width: 100px;"
+						onclick="PF('varDialogDelDirec').hide()" />
+				</h:panelGrid>
+			</h:form>
+		</p:dialog>
+
+
+		<p:dialog header="File Upload" widgetVar="varDialogUpload"
+			modal="true" closeOnEscape="true" maximizable="false"
+			minimizable="false" resizable="false" id="idDialogUpload">
+			<h:form id="formDialogUpload">
+				<input type="hidden" name="${_csrf.parameterName}"
+					value="${_csrf.token}" />
+				<p:growl id="messages" showDetail="true" />
+				<h:outputText value="Select File: " />
+				<p:fileUpload fileUploadListener="#{fileBean.uploadFile}"
+					description="Select File" process="@form" mode="advanced"
+					dragDropSupport="false"
+					update="@form :idTabView:formFiles formFiles:docs messages"
+					fileLimit="1" ajax="true" oncomplete="PF('varDialogUpload').hide()"
+					allowTypes="/(\.|\/)(csv|txt)$/" />
+			</h:form>
+		</p:dialog>
+
+
+		<!-- <p:dialog header="File Download" widgetVar="varDialogDownload"
+			modal="true" closeOnEscape="true" maximizable="false"
+			minimizable="false" resizable="false" id="idDialogDownload">
+			<p:dialog modal="true" widgetVar="statusDialog" header="Status"
+				draggable="false" closable="false" resizable="false">
+				<p:graphicImage name="/demo/images/ajaxloadingbar.gif" />
+			</p:dialog>
+			<h:form>
+				<h:panelGrid columns="6" cellpadding="5">
+					<p:growl id="messages" showDetail="true" />
+					<h:outputText value="Destination Path: " />
+					<p:inputText id="sourcePathDownload" type="text"
+						value="#{fileBean.destinationPathDownload}" />
+					<br />
+					<p:commandButton icon="ui-icon-carat-1-s" value="Download"
+						id="buttonDownload" action="#{fileBean.downloadFile}"
+						onclick="PF('varDialogDownload').hide()" update="messages" />
+				</h:panelGrid>
+			</h:form>
+		</p:dialog> -->
+
+
+		<p:dialog header="Rename File" widgetVar="varDialogRenameFile"
+			modal="true" closeOnEscape="true" maximizable="false"
+			minimizable="false" resizable="false" id="idDialogRenameFile">
+			<h:form id="formRenameFile">
+				<h:panelGrid columns="6" cellpadding="5">
+					<p:growl id="messages" showDetail="true" />
+					<h:outputText value="New Name: " />
+					<p:inputText id="newPathFile" value="#{fileBean.newName}" />
+					<br />
+					<p:commandButton icon="ui-icon-pencil" value="Send"
+						id="buttonRename" action="#{fileBean.renameFile}"
+						update=":idTabView:formFiles formFiles:docs messages"
+						onclick="PF('varDialogRenameFile').hide()" />
+				</h:panelGrid>
+			</h:form>
+		</p:dialog>
+
+
+		<p:dialog header="Are you sure?" widgetVar="varDialogDelFile"
+			modal="true" closeOnEscape="true" maximizable="false"
+			minimizable="false" resizable="false" id="idDialogDelFile">
+			<h:form id="formDelFile">
+				<h:panelGrid columns="6" cellpadding="5">
+					<p:growl id="messages" showDetail="true" />
+					<p:commandButton icon="ui-icon-trash" value="OK" id="buttonDelFile"
+						action="#{fileBean.deleteFile}"
+						update=":idTabView:formFiles formFiles:docs messages"
+						onclick="PF('varDialogDelFile').hide()" style="width: 100px;" />
+					<p:commandButton icon="ui-icon-cancel" value="Cancel"
+						id="buttonDelFileCancel" onclick="PF('varDialogDelFile').hide()"
+						style="width: 100px;" />
+				</h:panelGrid>
+			</h:form>
+		</p:dialog>
+
+
+		<p:dialog header="Choose a File" widgetVar="varChooseFile">
+			<h:panelGrid columns="2" cellpadding="10">
+				<h:form id="formFiles">
+					<p:growl id="messages" showDetail="true" />
+					<p:tree value="#{fileBean.files}" id="docs" var="doc"
+						selectionMode="single" selection="#{fileBean.selectedNode}">
+
+						<p:ajax event="select" listener="#{jobBean.onFileSelected}"
+							update="formDialogSubmitJob:nameInput"
+							oncomplete="PF('varChooseFile').hide()" />
+
+						<p:treeNode expandedIcon="ui-icon-folder-open"
+							collapsedIcon="ui-icon-folder-collapsed">
+							<h:outputText value="#{doc.name}" />
+						</p:treeNode>
+
+						<p:treeNode type="document" icon="ui-icon-document">
+							<h:outputText value="#{doc.name}" />
+						</p:treeNode>
+					</p:tree>
+				</h:form>
+			</h:panelGrid>
+		</p:dialog>
+
+		<p:dialog header="Choose a Folder" widgetVar="varChooseFolder">
+			<h:panelGrid columns="2" cellpadding="10">
+				<h:form id="treeChooseFolder">
+					<p:growl id="messages" showDetail="true" />
+					<p:tree value="#{fileBean.folders}" id="treeDocs" var="doc"
+						selectionMode="single" selection="#{fileBean.selectedNode}">
+
+						<p:ajax event="select" listener="#{jobBean.onFolderSelected}"
+							update="formDialogSubmitJob:nameOutput"
+							oncomplete="PF('varChooseFolder').hide()" />
+
+						<p:treeNode expandedIcon="ui-icon-folder-open"
+							collapsedIcon="ui-icon-folder-collapsed">
+							<h:outputText value="#{doc.name}" />
+						</p:treeNode>
+
+						<p:treeNode type="document" icon="ui-icon-document">
+							<h:outputText value="#{doc.name}" />
+						</p:treeNode>
+					</p:tree>
+				</h:form>
+			</h:panelGrid>
+		</p:dialog>
+
+		<p:dialog header="Submit Job" widgetVar="varDialogSubmitJob"
+			modal="true" closeOnEscape="true" maximizable="false"
+			minimizable="false" resizable="false" id="idDialogSubmitJob">
+			<h:form id="formDialogSubmitJob">
+				<p:growl id="messages" showDetail="true" />
+				<h:panelGrid columns="5" cellpadding="5">
+
+					<p:outputLabel for="main" value="Main Class: " />
+					<!-- <p:inputText id="main" value="#{jobBean.mainClass}" />  -->
+					<p:selectOneMenu id="main" value="#{jobBean.mainClass}"
+						effect="fade" style="width:110px">
+						<f:selectItem itemLabel="Select One" itemValue="" />
+						<f:selectItems value="#{jobBean.classes}" />
+					</p:selectOneMenu>
+
+					<h:outputText value="Input HDFS: " />
+					<p:inputText id="nameInput" value="#{jobBean.inputHdfs}" />
+					<p:commandButton icon="fa fa-fw fa-ellipsis-h" id="btnPlusFile"
+						onclick="PF('varChooseFile').show()" />
+
+					<h:outputText value="Output HDFS: " />
+					<p:inputText id="nameOutput" value="#{jobBean.outputHdfs}" />
+					<p:commandButton icon="fa fa-fw fa-ellipsis-h" id="btnPlusFolder"
+						onclick="PF('varChooseFolder').show()" />
+
+					<h:panelGrid columns="2" style="margin-bottom:10px" cellpadding="5">
+						<p:outputLabel for="optionSubmit" value="Submit By:" />
+						<p:selectOneRadio id="optionSubmit"
+							value="#{jobBean.optionSubmit}" layout="grid" columns="1">
+							<f:selectItem itemLabel="Spark" itemValue="submitSparkJob" />
+							<f:selectItem itemLabel="Hadoop" itemValue="submitHadoopJob" />
+						</p:selectOneRadio>
+					</h:panelGrid>
+
+					<p:commandButton icon="ui-icon-document" value="Submit"
+						id="buttonSubmit" actionListener="#{jobBean.submitJob}"
+						update=":idAccordion:pnlContentJar :idAccordion :idTabView:formFiles formFiles:docs treeChooseFolder:treeDocs  messages"
+						onclick="PF('varDialogSubmitJob').hide()"
+						action="#{fileBean.refreshTreeFiles()}">
+						<f:setPropertyActionListener target="#{fileBean.activeIndex}"
+							value="1" />
+					</p:commandButton>
+				</h:panelGrid>
+				<!-- <p:separator />
+				<ui:repeat value="#{jobBean.jobs}" var="job">
+					<h:panelGrid columns="5" cellpadding="5">
+						<h:outputText value="JOB #{job.id} " />
+						<h:outputText value="Map: " />
+						<p:progressBar value="#{job.statusMap}" labelTemplate="{value}%"
+							displayOnly="true" style="width:150px" />
+						<h:outputText value="Reduce: " />
+						<p:progressBar value="#{job.statusReduce}"
+							labelTemplate="{value}%" displayOnly="true" style="width:150px" />
+					</h:panelGrid>
+				</ui:repeat> -->
+			</h:form>
+		</p:dialog>
+
+		<!-- <p:dialog header="Download Jar" widgetVar="varDialogDownloadJar"
+			modal="true" closeOnEscape="true" maximizable="false"
+			minimizable="false" resizable="false" id="idDialogDownloadJar">
+			<p:dialog modal="true" widgetVar="statusDialog" header="Status"
+				draggable="false" closable="false" resizable="false">
+				<p:graphicImage name="/demo/images/ajaxloadingbar.gif" />
+			</p:dialog>
+			<h:form>
+				<h:panelGrid columns="6" cellpadding="5">
+					<p:growl id="messages" showDetail="true" />
+					<h:outputText value="Destination Path: " />
+					<p:inputText id="destinationPathDownloadJar" type="text"
+						value="#{jobBean.destinationPathDownload}" />
+					<br />
+					<p:commandButton icon="ui-icon-carat-1-s" value="Download"
+						id="buttonDownloadJar" action="#{jobBean.downloadFile}"
+						onclick="PF('varDialogDownloadJar').hide()" update="messages" />
+				</h:panelGrid>
+			</h:form>
+		</p:dialog> -->
+
+		<p:dialog header="Send JAR" widgetVar="varDialogSendJar" modal="true"
+			closeOnEscape="true" maximizable="false" minimizable="false"
+			resizable="false" id="idDialogSendjar">
+			<h:form id="formDialogSendjar">
+				<input type="hidden" name="${_csrf.parameterName}"
+					value="${_csrf.token}" />
+				<p:growl id="messages" showDetail="true" />
+				<h:outputText value="Select JAR: " />
+				<p:fileUpload fileUploadListener="#{jobBean.sendFile}"
+					description="Select File" process="@form" mode="advanced"
+					dragDropSupport="false" update="@form messages :idTabView:formJars"
+					fileLimit="1" ajax="true"
+					oncomplete="PF('varDialogSendJar').hide()"
+					allowTypes="/(\.|\/)(jar)$/" />
+			</h:form>
+		</p:dialog>
+
+		<p:dialog header="Are you sure?" widgetVar="varDeleteJar" modal="true"
+			closeOnEscape="true" maximizable="false" minimizable="false"
+			resizable="false" id="idDeleteJar">
+			<h:form id="formDeleteJar">
+				<p:growl id="messages" showDetail="true" />
+				<h:panelGrid columns="6" cellpadding="5">
+					<p:commandButton icon="ui-icon-trash" value="OK" id="buttonDelJar"
+						action="#{jobBean.deleteDirectory}"
+						update="messages :idTabView:formJars"
+						onclick="PF('varDeleteJar').hide()" style="width: 100px;" />
+					<p:commandButton icon="ui-icon-cancel" value="Cancel"
+						id="buttonDelJarCancel" onclick="PF('varDeleteJar').hide()"
+						style="width: 100px;" />
+				</h:panelGrid>
+			</h:form>
+		</p:dialog>
+
+	</ui:define>
+</ui:composition>

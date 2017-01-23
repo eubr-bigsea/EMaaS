@@ -1,0 +1,37 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:p="http://primefaces.org/ui"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:c="http://java.sun.com/jstl/core">
+
+
+
+	<p:dialog header="Escolher #{type}" widgetVar="var#{dialogId}"
+		modal="true" closeOnEscape="true" maximizable="false"
+		minimizable="false" resizable="false" id="id#{dialogId}">
+		<h:form id="form#{dialogId}">
+		<input type="hidden" name="${_csrf.parameterName}"
+value="${_csrf.token}" />
+			<p:dataTable var="objeto" value="#{listEntity}" sortMode="multiple"
+				rows="10" paginator="true" rowKey="#{objeto.id}"
+				selection="#{selectedEntity}" selectionMode="#{selectionMode}"
+				widgetVar="entityTable"
+				emptyMessage="Nenhum registro encontrado.">
+
+				<p:column sortBy="#{objeto.nome}" headerText="#{type}"
+					filterBy="#{objeto.nome}" filterMatchMode="contains">
+					<h:outputText value="#{objeto.nome}" />
+				</p:column>
+
+				<f:facet name="footer">
+				<p:commandButton id="botaoAdicionar"
+						actionListener="#{beanEntity[addFunction]}"
+						update=":#{formId}:#{inputText}" value="Adicionar"
+						oncomplete="PF('var#{dialogId}').hide()" />
+				</f:facet>
+			</p:dataTable>
+		</h:form>
+
+	</p:dialog>
+</ui:composition>

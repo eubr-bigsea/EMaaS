@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:sec="http://www.springframework.org/schema/security"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/security
+		http://www.springframework.org/schema/security/spring-security.xsd">
+
+
+	<sec:global-method-security pre-post-annotations="enabled">
+		<sec:expression-handler ref="expressionHandler"/>
+	</sec:global-method-security>
+	
+	<bean id="aclService" class="org.springframework.security.acls.jdbc.JdbcMutableAclService">
+		<constructor-arg ref="dataSource" />
+		<constructor-arg ref="lookupStrategy" />
+		<constructor-arg ref="aclCache" />
+	</bean>
+	
+	<bean id="aclCache" class="org.springframework.security.acls.domain.EhCacheBasedAclCache">
+		<constructor-arg>
+			<bean class="org.springframework.cache.ehcache.EhCacheFactoryBean">
+				<property name="cacheManager">
+					<bean class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"/>
+				</property>
+				
+				<property name="cacheName" value="aclCache"/>
+			</bean>
+		</constructor-arg>
+		
+		<constructor-arg>
+			<bean class="org.springframework.security.acls.domain.DefaultPermissionGrantingStrategy">
+				<constructor-arg>
+					<bean class="org.springframework.security.acls.domain.ConsoleAuditLogger"/>
+				</constructor-arg>
+			</bean>
+		</constructor-arg>
+	
+		<constructor-arg>
+			<bean class="org.springframework.security.acls.domain.AclAuthorizationStrategyImpl">
+				<constructor-arg>
+					<list>
+						<bean class="org.springframework.security.core.authority.SimpleGrantedAuthority">
+							<constructor-arg value="ROLE_ACL_ADMIN"/>
+						</bean>
+					</list>
+				</constructor-arg>
+			</bean>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="lookupStrategy" class="org.springframework.security.acls.jdbc.BasicLookupStrategy">
+		<constructor-arg ref="dataSource" />
+		<constructor-arg ref="aclCache" />
+		
+		<constructor-arg>
+			<bean class="org.springframework.security.acls.domain.AclAuthorizationStrategyImpl">
+				<constructor-arg>
+					<bean class="org.springframework.security.core.authority.SimpleGrantedAuthority">
+						<constructor-arg value="ROLE_ADMINISTRATOR"/>
+					</bean>
+				</constructor-arg>
+			</bean>
+		</constructor-arg>
+		
+		<constructor-arg>
+			<bean class="org.springframework.security.acls.domain.ConsoleAuditLogger"/>
+		</constructor-arg>
+  	</bean>
+	
+	<bean id="permissionEvaluator" class="org.springframework.security.acls.AclPermissionEvaluator">
+		<constructor-arg ref="aclService"/>
+	</bean>
+	
+	<bean id="expressionHandler" class="org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler">
+		<property name="permissionEvaluator" ref="permissionEvaluator"/>
+		<property name="permissionCacheOptimizer">
+			<bean class="org.springframework.security.acls.AclPermissionCacheOptimizer">
+				<constructor-arg ref="aclService"/>
+			</bean>
+		</property>
+	</bean>
+	  
+	<sec:http use-expressions="true" auto-config="true">
+		<sec:intercept-url pattern="/protegidos/**" access="isAuthenticated()"  />
+		
+		<sec:intercept-url pattern="/javax.faces.resource**" access="permitAll" />
+		
+		<sec:intercept-url pattern="/**" access="permitAll" />
+		
+		<sec:form-login login-page="/login.jsf"  
+			password-parameter="j_password" 
+			username-parameter="j_username"
+			always-use-default-target="true"
+			authentication-failure-url="/login?login_error=1" 
+		/>
+		
+		<sec:logout logout-url="/logout" logout-success-url="/login" 
+			invalidate-session="true" delete-cookies="true" />
+			
+		<sec:access-denied-handler error-page="/403" />
+			
+<!-- 		<sec:csrf disabled="true"/> -->
+	</sec:http>
+
+	<sec:authentication-manager alias="authenticationManager">
+		<sec:authentication-provider user-service-ref="userService">
+			<sec:password-encoder ref="passwordEncoder" />
+		</sec:authentication-provider>
+	</sec:authentication-manager>
+	
+	<bean id="passwordEncoder" class="org.springframework.security.authentication.encoding.Md5PasswordEncoder" />
+
+</beans>
