@@ -53,18 +53,23 @@ public final class SingleMatchingGeoPolygonBlocked {
 		SparkConf sparkConf = new SparkConf().setAppName("GeoMatchingSpark").setMaster("local");
 		JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 		
-		double thresholdLinguistic = Double.parseDouble(args[0]);
-		double thresholdPolygon = Double.parseDouble(args[1]);
-		String outputPath = args[2];
-		Integer amountPartition = Integer.parseInt(args[3]);
+		String dataSource = args[0];
+		double thresholdLinguistic = Double.parseDouble(args[1]);
+		double thresholdPolygon = Double.parseDouble(args[2]);
+		String outputPath = args[3];
+		Integer amountPartition = Integer.parseInt(args[4]);
+		
 		
 		ReadAbstractSource reader = new ReadAbstractSource();
-		StorageManager storagePolygon = reader.readFile(AbstractExec.getDataPostGres("queries/osm_curitiba.txt"));
+		StorageManager storagePolygon = reader.readFile(AbstractExec.getDataPostGres(dataSource));
+//		StorageManager storagePolygon = reader.readFile(AbstractExec.getDataPostGres("queries/osm_curitiba.txt"));
+//		StorageManager storagePolygon = reader.readFile(AbstractExec.getDataPostGres("queries/squares_pref_curitiba.txt"));
 		
 		List<GeoPolygon> geoentities = new ArrayList<GeoPolygon>();
 		
 		int index = 0;
 		for (GenericObject genericObj : storagePolygon.getExtractedData()) {
+//					System.out.println(genericObj.getData().get("geometry"));
 			String nome = "";
 			Integer id;
 			if (!genericObj.getData().get("name").toString().equals("null")) {
@@ -81,7 +86,7 @@ public final class SingleMatchingGeoPolygonBlocked {
 		JavaRDD<Tuple2<String, GeoPolygon>> polygonLabed = polygons.flatMap(new FlatMapFunction<GeoPolygon, Tuple2<String, GeoPolygon>>() {
 
 			@Override
-			public Iterable<Tuple2<String, GeoPolygon>> call(GeoPolygon s) throws Exception {
+			public List<Tuple2<String, GeoPolygon>> call(GeoPolygon s) throws Exception {
 				List<Tuple2<String, GeoPolygon>> listOfPolygonTuple = new ArrayList<Tuple2<String, GeoPolygon>>();
 				GeoPolygon tocompare = s.getGeoPolygon();
 				tocompare.setDuplicated(false);
@@ -121,7 +126,7 @@ public final class SingleMatchingGeoPolygonBlocked {
 		JavaPairRDD<Integer, PolygonPair> matches = polygonsGrouped.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<GeoPolygon>>, Integer, PolygonPair>() {
 
 			@Override
-			public Iterable<Tuple2<Integer, PolygonPair>> call(Tuple2<String, Iterable<GeoPolygon>> tuple) throws Exception {
+			public List<Tuple2<Integer, PolygonPair>> call(Tuple2<String, Iterable<GeoPolygon>> tuple) throws Exception {
 				List<GeoPolygon> polygonsPerKey = IteratorUtils.toList(tuple._2().iterator());
 				List<GeoPolygon> polygonsToCompare = new ArrayList<GeoPolygon>();
 				List<GeoPolygon> polygonsDuplicated = new ArrayList<GeoPolygon>();
@@ -182,7 +187,7 @@ public final class SingleMatchingGeoPolygonBlocked {
 		matches.flatMap(new FlatMapFunction<Tuple2<Integer, PolygonPair>, String>() {
 
 			@Override
-			public Iterable<String> call(Tuple2<Integer, PolygonPair> t) throws Exception {
+			public ArrayList<String> call(Tuple2<Integer, PolygonPair> t) throws Exception {
 				ArrayList<String> listOutput = new ArrayList<String>();
 				listOutput.add(t._2().toStringCSV());
 				return listOutput;
@@ -194,6 +199,4 @@ public final class SingleMatchingGeoPolygonBlocked {
 		ctx.stop();
 		ctx.close();
 	}
-	
-	
 }

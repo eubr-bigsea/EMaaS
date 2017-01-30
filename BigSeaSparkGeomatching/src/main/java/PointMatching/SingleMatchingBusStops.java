@@ -26,18 +26,18 @@ import genericEntity.util.data.storage.StorageManager;
 import scala.Tuple2;
 import uk.ac.shef.wit.simmetrics.similaritymetrics.JaccardSimilarity;
 
-public final class MatchingBusStops {
+public final class SingleMatchingBusStops {
 	
 	private static final Pattern SPACE = Pattern.compile(" ");
 	private static final int rangeBlockingKey = 7; 
 
 	public static void main(String[] args) throws Exception {
-		SparkConf sparkConf = new SparkConf().setAppName("MatchingBusStops").setMaster("local");
+		SparkConf sparkConf = new SparkConf().setAppName("SingleMatchingBusStops").setMaster("local");
 		JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 		
 		
-		String dataSource1 = args[0];
-		String dataSource2 = args[1];
+		String dataSource = args[0];
+		double thresholdLinguistic = Double.parseDouble(args[1]);
 		double thresholdPointDistance = Double.parseDouble(args[2]);
 		String outputPath = args[3];
 		Integer amountPartition = Integer.parseInt(args[4]);
@@ -48,8 +48,8 @@ public final class MatchingBusStops {
 			System.exit(1);
 		}*/
 		
-		DataSource source1 = AbstractExec.getDataPostGres(dataSource1);
-		DataSource source2 = AbstractExec.getDataPostGres(dataSource2);
+		DataSource dataSource1 = AbstractExec.getDataPostGres(dataSource);
+		DataSource dataSource2 = AbstractExec.getDataPostGres(dataSource);
 		
 //		DataSource dataSourcePref = AbstractExec.getDataPostGres("queries/bustops_pref_curitiba2.txt"); //busStops Pref
 //		DataSource dataSourcePref = AbstractExec.getDataPostGres("queries/bustops_osm_curitiba.txt"); //busStops OSM
@@ -66,8 +66,8 @@ public final class MatchingBusStops {
         storageDS2.enableInMemoryProcessing();
 
 		// adds the "data" to the algorithm
-        storageDS1.addDataSource(source1);
-        storageDS2.addDataSource(source2);
+        storageDS1.addDataSource(dataSource1);
+        storageDS2.addDataSource(dataSource2);
 
 		if(!storageDS1.isDataExtracted()) {
 			storageDS1.extractData();
@@ -94,7 +94,6 @@ public final class MatchingBusStops {
 			
 		}
 		
-		
 		int indexOfOSM = 0;
 		for (GenericObject dude : storageDS2.getExtractedData()) {
 //					System.out.println(dude.getData().get("geometry"));
@@ -106,8 +105,8 @@ public final class MatchingBusStops {
 				geoPointsDS2.add(new GeoPoint2(dude.getData().get("geometry").toString(), nome, InputTypes.OSM_POLYGON, indexOfOSM, id));
 				indexOfOSM++;
 //			}
-			
 		}
+		
 		
 		JavaRDD<GeoPoint2> pointsDS1 = ctx.parallelize(geoPointsDS1);
 		JavaRDD<GeoPoint2> pointsDS2 = ctx.parallelize(geoPointsDS2);
@@ -176,7 +175,7 @@ public final class MatchingBusStops {
 						
 						//classification of pairs
 						PointPair pair;
-						if (distanceSimilarity <= thresholdPointDistance /*&& linguisticSimilarity > thresholdLinguistic*/ && (!entSource.getIdInDataset().equals(entTarget.getIdInDataset()))) {
+						if (distanceSimilarity <= thresholdPointDistance && linguisticSimilarity > thresholdLinguistic && (!entSource.getIdInDataset().equals(entTarget.getIdInDataset()))) {
 							pair = new PointPair(entSource, entTarget, 0, distanceSimilarity, PolygonClassification.MATCH);
 						} else {
 							pair = new PointPair(entSource, entTarget, 0, distanceSimilarity, PolygonClassification.NON_MATCH);

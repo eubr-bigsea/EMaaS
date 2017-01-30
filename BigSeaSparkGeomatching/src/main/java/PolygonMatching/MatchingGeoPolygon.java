@@ -59,30 +59,19 @@ public final class MatchingGeoPolygon {
 		SparkConf sparkConf = new SparkConf().setAppName("GeoMatchingSpark").setMaster("local");
 		JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 		
-		double thresholdLinguistic = Double.parseDouble(args[0]);
-		double thresholdPolygon = Double.parseDouble(args[1]);
-		String outputPath = args[2];
-		Integer amountPartition = Integer.parseInt(args[3]);
+		String dataSource1 = args[0];
+		String dataSource2 = args[1];
+		double thresholdLinguistic = Double.parseDouble(args[2]);
+		double thresholdPolygon = Double.parseDouble(args[3]);
+		String outputPath = args[4];
+		Integer amountPartition = Integer.parseInt(args[5]);
 		
-		//TO REMOVE
-//		DbConnection dbConnection = new DbConnection("org.postgresql.Driver", "localhost:5432", "postgres", "t2002b");
+
+		DataSource dataSourcePref = AbstractExec.getDataPostGres(dataSource1); //squaresOfCuritiba Pref
+		DataSource dataSourceOSM = AbstractExec.getDataPostGres(dataSource2); //squaresOfCuritiba OSM
 		
-		//LOAD THE DATASETS USING DUDE
-//		DataSource dataSourcePref = new GeoDatabaseSource("BIGSEA", new PostGreSQLDatabase(new DBInfo(new FileInputStream("./res/dbInfoPostGreSQl.properties"))),
-//				"pracas_e_jardinetes", false);
-//		
-//		DataSource dataSourceOSM = new GeoDatabaseSource("OSM", new PostGreSQLDatabase(new DBInfo(new FileInputStream("./res/dbInfoPostGreSQlOSM.properties"))),
-//				"polygons", true);
-		
-//		DataSource dataSourcePref = new DatabaseSource("BIGSEA", new PostGreSQLDatabase(new DBInfo(new FileInputStream("./res/dbInfoPostGrePolyOSM.properties"))),
-//				"prefeitura_polygon", false);
-//		
-//		DataSource dataSourceOSM = new DatabaseSource("OSM", new PostGreSQLDatabase(new DBInfo(new FileInputStream("./res/dbInfoPostGrePolyOSM.properties"))),
-//				"osm_polygon", true);
-		//END TO REMOVE
-		
-		DataSource dataSourcePref = AbstractExec.getDataPostGres("queries/squares_pref_curitiba.txt"); //squaresOfCuritiba Pref
-		DataSource dataSourceOSM = AbstractExec.getDataPostGres("queries/osm_curitiba.txt"); //squaresOfCuritiba OSM
+//		DataSource dataSourcePref = AbstractExec.getDataPostGres("queries/squares_pref_curitiba.txt"); //squaresOfCuritiba Pref
+//		DataSource dataSourceOSM = AbstractExec.getDataPostGres("queries/osm_curitiba.txt"); //squaresOfCuritiba OSM
 
 //		DataSource dataSourcePref = AbstractExec.getDataPostGres("queries/parks_pref_ny.txt"); //parksOfNY Pref
 //		DataSource dataSourceOSM = AbstractExec.getDataPostGres("queries/osm_ny.txt"); //parksOfNY OSM
@@ -148,7 +137,7 @@ public final class MatchingGeoPolygon {
 		JavaRDD<Tuple2<Integer, GeoPolygon>> polygonLabed = polygons.flatMap(new FlatMapFunction<GeoPolygon, Tuple2<Integer, GeoPolygon>>() {
 
 			@Override
-			public Iterable<Tuple2<Integer, GeoPolygon>> call(GeoPolygon s) throws Exception {
+			public List<Tuple2<Integer, GeoPolygon>> call(GeoPolygon s) throws Exception {
 				List<Tuple2<Integer, GeoPolygon>> listOfPolygonTuple = new ArrayList<Tuple2<Integer, GeoPolygon>>();
 				if (s.getType().equals(InputTypes.OSM_POLYGON)) {
 					listOfPolygonTuple.add(new Tuple2<Integer, GeoPolygon>(s.getIdGeometry()%numReplication.getValue(), s));
@@ -176,7 +165,7 @@ public final class MatchingGeoPolygon {
 		JavaPairRDD<Integer, PolygonPair> matches = polygonsGrouped.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer,Iterable<GeoPolygon>>, Integer, PolygonPair>() {
 
 			@Override
-			public Iterable<Tuple2<Integer, PolygonPair>> call(Tuple2<Integer, Iterable<GeoPolygon>> tuple) throws Exception {
+			public List<Tuple2<Integer, PolygonPair>> call(Tuple2<Integer, Iterable<GeoPolygon>> tuple) throws Exception {
 				List<GeoPolygon> polygonsPerKey = IteratorUtils.toList(tuple._2().iterator());
 				List<GeoPolygon> polygonsSource = new ArrayList<GeoPolygon>();
 				List<GeoPolygon> polygonsTarget = new ArrayList<GeoPolygon>();
@@ -215,7 +204,7 @@ public final class MatchingGeoPolygon {
 //						entityMatches.add(new Tuple2<Integer, PolygonPair>(index, pair));
 						
 						//for use case 04
-						if (pair.getPolygonClassification().equals(PolygonClassification.POSSIBLE_PROBLEM)) {
+						if (pair.getPolygonClassification().equals(PolygonClassification.POSSIBLE_PROBLEM) || pair.getPolygonClassification().equals(PolygonClassification.MATCH)) {
 							int index = entityMatches.size();
 							entityMatches.add(new Tuple2<Integer, PolygonPair>(index, pair));
 						}
@@ -237,7 +226,7 @@ public final class MatchingGeoPolygon {
 		matches.flatMap(new FlatMapFunction<Tuple2<Integer, PolygonPair>, String>() {
 
 			@Override
-			public Iterable<String> call(Tuple2<Integer, PolygonPair> t) throws Exception {
+			public ArrayList<String> call(Tuple2<Integer, PolygonPair> t) throws Exception {
 				ArrayList<String> listOutput = new ArrayList<String>();
 				listOutput.add(t._2().toStringCSV());
 				return listOutput;
@@ -245,10 +234,7 @@ public final class MatchingGeoPolygon {
 		
 		}).saveAsTextFile(outputPath);
 		
-		
 		ctx.stop();
 		ctx.close();
-	}
-	
-	
+	}	
 }

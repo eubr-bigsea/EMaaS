@@ -1,8 +1,6 @@
 package SingleMatchingGeoPolygon;
 
-import java.io.FileInputStream;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -20,9 +18,6 @@ import PolygonDependencies.GeoPolygon;
 import PolygonDependencies.InputTypes;
 import PolygonDependencies.PolygonClassification;
 import PolygonDependencies.PolygonPair;
-import genericEntity.database.DatabaseSource;
-import genericEntity.database.adapter.PostGreSQLDatabase;
-import genericEntity.database.util.DBInfo;
 import genericEntity.exec.AbstractExec;
 import genericEntity.input.ReadAbstractSource;
 import genericEntity.util.data.GenericObject;
@@ -57,43 +52,14 @@ public final class SingleMatchingGeoPolygon {
 		SparkConf sparkConf = new SparkConf().setAppName("GeoMatchingSpark").setMaster("local");
 		JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 		
-		double thresholdLinguistic = Double.parseDouble(args[0]);
-		double thresholdPolygon = Double.parseDouble(args[1]);
-		String outputPath = args[2];
-		Integer amountPartition = Integer.parseInt(args[3]);
+		String dataSource = args[0];
+		double thresholdLinguistic = Double.parseDouble(args[1]);
+		double thresholdPolygon = Double.parseDouble(args[2]);
+		String outputPath = args[3];
+		Integer amountPartition = Integer.parseInt(args[4]);
 		
-//		DbConnection dbConnection = new DbConnection("org.postgresql.Driver", "localhost:5432", "postgres", "t2002b");
-		
-		//LOAD THE DATASETS USING DUDE
-//		DataSource dataSourcePref = new GeoDatabaseSource("BIGSEA", new PostGreSQLDatabase(new DBInfo(new FileInputStream("./res/dbInfoPostGreSQl.properties"))),
-//				"pracas_e_jardinetes", false);
-//		
-//		DataSource dataSourceOSM = new GeoDatabaseSource("OSM", new PostGreSQLDatabase(new DBInfo(new FileInputStream("./res/dbInfoPostGreSQlOSM.properties"))),
-//				"polygons", true);
-		
-//		DataSource dataSourcePref = new GeoDatabaseSource("BIGSEA", new PostGreSQLDatabase(new DBInfo(new FileInputStream("./res/dbInfoPostGrePolyOSM.properties"))),
-//				"prefeitura_polygon", false);
-		
-//		GeoDatabaseSource dataSource = new GeoDatabaseSource("OSM", new PostGreSQLDatabase(new DBInfo(new FileInputStream("./res/dbInfoPostGreSQlOSM.properties"))),
-//				"polygons", true);
-//		DatabaseSource dataSource = new DatabaseSource("OSM", new PostGreSQLDatabase(new DBInfo(new FileInputStream("./res/dbInfoPostGrePolyOSM.properties"))),
-//				"osm_polygon", true);
-//		dataSource.setWhereFilter("name IS NOT NULL");//For OSM
-//
-//        StorageManager storagePolygon = new StorageManager();
-//		
-//		// enables in-memory execution for faster processing
-//		// this can be done since the whole data fits into memory
-//        storagePolygon.enableInMemoryProcessing();
-//
-//		// adds the "data" to the algorithm
-//        storagePolygon.addDataSource(dataSource);
-//
-//		if(!storagePolygon.isDataExtracted()) {
-//			storagePolygon.extractData();
-//		}
 		ReadAbstractSource reader = new ReadAbstractSource();
-		StorageManager storagePolygon = reader.readFile(AbstractExec.getDataPostGres("queries/osm_curitiba.txt"));
+		StorageManager storagePolygon = reader.readFile(AbstractExec.getDataPostGres(dataSource));
 		
 		List<GeoPolygon> geoentities = new ArrayList<GeoPolygon>();
 		
@@ -116,7 +82,7 @@ public final class SingleMatchingGeoPolygon {
 		JavaRDD<Tuple2<Integer, GeoPolygon>> polygonLabed = polygons.flatMap(new FlatMapFunction<GeoPolygon, Tuple2<Integer, GeoPolygon>>() {
 
 			@Override
-			public Iterable<Tuple2<Integer, GeoPolygon>> call(GeoPolygon s) throws Exception {
+			public List<Tuple2<Integer, GeoPolygon>> call(GeoPolygon s) throws Exception {
 				List<Tuple2<Integer, GeoPolygon>> listOfPolygonTuple = new ArrayList<Tuple2<Integer, GeoPolygon>>();
 				GeoPolygon tocompare = s.getGeoPolygon();
 				tocompare.setDuplicated(false);
@@ -145,7 +111,7 @@ public final class SingleMatchingGeoPolygon {
 		JavaPairRDD<Integer, PolygonPair> matches = polygonsGrouped.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer,Iterable<GeoPolygon>>, Integer, PolygonPair>() {
 
 			@Override
-			public Iterable<Tuple2<Integer, PolygonPair>> call(Tuple2<Integer, Iterable<GeoPolygon>> tuple) throws Exception {
+			public List<Tuple2<Integer, PolygonPair>> call(Tuple2<Integer, Iterable<GeoPolygon>> tuple) throws Exception {
 				List<GeoPolygon> polygonsPerKey = IteratorUtils.toList(tuple._2().iterator());
 				List<GeoPolygon> polygonsToCompare = new ArrayList<GeoPolygon>();
 				List<GeoPolygon> polygonsDuplicated = new ArrayList<GeoPolygon>();
@@ -206,7 +172,7 @@ public final class SingleMatchingGeoPolygon {
 		matches.flatMap(new FlatMapFunction<Tuple2<Integer, PolygonPair>, String>() {
 
 			@Override
-			public Iterable<String> call(Tuple2<Integer, PolygonPair> t) throws Exception {
+			public ArrayList<String> call(Tuple2<Integer, PolygonPair> t) throws Exception {
 				ArrayList<String> listOutput = new ArrayList<String>();
 				listOutput.add(t._2().toStringCSV());
 				return listOutput;
@@ -218,6 +184,4 @@ public final class SingleMatchingGeoPolygon {
 		ctx.stop();
 		ctx.close();
 	}
-	
-	
 }
