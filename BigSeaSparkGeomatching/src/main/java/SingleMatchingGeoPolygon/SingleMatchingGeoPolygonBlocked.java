@@ -19,6 +19,7 @@ import PolygonDependencies.GeoPolygon;
 import PolygonDependencies.InputTypes;
 import PolygonDependencies.PolygonClassification;
 import PolygonDependencies.PolygonPair;
+import genericEntity.datasource.DataSource;
 import genericEntity.exec.AbstractExec;
 import genericEntity.input.ReadAbstractSource;
 import genericEntity.util.data.GenericObject;
@@ -58,10 +59,19 @@ public final class SingleMatchingGeoPolygonBlocked {
 		double thresholdPolygon = Double.parseDouble(args[2]);
 		String outputPath = args[3];
 		Integer amountPartition = Integer.parseInt(args[4]);
+		String sourceType = args[5];
+		
+		
+		DataSource source1 = null;
+		if (sourceType.equals("CSV")) {
+			source1 = AbstractExec.getDataCSV(dataSource);
+		} else { //is postgis
+			source1 = AbstractExec.getDataPostGres(dataSource);
+		}
 		
 		
 		ReadAbstractSource reader = new ReadAbstractSource();
-		StorageManager storagePolygon = reader.readFile(AbstractExec.getDataPostGres(dataSource));
+		StorageManager storagePolygon = reader.readFile(source1);
 //		StorageManager storagePolygon = reader.readFile(AbstractExec.getDataPostGres("queries/osm_curitiba.txt"));
 //		StorageManager storagePolygon = reader.readFile(AbstractExec.getDataPostGres("queries/squares_pref_curitiba.txt"));
 		

@@ -65,10 +65,21 @@ public final class MatchingGeoPolygon {
 		double thresholdPolygon = Double.parseDouble(args[3]);
 		String outputPath = args[4];
 		Integer amountPartition = Integer.parseInt(args[5]);
+		String sourceType = args[6];
 		
+		
+		DataSource dataSourcePref = null;
+		DataSource dataSourceOSM = null;
+		if (sourceType.equals("CSV")) {
+			dataSourcePref = AbstractExec.getDataCSV(dataSource1);
+			dataSourceOSM = AbstractExec.getDataCSV(dataSource2);
+		} else { //is postgis
+			dataSourcePref = AbstractExec.getDataPostGres(dataSource1);
+			dataSourceOSM = AbstractExec.getDataPostGres(dataSource2);
+		}
 
-		DataSource dataSourcePref = AbstractExec.getDataPostGres(dataSource1); //squaresOfCuritiba Pref
-		DataSource dataSourceOSM = AbstractExec.getDataPostGres(dataSource2); //squaresOfCuritiba OSM
+//		DataSource dataSourcePref = AbstractExec.getDataPostGres(dataSource1); //squaresOfCuritiba Pref
+//		DataSource dataSourceOSM = AbstractExec.getDataPostGres(dataSource2); //squaresOfCuritiba OSM
 		
 //		DataSource dataSourcePref = AbstractExec.getDataPostGres("queries/squares_pref_curitiba.txt"); //squaresOfCuritiba Pref
 //		DataSource dataSourceOSM = AbstractExec.getDataPostGres("queries/osm_curitiba.txt"); //squaresOfCuritiba OSM
@@ -236,5 +247,5 @@ public final class MatchingGeoPolygon {
 		
 		ctx.stop();
 		ctx.close();
-	}	
+	}
 }

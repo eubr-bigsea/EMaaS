@@ -1,7 +1,7 @@
 /*
  * GenericObject - The Duplicate Detection Toolkit
  * 
- * Copyright (C) 2010  Hasso-Plattner-Institut für Softwaresystemtechnik GmbH,
+ * Copyright (C) 2010  Hasso-Plattner-Institut fÃ¼r Softwaresystemtechnik GmbH,
  *                     Potsdam, Germany 
  *
  * This file is part of GenericObject.
@@ -23,13 +23,18 @@
 
 package genericEntity.datasource;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.util.Iterator;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
@@ -166,6 +171,8 @@ public class CSVSource extends AbstractDataSource<CSVSource> implements Jsonable
 	private boolean readHeader = false;
 
 	private transient File csvFile;
+	
+	private String pathHdfs;
 
 	/**
 	 * Internal constructor for {@link Jsonable} deserialization.
@@ -184,8 +191,8 @@ public class CSVSource extends AbstractDataSource<CSVSource> implements Jsonable
 	 * @throws FileNotFoundException
 	 *             If the passed file does not exist.
 	 */
-	public CSVSource(String identifier, File file) throws FileNotFoundException {
-		this(identifier, file, (String[]) null);
+	public CSVSource(String path, String identifier, File file) throws FileNotFoundException {
+		this(path, identifier, file, (String[]) null);
 	}
 
 	/**
@@ -200,19 +207,20 @@ public class CSVSource extends AbstractDataSource<CSVSource> implements Jsonable
 	 * @throws FileNotFoundException
 	 *             If the passed file does not exist.
 	 */
-	public CSVSource(String identifier, File file, String... colNames) throws FileNotFoundException {
+	public CSVSource(String path, String identifier, File file, String... colNames) throws FileNotFoundException {
 		super(identifier);
 
 		if (file == null) {
 			throw new NullPointerException("No file was passed.");
 		}
 
-		if (!file.exists()) {
-			throw new FileNotFoundException("'" + file.getName() + "' does not exist.");
-		}
+//		if (!file.exists()) {
+//			throw new FileNotFoundException("'" + file.getName() + "' does not exist.");
+//		}
 
 		this.csvFile = file;
 		this.columnNames = colNames;
+		this.pathHdfs = path;
 	}
 
 	/**
@@ -323,12 +331,16 @@ public class CSVSource extends AbstractDataSource<CSVSource> implements Jsonable
 
 	private CSVReader createCSVReaderInstance() {
 		try {
-			final CSVReader reader = new CSVReader(new FileReader(this.csvFile));
+			
+			FileSystem fs = FileSystem.get(new Configuration());
+			FSDataInputStream FSfile = fs.open(new Path(pathHdfs));
+			BufferedReader rd = new BufferedReader(new InputStreamReader(FSfile));
+			final CSVReader reader = new CSVReader(rd);
 			reader.setSeparator(this.getSeparatorCharacter());
 			reader.setQuoteCharacter(this.getQuoteCharacter());
 			this.registerCloseable(reader);
 			return reader;
-		} catch (final FileNotFoundException e) {
+		} catch (final IOException e) {
 			CSVSource.logger.error("'" + this.csvFile.getName() + "' does not exist.");
 			return null;
 		}
@@ -368,5 +380,4 @@ public class CSVSource extends AbstractDataSource<CSVSource> implements Jsonable
 		this.csvFile = new File(jsonParser.nextString());
 		jsonParser.skipToken(JsonToken.END_OBJECT);
 	}
-
 }

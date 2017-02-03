@@ -33,7 +33,7 @@ public class AbstractExec {
 	public static DataSource getDataCSV(String pathFile){
 		CSVSource dataSource = null;
 		try {
-			dataSource = new CSVSource("", new File(pathFile));
+			dataSource = new CSVSource("", "", new File(pathFile));
 			dataSource.enableHeader();
 			dataSource.setSeparatorCharacter(',');
 			dataSource.addIdAttributes("id");

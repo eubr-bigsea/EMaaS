@@ -41,6 +41,7 @@ public final class MatchingBusStops {
 		double thresholdPointDistance = Double.parseDouble(args[2]);
 		String outputPath = args[3];
 		Integer amountPartition = Integer.parseInt(args[4]);
+		String sourceType = args[5];
 		
 		/*
 		if (args.length < 1) {
@@ -48,8 +49,16 @@ public final class MatchingBusStops {
 			System.exit(1);
 		}*/
 		
-		DataSource source1 = AbstractExec.getDataPostGres(dataSource1);
-		DataSource source2 = AbstractExec.getDataPostGres(dataSource2);
+		DataSource source1 = null;
+		DataSource source2 = null;
+		if (sourceType.equals("CSV")) {
+			source1 = AbstractExec.getDataCSV(dataSource1);
+			source2 = AbstractExec.getDataCSV(dataSource2);
+		} else { //is postgis
+			source1 = AbstractExec.getDataPostGres(dataSource1);
+			source2 = AbstractExec.getDataPostGres(dataSource2);
+		}
+		
 		
 //		DataSource dataSourcePref = AbstractExec.getDataPostGres("queries/bustops_pref_curitiba2.txt"); //busStops Pref
 //		DataSource dataSourcePref = AbstractExec.getDataPostGres("queries/bustops_osm_curitiba.txt"); //busStops OSM
@@ -111,6 +120,7 @@ public final class MatchingBusStops {
 		
 		JavaRDD<GeoPoint2> pointsDS1 = ctx.parallelize(geoPointsDS1);
 		JavaRDD<GeoPoint2> pointsDS2 = ctx.parallelize(geoPointsDS2);
+		
 		
 		JavaRDD<GeoPoint2> points = pointsDS1.union(pointsDS2);
 

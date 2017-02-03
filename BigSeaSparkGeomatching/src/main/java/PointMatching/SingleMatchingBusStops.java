@@ -41,15 +41,18 @@ public final class SingleMatchingBusStops {
 		double thresholdPointDistance = Double.parseDouble(args[2]);
 		String outputPath = args[3];
 		Integer amountPartition = Integer.parseInt(args[4]);
+		String sourceType = args[5];
 		
-		/*
-		if (args.length < 1) {
-			System.err.println("Usage: MatchingGeoPoints <file>");
-			System.exit(1);
-		}*/
+		DataSource source1 = null;
+		DataSource source2 = null;
+		if (sourceType.equals("CSV")) {
+			source1 = AbstractExec.getDataCSV(dataSource);
+		} else { //is postgis
+			source1 = AbstractExec.getDataPostGres(dataSource);
+		}
 		
-		DataSource dataSource1 = AbstractExec.getDataPostGres(dataSource);
-		DataSource dataSource2 = AbstractExec.getDataPostGres(dataSource);
+//		DataSource dataSource1 = AbstractExec.getDataPostGres(source1);
+//		DataSource dataSource2 = AbstractExec.getDataPostGres(source1);
 		
 //		DataSource dataSourcePref = AbstractExec.getDataPostGres("queries/bustops_pref_curitiba2.txt"); //busStops Pref
 //		DataSource dataSourcePref = AbstractExec.getDataPostGres("queries/bustops_osm_curitiba.txt"); //busStops OSM
@@ -66,8 +69,8 @@ public final class SingleMatchingBusStops {
         storageDS2.enableInMemoryProcessing();
 
 		// adds the "data" to the algorithm
-        storageDS1.addDataSource(dataSource1);
-        storageDS2.addDataSource(dataSource2);
+        storageDS1.addDataSource(source1);
+        storageDS2.addDataSource(source1);
 
 		if(!storageDS1.isDataExtracted()) {
 			storageDS1.extractData();
@@ -94,6 +97,7 @@ public final class SingleMatchingBusStops {
 			
 		}
 		
+		
 		int indexOfOSM = 0;
 		for (GenericObject dude : storageDS2.getExtractedData()) {
 //					System.out.println(dude.getData().get("geometry"));
@@ -105,11 +109,13 @@ public final class SingleMatchingBusStops {
 				geoPointsDS2.add(new GeoPoint2(dude.getData().get("geometry").toString(), nome, InputTypes.OSM_POLYGON, indexOfOSM, id));
 				indexOfOSM++;
 //			}
+			
 		}
 		
 		
 		JavaRDD<GeoPoint2> pointsDS1 = ctx.parallelize(geoPointsDS1);
 		JavaRDD<GeoPoint2> pointsDS2 = ctx.parallelize(geoPointsDS2);
+		
 		
 		JavaRDD<GeoPoint2> points = pointsDS1.union(pointsDS2);
 
