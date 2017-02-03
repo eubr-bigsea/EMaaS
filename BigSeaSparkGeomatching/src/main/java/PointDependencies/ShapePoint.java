@@ -2,25 +2,29 @@ package PointDependencies;
 
 import java.util.StringTokenizer;
 
-public class ShapePoint extends GeoPoint{
-	
-	/**
-	 * 
-	 */
+public class ShapePoint extends GeoPoint {
+
 	private static final long serialVersionUID = 1L;
-	//"shape_id","shape_pt_lat","shape_pt_lon","shape_pt_sequence","shape_dist_traveled"
-	//shape: 3217,-25.4757686477818,-49.2923877163312,3281146,24.441
+	// "shape_id","shape_pt_lat","shape_pt_lon","shape_pt_sequence","shape_dist_traveled"
+	// shape: 3217,-25.4757686477818,-49.2923877163312,3281146,24.441
 	private String id;
 	private String pointSequence;
 	private String distanceTraveled;
-	
+	private String route;
+
 	public ShapePoint(String id, String latitude, String longitude, String pointSequence, String distanceTraveled) {
 		super(latitude, longitude);
 		this.id = id;
 		this.pointSequence = pointSequence;
 		this.distanceTraveled = distanceTraveled;
 	}
-	
+
+	public ShapePoint(String route, String id, String latitude, String longitude, String pointSequence,
+			String distanceTraveled) {
+		this(id, latitude, longitude, pointSequence, distanceTraveled);
+		this.route = route;
+	}
+
 	public ShapePoint() {
 		super("", "");
 		this.id = "";
@@ -30,9 +34,19 @@ public class ShapePoint extends GeoPoint{
 
 	public static ShapePoint createShapePoint(String line) {
 		StringTokenizer st = new StringTokenizer(line, ",");
-		return new ShapePoint(st.nextToken().replace("\"", ""),
+		return new ShapePoint(st.nextToken().replace("\"", ""), 
 				st.nextToken().replace("\"", ""),
+				st.nextToken().replace("\"", ""), 
+				st.nextToken().replace("\"", ""), 
+				st.nextToken().replace("\"", ""));
+	}
+
+	public static ShapePoint createShapePointRoute(String line) {
+		StringTokenizer st = new StringTokenizer(line, ",");
+		return new ShapePoint(st.nextToken().replace("\"", ""), 
 				st.nextToken().replace("\"", ""),
+				st.nextToken().replace("\"", ""), 
+				st.nextToken().replace("\"", ""), 
 				st.nextToken().replace("\"", ""),
 				st.nextToken().replace("\"", ""));
 	}
@@ -61,10 +75,18 @@ public class ShapePoint extends GeoPoint{
 		this.distanceTraveled = distanceTraveled;
 	}
 
+	public String getRoute() {
+		return route;
+	}
+
+	public void setRoute(String route) {
+		this.route = route;
+	}
+
 	@Override
 	public String toString() {
-		return "ShapePoint [id=" + id + ", pointSequence=" + pointSequence + ", distanceTraveled=" + distanceTraveled
-				+ super.toString() +"]";
+		return "ShapePoint [id=" + id + ", pointSequence=" + pointSequence + 
+				", distanceTraveled=" + distanceTraveled + ", route=" + route + "]";
 	}
 
 	@Override
@@ -103,5 +125,4 @@ public class ShapePoint extends GeoPoint{
 			return false;
 		return true;
 	}
-	
 }

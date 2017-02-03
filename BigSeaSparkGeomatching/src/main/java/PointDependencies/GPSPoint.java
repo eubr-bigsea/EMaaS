@@ -1,19 +1,22 @@
 package PointDependencies;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.StringTokenizer;
 
 public class GPSPoint extends GeoPoint{
 	
+	private static final long serialVersionUID = 1L;
 	//"bus.code","latitude","longitude","timestamp","line.code"
 	//"AL300",-25.439896,-49.222006,2015-10-19 06:13:04,"022"
-	
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+	private String gpsId;
 	private String busCode;
 	private String timeStamp;
 	private String lineCode;
+	private ShapePoint closestPoint;
+	private Integer numberTrip;
+	private float distanceClosestShapePoint;
+	private int thresholdShape;
 
 	public GPSPoint(String busCode, String latitude, String longitude, String timeStamp, String lineCode) {
 		super(latitude, longitude);
@@ -22,21 +25,43 @@ public class GPSPoint extends GeoPoint{
 		this.lineCode = lineCode;
 	}
 	
-	public static GPSPoint createGPSPoint(String line) {
-		StringTokenizer st = new StringTokenizer(line, ",");
-		return new GPSPoint(st.nextToken().replace("\"", ""), 
-				st.nextToken().replace("\"", ""),
-				st.nextToken().replace("\"", ""),
-				st.nextToken().replace("\"", ""),
-				st.nextToken().replace("\"", ""));
+	public GPSPoint(String busCode, String latitude, String longitude, String timeStamp, String lineCode, 
+			String gpsId) {
+        this(busCode, latitude, longitude, timeStamp, lineCode);
+        this.gpsId = gpsId;
+	}
+	
+	public String getGpsId() {
+	    return gpsId;
+	}
+	
+	public void setGpsId(String gpsId) {
+	    this.gpsId = gpsId;
+	}
+	
+	public Integer getNumberTrip() {
+		return numberTrip;
 	}
 
+	public void setNumberTrip(Integer numberTrip) {
+		this.numberTrip = numberTrip;
+	}
+
+	public ShapePoint getClosestPoint() {
+		return closestPoint;
+	}
+	
 	public String getBusCode() {
 		return busCode;
 	}
 
 	public void setBusCode(String busCode) {
 		this.busCode = busCode;
+	}
+	
+	public long getTime() throws ParseException {
+		SimpleDateFormat parser = new SimpleDateFormat("HH:mm:ss");		
+		return parser.parse(this.timeStamp).getTime();
 	}
 
 	public String getTimeStamp() {
@@ -55,9 +80,59 @@ public class GPSPoint extends GeoPoint{
 		this.lineCode = lineCode;
 	}
 
+	public String getBlockingKeyFromTime() {
+		return timeStamp.trim().substring(0, 4).replace(":", "");
+	}
+	
+	public void setDistanceClosestShapePoint(float distance) {
+		this.distanceClosestShapePoint = distance;		
+	}
+	
+	public float getDistanceClosestShapePoint() {
+		return this.distanceClosestShapePoint;
+	}
+
+	public int getThresholdShape() {		
+		return this.thresholdShape;
+	}
+	
+	public void setThresholdShape(int threshold){
+		this.thresholdShape = threshold;
+	}
+
+	public static GPSPoint createGPSPoint(String line) {
+		StringTokenizer st = new StringTokenizer(line, ",");
+		return new GPSPoint(st.nextToken().replace("\"", ""), 
+				st.nextToken().replace("\"", ""),
+				st.nextToken().replace("\"", ""),
+				st.nextToken().replace("\"", ""),
+				st.nextToken().replace("\"", ""));
+	}	
+	
+	public static GPSPoint createGPSPointWithId(String line) {
+		StringTokenizer st = new StringTokenizer(line, ",");
+		return new GPSPoint(st.nextToken().replace("\"", ""), 
+				st.nextToken().replace("\"", ""),
+				st.nextToken().replace("\"", ""),
+				st.nextToken().replace("\"", ""),
+				st.nextToken().replace("\"", ""),
+				st.nextToken().replace("\"", ""));
+	}
+	
+	public void setClosestPoint(GeoPoint closestPoint) throws Exception {
+		if (!(closestPoint instanceof ShapePoint)) {
+			throw new Exception("Closest point must be a type of ShapePoint.");
+		}
+		ShapePoint shapePoint =  (ShapePoint) closestPoint;
+		this.closestPoint = shapePoint;
+	}
+		
 	@Override
 	public String toString() {
-		return "GPSPoint [busCode=" + busCode + ", timeStamp=" + timeStamp + ", lineCode=" + lineCode + super.toString() +"]";
+		return "GPSPoint [gpsId=" + gpsId + ", busCode=" + busCode + ", timeStamp=" + timeStamp + ", lineCode="
+				+ lineCode + ", closestPoint=" + closestPoint + ", numberTrip=" + numberTrip
+				+ ", distanceClosestShapePoint=" + distanceClosestShapePoint + 
+				", thresholdShape=" + thresholdShape + "]";
 	}
 
 	@Override
@@ -96,5 +171,4 @@ public class GPSPoint extends GeoPoint{
 			return false;
 		return true;
 	}
-		
 }

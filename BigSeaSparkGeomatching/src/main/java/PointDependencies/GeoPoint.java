@@ -8,17 +8,13 @@ import scala.Serializable;
 public abstract class GeoPoint implements Serializable{
 
 	//shape: 3217,-25.4757686477818,-49.2923877163312,3281146,24.441
-	//stopLine: 3167295,"06:11:12","06:11:12",25681,2,1,"Terminal Campina do Siqueira",0,301,"022","INTER 2 (HORÁRIO)",3,"FF0000","Estação Tubo Santa Quitéria",-25.459129997717,-49.302406792031,3217
+	//stopLine: 3167295,"06:11:12","06:11:12",25681,2,1,"Terminal Campina do Siqueira",0,301,"022","INTER 2 (HORÃRIO)",3,"FF0000","EstaÃ§Ã£o Tubo Santa QuitÃ©ria",-25.459129997717,-49.302406792031,3217
 	//gpsLine: "AL300",-25.440416,-49.220878,2015-10-19 06:13:33,"022"
 	
-	/**
-	 * 
-	 */
-	protected static final long serialVersionUID = 1L;
-	protected String latitude;
-	protected String longitude;
-	protected List<ClosestPoints> acumulator;
-	
+	private static final long serialVersionUID = 1L;
+	private String latitude;
+	private String longitude;
+	private List<ClosestPoints> acumulator;
 	
 	public GeoPoint(String latitude, String longitude) {
 		super();
@@ -47,7 +43,6 @@ public abstract class GeoPoint implements Serializable{
 		this.longitude = longitude;
 	}
 	
-
 	public List<ClosestPoints> getAcumulator() {
 		return acumulator;
 	}
@@ -55,10 +50,53 @@ public abstract class GeoPoint implements Serializable{
 	public void setAcumulator(List<ClosestPoints> acumulator) {
 		this.acumulator = acumulator;
 	}
+	
 	public void addGeoPoint(GeoPoint point) {
 		this.acumulator.add(new ClosestPoints(point, new ShapePoint(), -1.0));
 	}
+	
+	public String getBlockingKey(int range){
+		String latitudePart = this.getLatitude();
+		if(latitudePart.length() < range) {
+			for (int i = 0; i < range - this.getLatitude().length(); i++) {
+				latitudePart += "*";
+			}
+		}
+		
+		if (this.getLatitude().startsWith("-")) {
+			latitudePart = latitudePart.substring(0, range);
+		} else {
+			latitudePart = latitudePart.substring(0, range-1);
+		}
+		
+		String longitudePart = this.getLongitude();
+		if(longitudePart.length() < range) {
+			for (int i = 0; i < range - this.getLongitude().length(); i++) {
+				longitudePart += "*";
+			}
+		}
+		
+		if (this.getLongitude().startsWith("-")) {
+			longitudePart = longitudePart.substring(0, range);
+		} else {
+			longitudePart = longitudePart.substring(0, range-1);
+		}
+		
+		return latitudePart + longitudePart;
+	}
+	
+	public static  float getDistanceInMeters(double lat1, double lng1, double lat2, double lng2) {
+		final double earthRadius = 6371000; // meters
+		double dLat = Math.toRadians(lat2 - lat1);
+		double dLng = Math.toRadians(lng2 - lng1);
+		double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(Math.toRadians(lat1))
+				* Math.cos(Math.toRadians(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+		double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+		float dist = (float) (earthRadius * c);
 
+		return dist;
+	}
+	
 	@Override
 	public String toString() {
 		return "GeoPoint [latitude=" + latitude + ", longitude=" + longitude + "]";
@@ -94,15 +132,4 @@ public abstract class GeoPoint implements Serializable{
 			return false;
 		return true;
 	}
-	
-	public String getBlockingKey(int range){
-		String latitudePart = this.getLatitude();
-		if (this.getLatitude().startsWith("-")) latitudePart = latitudePart.substring(0, range);
-		else latitudePart = latitudePart.substring(0, range-1);
-		String longitudePart = this.getLongitude();
-		if (this.getLongitude().startsWith("-")) longitudePart = longitudePart.substring(0, range);
-		else longitudePart = longitudePart.substring(0, range-1);
-		return latitudePart + longitudePart;
-	}
-	
 }
