@@ -16,7 +16,8 @@ public abstract class GeoLine implements Serializable {
 	private LineString line;
 	private String blockingKey;
 	private List<GeoPoint> listGeoPoints;
-		
+	private float greaterDistancePoints;
+
 	public GeoLine(String id, LineString line, String blockingKey) {
 		this.id = id;
 		this.line = line;
@@ -24,9 +25,10 @@ public abstract class GeoLine implements Serializable {
 		this.listGeoPoints = new ArrayList<GeoPoint>();
 	}	
 	
-	public GeoLine(String id, LineString line, String blockingKey, List<GeoPoint> listGeoPoints) {
+	public GeoLine(String id, LineString line, String blockingKey, List<GeoPoint> listGeoPoints, float greaterDistancePoints) {
 		this(id, line, blockingKey);
 		this.listGeoPoints = listGeoPoints;
+		this.greaterDistancePoints = greaterDistancePoints;
 	}
 	
 	public String getId() {
@@ -59,6 +61,14 @@ public abstract class GeoLine implements Serializable {
 
 	public void setListGeoPoints(List<GeoPoint> listGeoPoints) {
 		this.listGeoPoints = listGeoPoints;
+	}
+	
+	public float getGreaterDistancePoints() {
+		return greaterDistancePoints;
+	}
+
+	public void setGreaterDistancePoints(float greaterDistancePoints) {
+		this.greaterDistancePoints = greaterDistancePoints;
 	}
 
 	@Override

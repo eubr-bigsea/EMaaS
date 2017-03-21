@@ -2,7 +2,9 @@ package LineDependencies;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 
@@ -14,21 +16,21 @@ import PointDependencies.GPSPoint;
 import PointDependencies.GeoPoint;
 import scala.Tuple2;
 
-public class PossibleShape implements Serializable {
+public class PossibleShape implements Serializable, Comparable<PossibleShape> {
 
 	private static final long serialVersionUID = 1L;
 	
 	private ShapeLine shapeLine;
-	private List<Tuple2<String, Integer>> possibleFirtGPSPoints;
-	private List<Tuple2<String, Integer>> possibleLastGPSPoints;
+	private Queue<Tuple2<String, Integer>> possibleFirtGPSPoints;
+	private Queue<Tuple2<String, Integer>> possibleLastGPSPoints;
 	private List<Integer> listIndexFirstAndLastGPSPoints;
 	private List<GeoPoint> listGPSPoints;
 	
 	public PossibleShape(List<GeoPoint> listGPSPoints, ShapeLine shapeLine) {
 		this.listGPSPoints = listGPSPoints;
 		this.shapeLine = shapeLine;
-		this.possibleFirtGPSPoints = new ArrayList<>();
-		this.possibleLastGPSPoints = new ArrayList<>();
+		this.possibleFirtGPSPoints = new LinkedList<>();
+		this.possibleLastGPSPoints = new LinkedList<>();
 		this.listIndexFirstAndLastGPSPoints = new ArrayList<>();
 	}
 
@@ -51,57 +53,71 @@ public class PossibleShape implements Serializable {
 	public List<GeoPoint> getListGPSPoints() {
 		return this.listGPSPoints;
 	}
+	
+	public Queue<Tuple2<String, Integer>> getListPossibleFirtsGPSPoints() {
+		return this.possibleFirtGPSPoints;
+	}
+	
+	public Queue<Tuple2<String, Integer>> getListPossibleLastGPSPoints() {
+		return this.possibleLastGPSPoints;
+	}
+	
 
-	public List<Tuple2<String, Integer>> getPossibleFirtsGPSPoints() {
-		List<Tuple2<String, Integer>> outputList = new ArrayList<>();
+	public Queue<Tuple2<String, Integer>> getFirstGPSPoints() {
+		
 		if (this.possibleFirtGPSPoints.isEmpty()) {
-			return outputList;
+			return this.possibleFirtGPSPoints;
 		}
 		
-		Tuple2<String, Integer> tupleKeyPosition = this.possibleFirtGPSPoints.get(0);
-		String lastKey = tupleKeyPosition._1;
+		Queue<Tuple2<String, Integer>> outputList = new LinkedList<>();
+		Tuple2<String, Integer> tupleKeyPosition = null;
+		String lastKey = null;
 		List<Integer> listPointsOfTheGroup = new ArrayList<>();
-		listPointsOfTheGroup.add(tupleKeyPosition._2);
-		for (int gpsPointIndex = 1; gpsPointIndex < this.possibleFirtGPSPoints.size(); gpsPointIndex++) {
-			tupleKeyPosition = this.possibleFirtGPSPoints.get(gpsPointIndex);
+		
+					
+		while(!this.possibleFirtGPSPoints.isEmpty()) {
+			tupleKeyPosition = this.possibleFirtGPSPoints.poll();
 			String currentKey = tupleKeyPosition._1;
-			if (currentKey.equals(lastKey)) {
+			if (lastKey == null || currentKey.equals(lastKey)) {
 				listPointsOfTheGroup.add(tupleKeyPosition._2);
-			} else {
+				
+			} else{
 				Integer indexClosestPoint = getFirstGPSPoint(listPointsOfTheGroup);
 				outputList.add(new Tuple2<String, Integer>(lastKey, indexClosestPoint));
-				lastKey = currentKey;
 				listPointsOfTheGroup = new ArrayList<>();
 				listPointsOfTheGroup.add(tupleKeyPosition._2);
 			}
+			lastKey = currentKey;
 		}
 		Integer indexClosestPoint = getFirstGPSPoint(listPointsOfTheGroup);
 		outputList.add(new Tuple2<String, Integer>(lastKey, indexClosestPoint));
 		return outputList;
 	}
 
-	public List<Tuple2<String, Integer>> getPossibleLastGPSPoints() {
-		List<Tuple2<String, Integer>> outputList = new ArrayList<>();
+	public Queue<Tuple2<String, Integer>> getLastGPSPoints() {
+			
 		if (this.possibleLastGPSPoints.isEmpty()) {
-			return outputList;
+			return this.possibleLastGPSPoints;
 		}
 		
-		Tuple2<String, Integer> tupleKeyPosition = this.possibleLastGPSPoints.get(0);
-		String lastKey = tupleKeyPosition._1;
+		Queue<Tuple2<String, Integer>> outputList = new LinkedList<>();		
+		Tuple2<String, Integer> tupleKeyPosition = null;
+		String lastKey = null;
 		List<Integer> listPointsOfTheGroup = new ArrayList<>();
-		listPointsOfTheGroup.add(tupleKeyPosition._2);
-		for (int gpsPointIndex = 1; gpsPointIndex < this.possibleLastGPSPoints.size(); gpsPointIndex++) {
-			tupleKeyPosition = this.possibleLastGPSPoints.get(gpsPointIndex);
+		
+		
+		while(!this.possibleLastGPSPoints.isEmpty()) {
+			tupleKeyPosition = this.possibleLastGPSPoints.poll();
 			String currentKey = tupleKeyPosition._1;
-			if (currentKey.equals(lastKey)) {
+			if (lastKey == null || currentKey.equals(lastKey)) {
 				listPointsOfTheGroup.add(tupleKeyPosition._2);
 			} else {
 				Integer indexClosestPoint = getLastGPSPoint(listPointsOfTheGroup);
-				outputList.add(new Tuple2<String, Integer>(lastKey, indexClosestPoint));
-				lastKey = currentKey;
+				outputList.add(new Tuple2<String, Integer>(lastKey, indexClosestPoint));				
 				listPointsOfTheGroup = new ArrayList<>();
 				listPointsOfTheGroup.add(tupleKeyPosition._2);
-			}			
+			}	
+			lastKey = currentKey;
 		}
 		Integer indexClosestPoint = getLastGPSPoint(listPointsOfTheGroup);
 		outputList.add(new Tuple2<String, Integer>(lastKey, indexClosestPoint));
@@ -192,11 +208,35 @@ public class PossibleShape implements Serializable {
 	}
 
 	public Double getLengthCoverage() {		
-		return getShapeLine().getLine().getLength() * getNumTrips();
+		return getShapeLine().getDistanceTraveled() * getNumTrips();
 	}
 
 	@Override
 	public String toString() {
-		return "PossibleShape [" + getListIndexFirstAndLastGPSPoints() + "]";
-	}	
+		return "PossibleShape (" + getFirstGPSPoints() + getLastGPSPoints()+ ")";
+	}
+	
+	@Override
+	public int compareTo(PossibleShape otherShape) {
+		if (this.listIndexFirstAndLastGPSPoints.size() == 0 && otherShape.getListIndexFirstAndLastGPSPoints().size() == 0) {
+			return 0;
+		}
+		
+		if (this.listIndexFirstAndLastGPSPoints.size() == 0) {
+			return -1;
+		}
+		
+		if (otherShape.getListIndexFirstAndLastGPSPoints().size() == 0){
+			return 1;
+		}
+		
+		if (Math.abs(this.listIndexFirstAndLastGPSPoints.get(0)) < Math.abs(otherShape.getListIndexFirstAndLastGPSPoints().get(0))) {
+			return -1;
+		}
+
+		if (Math.abs(this.listIndexFirstAndLastGPSPoints.get(0)) > Math.abs(otherShape.getListIndexFirstAndLastGPSPoints().get(0))){
+			return 1;
+		}
+		return 0;
+	}
 }

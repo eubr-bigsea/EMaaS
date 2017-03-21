@@ -126,6 +126,7 @@ public class GPSPoint extends GeoPoint{
 		ShapePoint shapePoint =  (ShapePoint) closestPoint;
 		this.closestPoint = shapePoint;
 	}
+	
 		
 	@Override
 	public String toString() {
@@ -140,6 +141,7 @@ public class GPSPoint extends GeoPoint{
 		final int prime = 31;
 		int result = super.hashCode();
 		result = prime * result + ((busCode == null) ? 0 : busCode.hashCode());
+		result = prime * result + ((gpsId == null) ? 0 : gpsId.hashCode());
 		result = prime * result + ((lineCode == null) ? 0 : lineCode.hashCode());
 		result = prime * result + ((timeStamp == null) ? 0 : timeStamp.hashCode());
 		return result;
@@ -159,6 +161,11 @@ public class GPSPoint extends GeoPoint{
 				return false;
 		} else if (!busCode.equals(other.busCode))
 			return false;
+		if (gpsId == null) {
+			if (other.gpsId != null)
+				return false;
+		} else if (!gpsId.equals(other.gpsId))
+			return false;
 		if (lineCode == null) {
 			if (other.lineCode != null)
 				return false;
@@ -171,4 +178,7 @@ public class GPSPoint extends GeoPoint{
 			return false;
 		return true;
 	}
+
+	
+	
 }

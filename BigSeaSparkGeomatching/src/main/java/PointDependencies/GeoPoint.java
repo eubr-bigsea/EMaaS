@@ -1,14 +1,16 @@
 package PointDependencies;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import scala.Serializable;
+import com.vividsolutions.jts.geom.Point;
 
 public abstract class GeoPoint implements Serializable{
 
 	//shape: 3217,-25.4757686477818,-49.2923877163312,3281146,24.441
-	//stopLine: 3167295,"06:11:12","06:11:12",25681,2,1,"Terminal Campina do Siqueira",0,301,"022","INTER 2 (HORÃRIO)",3,"FF0000","EstaÃ§Ã£o Tubo Santa QuitÃ©ria",-25.459129997717,-49.302406792031,3217
+	//stopLine: 3167295,"06:11:12","06:11:12",25681,2,1,"Terminal Campina do Siqueira",0,
+	//301,"022","INTER 2 (HORÃRIO)",3,"FF0000","EstaÃ§Ã£o Tubo Santa QuitÃ©ria",-25.459129997717,-49.302406792031,3217
 	//gpsLine: "AL300",-25.440416,-49.220878,2015-10-19 06:13:33,"022"
 	
 	private static final long serialVersionUID = 1L;
@@ -85,7 +87,7 @@ public abstract class GeoPoint implements Serializable{
 		return latitudePart + longitudePart;
 	}
 	
-	public static  float getDistanceInMeters(double lat1, double lng1, double lat2, double lng2) {
+	public static float getDistanceInMeters(double lat1, double lng1, double lat2, double lng2) {
 		final double earthRadius = 6371000; // meters
 		double dLat = Math.toRadians(lat2 - lat1);
 		double dLng = Math.toRadians(lng2 - lng1);
@@ -97,9 +99,24 @@ public abstract class GeoPoint implements Serializable{
 		return dist;
 	}
 	
+	public static float getDistanceInMeters(Point point1, Point point2) {
+		return getDistanceInMeters(point1.getX(), point1.getY(), point2.getX(), point2.getY());
+	}
+	
+	public static float getDistanceInMeters(GeoPoint point1, GeoPoint point2) {
+		return getDistanceInMeters(Double.valueOf(point1.getLatitude()), Double.valueOf(point1.getLongitude()), 
+				Double.valueOf(point2.getLatitude()), Double.valueOf(point2.getLongitude()));
+	}
+	
+	
+//	@Override
+//	public String toString() {
+//		return "GeoPoint [latitude=" + latitude + ", longitude=" + longitude + "]";
+//	}
+	
 	@Override
 	public String toString() {
-		return "GeoPoint [latitude=" + latitude + ", longitude=" + longitude + "]";
+		return "POINT(" + latitude + " " + longitude + ")";
 	}
 
 	@Override

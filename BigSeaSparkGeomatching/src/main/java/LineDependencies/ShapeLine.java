@@ -20,8 +20,8 @@ public class ShapeLine extends GeoLine {
 	}
 	
 	public ShapeLine(String id, LineString lineString, String distanceTraveled, String blockingKey,
-			List<GeoPoint> listGeoPoints, String route) {
-		super(id, lineString, blockingKey, listGeoPoints);
+			List<GeoPoint> listGeoPoints, String route, float greaterDistancePoints) {
+		super(id, lineString, blockingKey, listGeoPoints, greaterDistancePoints);
 		this.distanceTraveled = distanceTraveled;
 		this.route = route;
 	}
