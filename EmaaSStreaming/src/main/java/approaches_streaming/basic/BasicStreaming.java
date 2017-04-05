@@ -17,9 +17,9 @@ import approaches_streaming.utils.StringSimilarity;
 import scala.Tuple2;
 import scala.Tuple3;
 
-public class Basic {
+public class BasicStreaming {
 
-	public static final Double LIMIAR = 0.7;
+	public static final Double THRESHOLD = 0.7;
 
 	@SuppressWarnings({ "serial", "resource" })
 	public static void main(String[] args) {
@@ -29,7 +29,7 @@ public class Basic {
 			System.exit(1);
 		}
 
-		String hostaname = args[0];
+		String hostname = args[0];
 		Integer port = Integer.valueOf(args[1]);
 		Integer batchDuration = Integer.valueOf(args[2]); //The time interval at which streaming data will be divided into batches
 		Integer windowDuration = Integer.valueOf(args[3]); //The time interval to read datas and clean
@@ -39,7 +39,7 @@ public class Basic {
 		SparkConf sparkConf = new SparkConf().setMaster("local[3]").setAppName("BasicStreaming");
 		JavaStreamingContext context = new JavaStreamingContext(sparkConf, Durations.seconds(batchDuration));
 		
-		JavaDStream<String> lines = context.socketTextStream(hostaname, port).
+		JavaDStream<String> lines = context.socketTextStream(hostname, port).
 				window(Durations.seconds(windowDuration), Durations.seconds(slideDuration));
 	
 		JavaDStream<String> words = lines.flatMap(new FlatMapFunction<String, String>() {
@@ -81,7 +81,7 @@ public class Basic {
 								if (iterator2.hasNext()) {
 									String w2 = (String) iterator2.next();
 									Double similarity = StringSimilarity.similarity(w1, w2);
-//									if (similarity >= LIMIAR) {
+//									if (similarity >= THRESHOLD) {
 										list.add(new Tuple3<String, String, Double>(w1, w2, similarity));
 //									}
 								}
@@ -89,10 +89,10 @@ public class Basic {
 						}
 						return list.iterator();
 					}
-				});
+				}); 
 		
-		//TODO save as DataFrame
-		
+		//TODO salve as DataFrame
+//		
 		similarity.dstream().saveAsTextFiles("output/similarity", "");
 
 		context.start();
@@ -100,6 +100,6 @@ public class Basic {
 			context.awaitTermination();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
-		}
+		} 
 	}
 }
