@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -36,23 +37,52 @@ import com.jcraft.jsch.UserInfo;
 public class SSHmanager {
 	private JSch jsch;
 	private Session session;
+	private static String HOME_HADOOP;
+	private static String HOME_SPARK;
 	private String applicationId = null;
-	private String ENV = "export HADOOP_CONF_DIR=/home/hadoop/hadoop/etc/hadoop/ \n"
-			+ "export HADOOP_HOME=/home/hadoop/hadoop \n" + "export HADOOP_INSTALL=$HADOOP_HOME \n"
-			+ "export PATH=$PATH:$HADOOP_INSTALL/bin \n" + "export PATH=$PATH:$HADOOP_INSTALL/sbin \n"
-			+ "export HADOOP_HOME=$HADOOP_INSTALL \n" + "export HADOOP_MAPRED_HOME=$HADOOP_INSTALL \n"
-			+ "export HADOOP_COMMON_HOME=$HADOOP_INSTALL \n" + "export HADOOP_HDFS_HOME=$HADOOP_INSTALL \n"
-			+ "export HADOOP_YARN_HOME=$HADOOP_INSTALL \n" + "export HADOOP_CONF_DIR=$HADOOP_INSTALL/etc/hadoop \n"
-			+ "export SPARK_YARN_DIST_FILES=$(ls $HADOOP_CONF_DIR* | sed 's#^#file://#g' | tr '\n' ',' | sed 's/,$//') \n"
-			+ "export YARN_CONF_DIR=$HADOOP_INSTALL/etc/hadoop/*.xml \n" + "export SPARK_HOME=/home/hadoop/spark \n"
-			+ "export PATH=$PATH:$HADOOP_HOME/bin:$SPARK_HOME/bin \n";
+//	private String ENV = "export HADOOP_CONF_DIR=/home/hadoop/hadoop/etc/hadoop/ \n"
+//			+ "export HADOOP_HOME=/home/hadoop/hadoop \n" + "export HADOOP_INSTALL=$HADOOP_HOME \n"
+//			+ "export PATH=$PATH:$HADOOP_INSTALL/bin \n" + "export PATH=$PATH:$HADOOP_INSTALL/sbin \n"
+//			+ "export HADOOP_HOME=$HADOOP_INSTALL \n" + "export HADOOP_MAPRED_HOME=$HADOOP_INSTALL \n"
+//			+ "export HADOOP_COMMON_HOME=$HADOOP_INSTALL \n" + "export HADOOP_HDFS_HOME=$HADOOP_INSTALL \n"
+//			+ "export HADOOP_YARN_HOME=$HADOOP_INSTALL \n" + "export HADOOP_CONF_DIR=$HADOOP_INSTALL/etc/hadoop \n"
+//			+ "export SPARK_YARN_DIST_FILES=$(ls $HADOOP_CONF_DIR* | sed 's#^#file://#g' | tr '\n' ',' | sed 's/,$//') \n"
+//			+ "export YARN_CONF_DIR=$HADOOP_INSTALL/etc/hadoop/*.xml \n" + "export SPARK_HOME=/home/hadoop/spark \n"
+//			+ "export PATH=$PATH:$HADOOP_HOME/bin:$SPARK_HOME/bin \n";
+	
+	private String ENV;
 
 	public SSHmanager(String host, String user, int port, String password) {
 		super();
+		setConfig();
 		this.jsch = new JSch();
 		connectSSH(host, user, port, password);
 	}
 
+	private void setConfig(){
+		Properties prop = new Properties();
+		InputStream fileConfig = null;
+
+		try {
+			prop.load(this.getClass().getClassLoader().getResourceAsStream("conf.properties"));
+			
+			HOME_HADOOP = prop.getProperty("HADOOP_HOME");
+			HOME_SPARK = prop.getProperty("SPARK_HOME");
+			ENV = prop.getProperty("ENV");
+
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			if (fileConfig != null) {
+				try {
+					fileConfig.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
 	/**
 	 * Method to connect with remote node by ssh.
 	 * 
@@ -455,7 +485,7 @@ public class SSHmanager {
 	}
 
 	public JSONObject submitSparkJob(String jarPath, String mainClass, String inputHdfs, String outputHdfs) {
-		String command = "/home/hadoop/spark/bin/spark-submit --class " + mainClass
+		String command = HOME_SPARK + "spark-submit --class " + mainClass
 				+ " --master yarn --deploy-mode client " + jarPath + " " + inputHdfs + " " + outputHdfs;
 		Map<String, Object> response = executeSparkCommand(ENV + command);
 		if ((Integer) response.get("code") != 0) {
@@ -475,7 +505,7 @@ public class SSHmanager {
 	 * @return
 	 */
 	public JSONObject submitHadoopJob(String jarPath, String mainClass, String inputHdfs, String outputHdfs) {
-		String command = "/home/hadoop/hadoop/bin/hadoop jar " + jarPath + " " + mainClass + " " + inputHdfs + " "
+		String command = HOME_HADOOP + "hadoop jar " + jarPath + " " + mainClass + " " + inputHdfs + " "
 				+ outputHdfs;
 		Map<String, Object> response = executeCommand(command);
 		if ((Integer) response.get("code") != 0) {
@@ -494,7 +524,7 @@ public class SSHmanager {
 	// }
 
 	public JSONObject statusJob(String jobId) {
-		String command = "/home/hadoop/hadoop/bin/yarn application -status " + jobId;
+		String command = HOME_HADOOP + "yarn application -status " + jobId;
 		Map<String, Object> response = executeCommand(command);
 		if ((Integer) response.get("code") != 0) {
 			response.put("error", ExceptionsList.CANNOT_GET_STATUS.getError());

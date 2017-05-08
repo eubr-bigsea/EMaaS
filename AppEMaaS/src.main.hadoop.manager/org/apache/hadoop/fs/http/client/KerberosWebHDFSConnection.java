@@ -220,6 +220,11 @@ public class KerberosWebHDFSConnection implements WebHDFSConnection {
 				token);
 		conn.setRequestMethod("GET");
 		conn.setRequestProperty("Content-Type", "application/octet-stream");
+		//
+		String redirect = conn.getURL().toString().replace("50070", "50075") + "&namenoderpcaddress=0.0.0.0:9000&overwrite=false";
+		conn.disconnect();
+		conn = authenticatedURL.openConnection(new URL(redirect), token);
+		//
 		conn.connect();
 		InputStream is = conn.getInputStream();
 		copy(is, os);
@@ -369,8 +374,9 @@ public class KerberosWebHDFSConnection implements WebHDFSConnection {
 		logger.info("Location:" + conn.getHeaderField("Location"));
 		resp = result(conn, true);
 		if (conn.getResponseCode() == 307)
-			redirectUrl = conn.getHeaderField("Location");
-		conn.disconnect();
+//			redirectUrl = conn.getHeaderField("Location");
+			redirectUrl = conn.getURL().toString().replace("50070", "50075") + "&namenoderpcaddress=0.0.0.0:9000&overwrite=false";
+			conn.disconnect();
 
 		if (redirectUrl != null) {
 			conn = authenticatedURL.openConnection(new URL(redirectUrl), token);
@@ -699,6 +705,7 @@ public class KerberosWebHDFSConnection implements WebHDFSConnection {
 		Map<String, Object> resp = null;
 		ensureValidToken();
 
+		//http://150.165.75.67:50070/webhdfs/v1/RootVeruska2/output1/?op=DELETE&recursive=true
 		HttpURLConnection conn = authenticatedURL
 				.openConnection(
 						new URL(new URL(httpfsUrl), MessageFormat.format("/webhdfs/v1/{0}?op=DELETE&recursive=true",

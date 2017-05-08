@@ -3,7 +3,10 @@ package main.webservice.rest.jersey;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Properties;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -28,7 +31,35 @@ public class ManagerServiceFiles {
 	private HdfsManager fs;
 
 	public ManagerServiceFiles() {
-		fs = new HdfsManager("host:port", "hadoop_user", "password");
+		String HDFS_HOST = null;
+		String HDFS_PORT = null;
+		String HDFS_USER = null;
+		String HDFS_PASSWORD = null;
+		
+		Properties prop = new Properties();
+		InputStream fileConfig = null;
+
+		try {
+			prop.load(this.getClass().getClassLoader().getResourceAsStream("conf.properties"));
+
+			HDFS_HOST = prop.getProperty("HDFS_HOST");
+			HDFS_PORT = prop.getProperty("HDFS_PORT");
+			HDFS_USER = prop.getProperty("HDFS_USER");
+			HDFS_PASSWORD = prop.getProperty("HDFS_PASSWORD");
+
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			if (fileConfig != null) {
+				try {
+					fileConfig.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		fs = new HdfsManager(HDFS_HOST + ":" + HDFS_PORT, HDFS_USER, HDFS_PASSWORD);
 	}
 
 	@GET	

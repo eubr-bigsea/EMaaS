@@ -1,6 +1,9 @@
 package main.webservice.rest.jersey;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -15,9 +18,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.bigsea.hadoop.manager.submitJob.ExecuteJob;
-import org.bigsea.hadoop.manager.submitJob.JobID;
 import org.bigsea.hadoop.manager.submitJob.SSHmanager;
-import org.bigsea.hadoop.manager.submitJob.StatusJob;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.json.JSONObject;
 
@@ -28,7 +29,35 @@ public class ManagerServiceJob {
 	private SSHmanager ssh;
 
 	public ManagerServiceJob() {
-		ssh = new SSHmanager("host", "hadoop_user", 22, "password");
+		String SSH_HOST = null;
+		Integer SSH_PORT = null;
+		String SSH_USER = null;
+		String SSH_PASSWORD = null;
+		
+		Properties prop = new Properties();
+		InputStream fileConfig = null;
+
+		try {
+			prop.load(this.getClass().getClassLoader().getResourceAsStream("conf.properties"));
+
+			SSH_HOST = prop.getProperty("SSH_HOST");
+			SSH_PORT = Integer.valueOf(prop.getProperty("SSH_PORT"));
+			SSH_USER = prop.getProperty("SSH_USER");
+			SSH_PASSWORD = prop.getProperty("SSH_PASSWORD");
+
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			if (fileConfig != null) {
+				try {
+					fileConfig.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		ssh = new SSHmanager(SSH_HOST, SSH_USER, SSH_PORT, SSH_PASSWORD);
 	}
 
 	@GET
