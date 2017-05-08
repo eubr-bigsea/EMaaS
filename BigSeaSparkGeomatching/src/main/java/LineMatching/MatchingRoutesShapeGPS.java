@@ -43,7 +43,7 @@ public class MatchingRoutesShapeGPS {
 	public static void main(String[] args) {
 
 		if (args.length < 4) {
-			System.err.println("Please, put the shape file, the directory of GPS files, the output path and the number of partitions.");
+			System.err.println("Usage: <shape file> <directory of GPS files> <directory of output path> <number of partitions>");
 			System.exit(1);
 		}
 
