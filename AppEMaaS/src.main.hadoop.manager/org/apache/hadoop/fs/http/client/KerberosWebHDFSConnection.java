@@ -705,7 +705,6 @@ public class KerberosWebHDFSConnection implements WebHDFSConnection {
 		Map<String, Object> resp = null;
 		ensureValidToken();
 
-		//http://150.165.75.67:50070/webhdfs/v1/RootVeruska2/output1/?op=DELETE&recursive=true
 		HttpURLConnection conn = authenticatedURL
 				.openConnection(
 						new URL(new URL(httpfsUrl), MessageFormat.format("/webhdfs/v1/{0}?op=DELETE&recursive=true",
