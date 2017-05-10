@@ -12,6 +12,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
@@ -47,11 +48,17 @@ public class MatchingRoutesShapeGPS {
 			System.exit(1);
 		}
 
+		Long tempoInicial = System.currentTimeMillis();
+		
 		String pathFileShapes = args[0];
 		String pathGPSFile = args[1];
 		String pathOutput = args[2];
 		int minPartitions = Integer.valueOf(args[3]);
 
+		if (pathGPSFile.equals(pathOutput)) {
+			System.out.println("The output directory should not be the same as the GPS files directory.");
+		}
+		
 		SparkConf sparkConf = new SparkConf().setAppName("JavaDeduplication").setMaster("local");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
@@ -59,6 +66,7 @@ public class MatchingRoutesShapeGPS {
 		
 		context.stop();
 		context.close();
+		System.out.println("Tempo de Execução sem Dataset: " + (System.currentTimeMillis() - tempoInicial));
 	}
 	
 	private static void generateOutputFiles(String pathFileShapes, String pathGPSFiles, String pathOutput, int minPartitions, JavaSparkContext context){
@@ -67,15 +75,16 @@ public class MatchingRoutesShapeGPS {
 
 		for (File file : dir.listFiles()) {
 
-			JavaRDD<List<GPSLine>> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getName(),
+			JavaRDD<String> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getName(),
 					minPartitions, context);
 			
-			saveOutputFile(rddOutputBuLMA, pathOutput + file.getName());
+//			saveOutputFile(rddOutputBuLMA, pathOutput + file.getName());
+			rddOutputBuLMA.saveAsTextFile(pathOutput + file.getName());
 		}
 	}
 
 	@SuppressWarnings("serial")
-	private static JavaRDD<List<GPSLine>> executeBULMA(String pathFileShapes, String pathGPSFile, int minPartitions, JavaSparkContext ctx) {
+	private static JavaRDD<String> executeBULMA(String pathFileShapes, String pathGPSFile, int minPartitions, JavaSparkContext ctx) {
 		
 		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
 			@Override
@@ -513,9 +522,99 @@ public class MatchingRoutesShapeGPS {
 			}
 		});
 
-		return rddClosestPoint;		
+		JavaRDD<String> rddOutput = rddClosestPoint.flatMap(new FlatMapFunction<List<GPSLine>, String>() {
+
+			@Override
+			public Iterator<String> call(List<GPSLine> listGPS) throws Exception {
+				List<String> listOutput = new ArrayList<>();
+				for (GPSLine gpsLine : listGPS) {
+					String stringOutput = "";
+					if (gpsLine != null) {
+
+						if (gpsLine.getMapTrips().isEmpty()) {
+							GPSPoint gpsPoint;
+							for (GeoPoint geoPoint: gpsLine.getListGeoPoints()) {
+								gpsPoint = (GPSPoint) geoPoint;
+								stringOutput += Problem.NO_TRIP.getCode() + FILE_SEPARATOR;
+								stringOutput +=gpsPoint.getLineCode() + FILE_SEPARATOR;
+								
+								stringOutput +="-" + FILE_SEPARATOR;
+								stringOutput +="-"  + FILE_SEPARATOR;
+								stringOutput +="-"  + FILE_SEPARATOR;
+								stringOutput +="-" + FILE_SEPARATOR;
+								
+
+								stringOutput +=gpsPoint.getGpsId() + FILE_SEPARATOR;
+								stringOutput +=gpsPoint.getBusCode() + FILE_SEPARATOR;
+								stringOutput +=gpsPoint.getTimeStamp() + FILE_SEPARATOR;
+								stringOutput +=gpsPoint.getLatitude() + FILE_SEPARATOR;
+								stringOutput +=gpsPoint.getLongitude() + FILE_SEPARATOR;
+								
+								stringOutput +="-" + FILE_SEPARATOR;
+								stringOutput +="-" + FILE_SEPARATOR;
+								
+								stringOutput +=Problem.NO_TRIP.getCode() + "/n";
+								
+							}
+						}
+
+						for (Integer key : gpsLine.getMapTrips().keySet()) {
+							for (Trip trip : gpsLine.getTrip(key)) {
+
+								for (GeoPoint geoPoint : trip.getGPSPoints()) {
+
+									GPSPoint gpsPoint = (GPSPoint) geoPoint;
+
+									stringOutput +=key  + FILE_SEPARATOR;
+									stringOutput +=gpsPoint.getLineCode()  + FILE_SEPARATOR;
+									if (trip.getShapeLine() == null) {
+										stringOutput +="-" + FILE_SEPARATOR;
+										stringOutput +="-" + FILE_SEPARATOR;
+										stringOutput +="-" + FILE_SEPARATOR;
+										stringOutput +="-" + FILE_SEPARATOR;
+									} else {
+										stringOutput +=gpsPoint.getClosestPoint().getId() + FILE_SEPARATOR;
+										stringOutput +=gpsPoint.getClosestPoint().getPointSequence() + FILE_SEPARATOR;
+										stringOutput +=gpsPoint.getClosestPoint().getLatitude() + FILE_SEPARATOR;
+										stringOutput +=gpsPoint.getClosestPoint().getLongitude() + FILE_SEPARATOR;
+									}
+
+									stringOutput +=gpsPoint.getGpsId() + FILE_SEPARATOR;
+									stringOutput +=gpsPoint.getBusCode() + FILE_SEPARATOR;
+									stringOutput +=gpsPoint.getTimeStamp() + FILE_SEPARATOR;
+									stringOutput +=gpsPoint.getLatitude() + FILE_SEPARATOR;
+									stringOutput +=gpsPoint.getLongitude() + FILE_SEPARATOR;
+
+									if (trip.getShapeLine() == null) {
+										stringOutput +="-" + FILE_SEPARATOR;
+										stringOutput +="-" + FILE_SEPARATOR;
+									} else {
+										stringOutput +=gpsPoint.getDistanceClosestShapePoint() + FILE_SEPARATOR;
+										stringOutput +=gpsPoint.getThresholdShape() + FILE_SEPARATOR;
+									}
+
+									if (trip.getProblem().equals(Problem.TRIP_PROBLEM)) {
+										stringOutput +=trip.getProblem().getCode() + "/n";
+									} else if (gpsPoint.getDistanceClosestShapePoint() > gpsPoint.getThresholdShape()) {
+										stringOutput +=Problem.POINT_ABOVE_THRESHOLD.getCode() + "/n";
+									} else {
+										stringOutput +=trip.getProblem().getCode() + "/n";
+									}
+								}
+							}
+						}
+					}
+					
+					listOutput.add(stringOutput);
+				}
+				return listOutput.iterator();
+			}
+		});
+		
+		return rddOutput;		
 	}
 
+	
 	private static void saveOutputFile(JavaRDD<List<GPSLine>> rddClosestPoint, String pathOutput) {
 		FileWriter output;
 		try {
