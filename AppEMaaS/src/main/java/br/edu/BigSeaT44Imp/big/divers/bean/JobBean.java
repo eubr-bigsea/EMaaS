@@ -1,8 +1,10 @@
 package br.edu.BigSeaT44Imp.big.divers.bean;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Properties;
 
 import javax.annotation.PostConstruct;
 import javax.faces.event.PhaseId;
@@ -40,7 +42,7 @@ public class JobBean extends AbstractBean implements Serializable {
 	private String selectedPath;
 	private String optionSubmit;
 
-	private final String HOME_PATH_HD = "/home/hadoop";
+	private String HOME_PATH_HD;
 
 	@Autowired
 	private JobService jobService;
@@ -49,8 +51,31 @@ public class JobBean extends AbstractBean implements Serializable {
 
 	@PostConstruct
 	public void init() {
+		setHomePathHD();
 		jars = listJars();
 		setOptionSubmit("submitSparkJob");
+	}
+	
+	private void setHomePathHD() {
+		Properties prop = new Properties();
+		InputStream fileConfig = null;
+
+		try {
+			prop.load(this.getClass().getClassLoader().getResourceAsStream("conf.properties"));
+
+			HOME_PATH_HD = prop.getProperty("HD_HOME");
+			
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			if (fileConfig != null) {
+				try {
+					fileConfig.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 	public void onNodeSelect(NodeSelectEvent event) {
