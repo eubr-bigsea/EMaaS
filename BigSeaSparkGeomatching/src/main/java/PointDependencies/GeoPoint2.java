@@ -11,17 +11,13 @@ import com.vividsolutions.jts.geom.IntersectionMatrix;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
-import com.vividsolutions.jts.operation.distance.DistanceOp;
-
+import LineDependencies.GeoObject;
 import PolygonDependencies.InputTypes;
 
-public class GeoPoint2 implements Serializable, Cloneable{
-	private Geometry geometry;
-	private Integer idGeometry;
-	private String geoName;
-	private InputTypes type;
-	private Integer idInDataset;
+public class GeoPoint2 extends GeoObject implements Serializable, Cloneable, Comparable<GeoPoint2>{
+
 	private boolean isDuplicated;//Used in single matching
+	private double distanceToPOI;//distance to bustop (context matching)
 
 	public GeoPoint2(String geometryGIS) throws ParseException {
 		super();
@@ -49,14 +45,7 @@ public class GeoPoint2 implements Serializable, Cloneable{
 	
 	//Used in polygons matching
 	public GeoPoint2(String geometryGIS, String geoName, InputTypes type, Integer idGeometry, Integer idInDataset) throws ParseException {
-		super();
-		WKTReader wktReader = new WKTReader(JtsSpatialContext.GEO.getGeometryFactory());
-		Geometry geometry = wktReader.read(geometryGIS);
-		this.geometry = geometry;
-		this.geoName = geoName;
-		this.type = type;
-		this.idGeometry = idGeometry;
-		this.idInDataset = idInDataset;
+		super(geometryGIS, type, idGeometry, geoName, idInDataset);
 	}
 
 	/**
@@ -142,11 +131,11 @@ public class GeoPoint2 implements Serializable, Cloneable{
 	public boolean equalsExact(GeoPoint2 g2, double tolerance) {
 		return geometry.equalsExact(g2.getGeometry(), tolerance);
 	}
-
+	@Override
 	public Geometry getGeometry() {
 		return geometry;
 	}
-
+	@Override
 	public void setGeometry(Geometry geometry) {
 		this.geometry = geometry;
 	}
@@ -160,34 +149,40 @@ public class GeoPoint2 implements Serializable, Cloneable{
 		;
 	}
 
+	@Override
 	public String getGeoName() {
 		return geoName;
 	}
 
+	@Override
 	public void setGeoName(String geoName) {
 		this.geoName = geoName;
 	}
 
+	@Override
 	public Integer getIdInDataset() {
 		return idInDataset;
 	}
 
+	@Override
 	public void setIdInDataset(Integer idInDataset) {
 		this.idInDataset = idInDataset;
 	}
 
+	@Override
 	public Integer getIdGeometry() {
 		return idGeometry;
 	}
 
+	@Override
 	public void setIdGeometry(Integer idGeometry) {
 		this.idGeometry = idGeometry;
 	}
-
+	@Override
 	public InputTypes getType() {
 		return type;
 	}
-
+	@Override
 	public void setType(InputTypes type) {
 		this.type = type;
 	}
@@ -211,6 +206,14 @@ public class GeoPoint2 implements Serializable, Cloneable{
 	    return  (GeoPoint2) this.clone();
 	}
 	
+	public double getDistanceToPOI() {
+		return distanceToPOI;
+	}
+
+	public void setDistanceToPOI(double distanceToPOI) {
+		this.distanceToPOI = distanceToPOI;
+	}
+
 	/**
 	 * This method calculates the proportion of common area between two polygons.
 	 * The common area is compared in relation the areas of each polygon.
@@ -239,6 +242,17 @@ public class GeoPoint2 implements Serializable, Cloneable{
 		float dist = (float) (earthRadius * c);
 
 		return dist;
+	}
+
+	@Override
+	public int compareTo(GeoPoint2 other) {
+		if (distanceToPOI < other.getDistanceToPOI()) {
+			return -1;
+		} else if (distanceToPOI > other.getDistanceToPOI()) {
+			return 1;
+		} else {
+			return 0;
+		}
 	}
 	
 

@@ -30,13 +30,27 @@ public class AbstractExec {
 		return dataSource;
 	}
 	
-	public static DataSource getDataCSV(String pathFile){
+	public static DataSource getDataCSV(String pathFile, char separatorCharacter){
+        CSVSource dataSource = null;
+        try {
+            dataSource = new CSVSource(pathFile, "", new File(pathFile));
+            dataSource.enableHeader();
+            dataSource.setSeparatorCharacter(separatorCharacter);
+            
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        
+        return dataSource;
+    }
+	
+	public static DataSource getDataCSV(String pathFile, char separatorCharacter, String id){
 		CSVSource dataSource = null;
 		try {
-			dataSource = new CSVSource("", "", new File(pathFile));
+			dataSource = new CSVSource(pathFile, "", new File(pathFile));
 			dataSource.enableHeader();
-			dataSource.setSeparatorCharacter(',');
-			dataSource.addIdAttributes("id");
+			dataSource.setSeparatorCharacter(separatorCharacter);
+			dataSource.addIdAttributes(id);
 			
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();

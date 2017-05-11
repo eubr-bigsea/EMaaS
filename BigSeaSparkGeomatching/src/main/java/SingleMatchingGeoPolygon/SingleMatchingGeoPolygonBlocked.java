@@ -1,7 +1,6 @@
 package SingleMatchingGeoPolygon;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -64,7 +63,7 @@ public final class SingleMatchingGeoPolygonBlocked {
 		
 		DataSource source1 = null;
 		if (sourceType.equals("CSV")) {
-			source1 = AbstractExec.getDataCSV(dataSource);
+			source1 = AbstractExec.getDataCSV(dataSource, ';');
 		} else { //is postgis
 			source1 = AbstractExec.getDataPostGres(dataSource);
 		}
@@ -209,4 +208,6 @@ public final class SingleMatchingGeoPolygonBlocked {
 		ctx.stop();
 		ctx.close();
 	}
+	
+	
 }

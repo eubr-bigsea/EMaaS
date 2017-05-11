@@ -46,7 +46,7 @@ public final class SingleMatchingBusStops {
 		DataSource source1 = null;
 		DataSource source2 = null;
 		if (sourceType.equals("CSV")) {
-			source1 = AbstractExec.getDataCSV(dataSource);
+			source1 = AbstractExec.getDataCSV(dataSource, ';');
 		} else { //is postgis
 			source1 = AbstractExec.getDataPostGres(dataSource);
 		}

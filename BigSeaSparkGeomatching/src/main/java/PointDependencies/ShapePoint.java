@@ -2,6 +2,8 @@ package PointDependencies;
 
 import java.util.StringTokenizer;
 
+import genericEntity.util.data.GenericObject;
+
 public class ShapePoint extends GeoPoint {
 
 	private static final long serialVersionUID = 1L;
@@ -49,6 +51,15 @@ public class ShapePoint extends GeoPoint {
 				st.nextToken().replace("\"", ""), 
 				st.nextToken().replace("\"", ""),
 				st.nextToken().replace("\"", ""));
+	}
+	
+	public static ShapePoint createShapePointRoute(GenericObject line) {
+		return new ShapePoint(line.getData().get("route_id").toString(),
+				line.getData().get("shape_id").toString(),
+				line.getData().get("shape_pt_lat").toString(),
+				line.getData().get("shape_pt_lon").toString(),
+				line.getData().get("shape_pt_sequence").toString(),
+				line.getData().get("shape_dist_traveled").toString());
 	}
 
 	public String getId() {

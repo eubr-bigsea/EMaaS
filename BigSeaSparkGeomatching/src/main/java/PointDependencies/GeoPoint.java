@@ -6,7 +6,9 @@ import java.util.List;
 
 import com.vividsolutions.jts.geom.Point;
 
-public abstract class GeoPoint implements Serializable{
+import LineDependencies.GeoObject;
+
+public abstract class GeoPoint extends GeoObject implements Serializable{
 
 	//shape: 3217,-25.4757686477818,-49.2923877163312,3281146,24.441
 	//stopLine: 3167295,"06:11:12","06:11:12",25681,2,1,"Terminal Campina do Siqueira",0,

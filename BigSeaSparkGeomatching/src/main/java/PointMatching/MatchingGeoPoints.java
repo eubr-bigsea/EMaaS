@@ -1,9 +1,7 @@
 package PointMatching;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -69,14 +67,16 @@ public final class MatchingGeoPoints {
 
 		@SuppressWarnings("serial")
 		JavaRDD<GeoPoint> shapePointsRDD = shapePoints.flatMap(new FlatMapFunction<String, GeoPoint>() {
-			public Iterable<GeoPoint> call(String s) {
+			@Override
+			public  List<GeoPoint> call(String s) {
 				return Arrays.asList((GeoPoint)ShapePoint.createShapePoint(s));
 			}
 		});
 		
 		@SuppressWarnings("serial")
 		JavaRDD<GeoPoint> gpsPointsRDD = gpsPoints.flatMap(new FlatMapFunction<String, GeoPoint>() {
-			public Iterable<GeoPoint> call(String s) {
+			@Override
+			public  List<GeoPoint> call(String s) {
 				return Arrays.asList((GeoPoint)GPSPoint.createGPSPoint(s));
 			}
 		});
@@ -85,6 +85,7 @@ public final class MatchingGeoPoints {
 		
 		@SuppressWarnings("serial")
 		JavaPairRDD<String, GeoPoint> ones = points.mapToPair(new PairFunction<GeoPoint, String, GeoPoint>() {
+			@Override
 			public Tuple2<String, GeoPoint> call(GeoPoint s) {
 				if ((s instanceof GPSPoint) || (s instanceof StopPoint)) {
 					s.addFirst();

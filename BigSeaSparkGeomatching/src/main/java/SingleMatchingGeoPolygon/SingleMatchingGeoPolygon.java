@@ -63,7 +63,7 @@ public final class SingleMatchingGeoPolygon {
 		
 		DataSource source1 = null;
 		if (sourceType.equals("CSV")) {
-			source1 = AbstractExec.getDataCSV(dataSource);
+			source1 = AbstractExec.getDataCSV(dataSource, ';');
 		} else { //is postgis
 			source1 = AbstractExec.getDataPostGres(dataSource);
 		}
@@ -190,7 +190,10 @@ public final class SingleMatchingGeoPolygon {
 		
 		}).saveAsTextFile(outputPath);
 		
+		
 		ctx.stop();
 		ctx.close();
-	}	
+	}
+	
+	
 }

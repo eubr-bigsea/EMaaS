@@ -74,7 +74,7 @@ public class MatchingRoutes {
 						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode(), gpsPoint);
 
 					}
-				}).groupByKey();
+				}).groupByKey(minPartitions);
 
 		JavaPairRDD<String, Iterable<GeoPoint>> rddShapePointsPair = shapeString
 				.mapToPair(new PairFunction<String, String, GeoPoint>() {
@@ -84,7 +84,7 @@ public class MatchingRoutes {
 						ShapePoint shapePoint = ShapePoint.createShapePointRoute(s);
 						return new Tuple2<String, GeoPoint>(shapePoint.getId(), shapePoint);
 					}
-				}).groupByKey();
+				}).groupByKey(minPartitions);
 
 		JavaPairRDD<String, GeoLine> rddGPSLinePair = rddGPSPointsPair
 				.mapToPair(new PairFunction<Tuple2<String, Iterable<GeoPoint>>, String, GeoLine>() {
@@ -198,7 +198,7 @@ public class MatchingRoutes {
 		
 	}
 
-	public static Dataset<String> run(Dataset<Tuple2<String, GeoLine>> lines, SparkSession spark) throws Exception {
+	public static Dataset<String> run(Dataset<Tuple2<String, GeoLine>> lines, Integer minPartitions, SparkSession spark) throws Exception {
 
 		JavaRDD<Tuple2<String, GeoLine>> rddUnionLines = lines.toJavaRDD();
 
@@ -210,7 +210,7 @@ public class MatchingRoutes {
 
 						return new Tuple2<String, GeoLine>(t._1, t._2);
 					}
-				}).groupByKey();
+				}).groupByKey(minPartitions);
 
 		JavaRDD<List<GPSLine>> rddPossibleShapes = rddGroupedUnionLines
 				.map(new Function<Tuple2<String, Iterable<GeoLine>>, List<GPSLine>>() {

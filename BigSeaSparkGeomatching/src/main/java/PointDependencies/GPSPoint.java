@@ -4,7 +4,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.StringTokenizer;
 
-public class GPSPoint extends GeoPoint{
+import genericEntity.util.data.GenericObject;
+
+public class GPSPoint  extends GeoPoint{
 	
 	private static final long serialVersionUID = 1L;
 	//"bus.code","latitude","longitude","timestamp","line.code"
@@ -117,6 +119,16 @@ public class GPSPoint extends GeoPoint{
 				st.nextToken().replace("\"", ""),
 				st.nextToken().replace("\"", ""),
 				st.nextToken().replace("\"", ""));
+	}
+	
+	public static GPSPoint createGPSPoint(GenericObject line) {
+		return new GPSPoint(line.getData().get("bus.code").toString(),
+				line.getData().get("latitude").toString(),
+				line.getData().get("longitude").toString(),
+				line.getData().get("timestamp").toString(),
+				line.getData().get("line.code").toString(),
+				line.getData().get("gps.id").toString());
+				
 	}
 	
 	public void setClosestPoint(GeoPoint closestPoint) throws Exception {

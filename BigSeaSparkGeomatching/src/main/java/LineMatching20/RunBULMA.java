@@ -12,7 +12,7 @@ import LineDependencies.GeoLine;
 import LineDependencies.GeoObject;
 import scala.Tuple2;
 
-public class RunTest {
+public class RunBULMA {
 
 	public static void main(String[] args) throws Exception {
 		if (args.length < 4) {
@@ -37,9 +37,8 @@ public class RunTest {
 				  .getOrCreate();
 		
 		
-		MatchingRoutes mr = new MatchingRoutes();
-		Dataset<Tuple2<String, GeoLine>> lines = mr.generateDataFrames(pathFileShapes, pathGPSFile, minPartitions, spark);
-		Dataset<String> output = MatchingRoutes.run(lines, spark);
+		Dataset<Tuple2<String, GeoLine>> lines = MatchingRoutes.generateDataFrames(pathFileShapes, pathGPSFile, minPartitions, spark);
+		Dataset<String> output = MatchingRoutes.run(lines,minPartitions, spark);
 		output.toJavaRDD().saveAsTextFile(pathOutput);
 		
 		System.out.println("Tempo de Execução usando Dataset: " + (System.currentTimeMillis() - tempoInicial));

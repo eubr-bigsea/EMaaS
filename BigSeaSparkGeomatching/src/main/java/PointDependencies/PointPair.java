@@ -1,6 +1,7 @@
 package PointDependencies;
 
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
 
 import PolygonDependencies.PolygonClassification;
@@ -81,10 +82,16 @@ public class PointPair implements Serializable{
 	}
 
 	public String toStringCSV() {
-		String output = source.getGeoName() + "(" + source.getIdInDataset() + ")" + ";" +
-				target.getGeoName() + "(" + target.getIdInDataset() + ")" + ";" +
-				format.format(getPointSimilarity()) + ";" +
-				polygonClassification.toString();
+		String output = null;
+		try {
+			output = new String(source.getGeoName().getBytes(), "UTF-8") + "(" + source.getIdInDataset() + ")" + ";" +
+					new String(target.getGeoName().getBytes(), "UTF-8") + "(" + target.getIdInDataset() + ")" + ";" +
+					format.format(getPointSimilarity()) + ";" +
+					polygonClassification.toString();
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return output;
 	}
 

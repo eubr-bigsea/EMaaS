@@ -5,10 +5,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.io.ParseException;
 
 import PointDependencies.GeoPoint;
+import PolygonDependencies.InputTypes;
 
-public abstract class GeoLine implements Serializable {
+import java.io.Serializable;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.io.ParseException;
+import PolygonDependencies.InputTypes;
+
+
+public class GeoLine extends GeoObject implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
 	
@@ -18,6 +26,11 @@ public abstract class GeoLine implements Serializable {
 	private List<GeoPoint> listGeoPoints;
 	private float greaterDistancePoints;
 
+	//Used in polygons matching
+	public GeoLine(String geometryGIS, String geoName, InputTypes type, Integer idGeometry, Integer idInDataset) throws ParseException {
+		super(geometryGIS, type, idGeometry, geoName, idInDataset);
+	}
+	
 	public GeoLine(String id, LineString line, String blockingKey) {
 		this.id = id;
 		this.line = line;
@@ -69,6 +82,53 @@ public abstract class GeoLine implements Serializable {
 
 	public void setGreaterDistancePoints(float greaterDistancePoints) {
 		this.greaterDistancePoints = greaterDistancePoints;
+	}
+	
+	@Override
+	public Geometry getGeometry() {
+		return geometry;
+	}
+	@Override
+	public void setGeometry(Geometry geometry) {
+		this.geometry = geometry;
+	}
+
+	@Override
+	public Integer getIdGeometry() {
+		return idGeometry;
+	}
+
+	@Override
+	public void setIdGeometry(Integer idGeometry) {
+		this.idGeometry = idGeometry;
+	}
+
+	@Override
+	public String getGeoName() {
+		return geoName;
+	}
+
+	@Override
+	public void setGeoName(String geoName) {
+		this.geoName = geoName;
+	}
+	@Override
+	public InputTypes getType() {
+		return type;
+	}
+	@Override
+	public void setType(InputTypes type) {
+		this.type = type;
+	}
+
+	@Override
+	public Integer getIdInDataset() {
+		return idInDataset;
+	}
+
+	@Override
+	public void setIdInDataset(Integer idInDataset) {
+		this.idInDataset = idInDataset;
 	}
 
 	@Override

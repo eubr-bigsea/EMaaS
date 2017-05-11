@@ -42,18 +42,14 @@ public final class MatchingBusStops {
 		String outputPath = args[3];
 		Integer amountPartition = Integer.parseInt(args[4]);
 		String sourceType = args[5];
+
 		
-		/*
-		if (args.length < 1) {
-			System.err.println("Usage: MatchingGeoPoints <file>");
-			System.exit(1);
-		}*/
 		
 		DataSource source1 = null;
 		DataSource source2 = null;
 		if (sourceType.equals("CSV")) {
-			source1 = AbstractExec.getDataCSV(dataSource1);
-			source2 = AbstractExec.getDataCSV(dataSource2);
+			source1 = AbstractExec.getDataCSV(dataSource1, ';');
+			source2 = AbstractExec.getDataCSV(dataSource2, ';');
 		} else { //is postgis
 			source1 = AbstractExec.getDataPostGres(dataSource1);
 			source2 = AbstractExec.getDataPostGres(dataSource2);
@@ -97,8 +93,12 @@ public final class MatchingBusStops {
 //			if (!dude.getData().get("name").toString().equals("null")) {//for curitiba use atribute "nome" for new york "signname"
 				nome = dude.getData().get("name").toString();
 				id = Integer.parseInt(dude.getData().get("id").toString());//for curitiba use atribute "gid" for new york "id"
-				geoPointsDS1.add(new GeoPoint2(dude.getData().get("geometry").toString(), nome, InputTypes.GOV_POLYGON, indexOfPref, id));
-				indexOfPref++;
+				
+				if (!dude.getData().get("geometry").toString().contains("INF")) {
+					geoPointsDS1.add(new GeoPoint2(dude.getData().get("geometry").toString(), nome, InputTypes.GOV_POLYGON, indexOfPref, id));
+					indexOfPref++;
+				}
+				
 //			}
 			
 		}
@@ -182,11 +182,11 @@ public final class MatchingBusStops {
 						}
 						
 						//calculate the polygon similarity
-						double distanceSimilarity = entSource.getPointDistanceInMeters(entTarget);
+						double distanceSimilarity = entSource.getDistance(entTarget);
 						
 						//classification of pairs
 						PointPair pair;
-						if (distanceSimilarity <= thresholdPointDistance /*&& linguisticSimilarity > thresholdLinguistic*/ && (!entSource.getIdInDataset().equals(entTarget.getIdInDataset()))) {
+						if (distanceSimilarity <= thresholdPointDistance /*&& linguisticSimilarity > thresholdLinguistic && (!entSource.getIdInDataset().equals(entTarget.getIdInDataset()))*/) {
 							pair = new PointPair(entSource, entTarget, 0, distanceSimilarity, PolygonClassification.MATCH);
 						} else {
 							pair = new PointPair(entSource, entTarget, 0, distanceSimilarity, PolygonClassification.NON_MATCH);
