@@ -5,7 +5,9 @@ import java.io.Serializable;
 import javax.faces.application.FacesMessage;
 import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.SessionScoped;
+import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
+import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -19,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 //import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import br.edu.BigSeaT44Imp.big.divers.filtro.SessionContext;
 import br.edu.BigSeaT44Imp.big.divers.model.Usuario;
 import br.edu.BigSeaT44Imp.big.divers.util.Paginas;
 
@@ -39,9 +42,9 @@ public class LoginBean implements Serializable  {
 	private AuthenticationManager authenticationManager;
 
 	/**
-	 * Usuário Logado
+	 * Logged User
 	 */
-	private Usuario usuarioLogado;
+	private Usuario loggedUser;
 	
 	private boolean timeout = false;
 	
@@ -54,12 +57,13 @@ public class LoginBean implements Serializable  {
 		try {
 			Authentication request = new UsernamePasswordAuthenticationToken(getUsername(), getPassword());
 			Authentication result = authenticationManager.authenticate(request);
-			Usuario u = (Usuario)result.getPrincipal();
-			this.setUsuarioLogado(u);
-			SecurityContextHolder.getContext().setAuthentication(result);
+			Usuario user = (Usuario)result.getPrincipal();
+			this.setUsuarioLogado(user);
+//			SecurityContextHolder.getContext().setAuthentication(result);
+			SessionContext.getInstance().setAttribute("loggedUser", user);
 		} catch (Exception e) {
 			e.printStackTrace();
-			reportarMensagemDeErro("Usuário ou senha inválidos");
+			reportarMensagemDeErro("User ou password is invalid");
 
 			return null;
 		}
@@ -75,12 +79,14 @@ public class LoginBean implements Serializable  {
 	}
 
 	private void reportarMensagemDeErro(String detalhe) {
-		FacesMessage msg = new FacesMessage(FacesMessage.SEVERITY_ERROR, "Erro de Autenticação", detalhe);
+		FacesMessage msg = new FacesMessage(FacesMessage.SEVERITY_ERROR, "Authentication error", detalhe);
 		FacesContext.getCurrentInstance().addMessage(null, msg);
 	}
 
 	public String logout() {
-		FacesContext.getCurrentInstance().getExternalContext().invalidateSession();		
+//		FacesContext.getCurrentInstance().getExternalContext().invalidateSession();
+	
+		SessionContext.getInstance().encerrarSessao();
 		return Paginas.LOGIN;
 	}
 
@@ -124,11 +130,11 @@ public class LoginBean implements Serializable  {
 	}
 
 	public Usuario getUsuarioLogado() {
-		return usuarioLogado;
+		return loggedUser;
 	}
 
-	public void setUsuarioLogado(Usuario userLogado) {
-		this.usuarioLogado = userLogado;
+	public void setUsuarioLogado(Usuario loggedUser) {
+		this.loggedUser = loggedUser;
 	}
 
 	public void timeout() throws Exception {
@@ -137,15 +143,15 @@ public class LoginBean implements Serializable  {
 		setTimeout(true);
 	}
 
-	public void mensagemTimeout() {
+	public void messageTimeout() {
 		if (isTimeout()) {
-			reportarMensagemDeErroTimeOut("Sessão encerrada!");
+			reportarMensagemDeErroTimeOut("Session closed!");
 			setTimeout(false);
 		}
 	}
 	
-	private void reportarMensagemDeErroTimeOut(String detalhe) {
-		FacesMessage msg = new FacesMessage(FacesMessage.SEVERITY_ERROR, "Tempo de Inatividade Atingido", detalhe);
+	private void reportarMensagemDeErroTimeOut(String detail) {
+		FacesMessage msg = new FacesMessage(FacesMessage.SEVERITY_ERROR, "Downtime reached", detail);
 		FacesContext.getCurrentInstance().addMessage(null, msg);
 	}
 

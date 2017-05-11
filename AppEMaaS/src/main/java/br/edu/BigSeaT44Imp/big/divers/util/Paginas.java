@@ -8,11 +8,11 @@ public enum Paginas {
 	// COMPLEMENTOS
 	public static final String REDIRECT_TRUE = "?faces-redirect=true";
 	
-	// INDEX
-	public static final String INDEX = "index" + REDIRECT_TRUE;
-	
 	// PASTAS
 	public static final String PROTECTED_FOLDER = "/protegidos/";
+	
+	// INDEX
+	public static final String INDEX = PROTECTED_FOLDER + "index" + REDIRECT_TRUE;
 	
 	// PRINCIPAL
 	public static final String PRINCIPAL = PROTECTED_FOLDER + "principal" + REDIRECT_TRUE;
