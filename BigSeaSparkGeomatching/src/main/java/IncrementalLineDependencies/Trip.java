@@ -5,24 +5,46 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.vividsolutions.jts.geom.Point;
+
 import LineDependencies.ShapeLine;
+import PointDependencies.GPSPoint;
 import PointDependencies.GeoPoint;
 import scala.Tuple2;
 
 public class Trip {
 	
 	private Integer route;
-	private GeoPoint initialPoint;
-	private Map<GeoPoint, Tuple2<GeoPoint, Double>> path; // MAP<POINTS_GPS, TUPLE<POINT_SHAPE, DISTANCE>> PATH
+	private GPSPoint initialPoint;
+	private Map<GeoPoint, Tuple2<Point, Float>> path; // MAP<POINT_GPS, TUPLE<POINT_SHAPE, DISTANCE>> PATH
 	private GeoPoint endPoint;
-	private List<GeoPoint> outliersBefore; // somente pontos quando sair da garagem, antes da primeira trip
-	private List<GeoPoint> outliersAfter;
+	private List<GPSPoint> outliersBefore;
+	private List<GPSPoint> outliersAfter;
 	private ShapeLine shapeMatching;
+	private float distanceToInitialPoint;
+	private boolean hasFoundInitialPoint;
 	
 	public Trip(){
+		this.hasFoundInitialPoint = false;
 		this.path = new HashMap<>();
 		this.outliersBefore = new ArrayList<>();
 		this.outliersAfter = new ArrayList<>();
+	}
+
+	public boolean hasFoundInitialPoint() {
+		return hasFoundInitialPoint;
+	}
+
+	public void setHasFoundInitialPoint(boolean hasFoundInitialPoint) {
+		this.hasFoundInitialPoint = hasFoundInitialPoint;
+	}
+
+	public float getDistanceToInitialPoint() {
+		return distanceToInitialPoint;
+	}
+
+	public void setDistanceToInitialPoint(float distanceToInitialPoint) {
+		this.distanceToInitialPoint = distanceToInitialPoint;
 	}
 
 	public Integer getRoute() {
@@ -33,19 +55,20 @@ public class Trip {
 		this.route = route;
 	}
 
-	public GeoPoint getInitialPoint() {
+	public GPSPoint getInitialPoint() {
 		return initialPoint;
 	}
 
-	public void setInitialPoint(GeoPoint initialPoint) {
-		this.initialPoint = initialPoint;
+	public void setInitialPoint(GPSPoint initialPoint) {
+		if (initialPoint != null)
+			this.initialPoint = initialPoint;
 	}
 
-	public Map<GeoPoint, Tuple2<GeoPoint, Double>> getPath() {
+	public Map<GeoPoint, Tuple2<Point, Float>> getPath() {
 		return path;
 	}
 
-	public void setPath(Map<GeoPoint, Tuple2<GeoPoint, Double>> path) {
+	public void setPath(Map<GeoPoint, Tuple2<Point, Float>> path) {
 		this.path = path;
 	}
 
@@ -53,23 +76,33 @@ public class Trip {
 		return endPoint;
 	}
 
-	public void setEndPoint(GeoPoint endPoint) {
+	public void setEndPoint(GPSPoint endPoint) {
 		this.endPoint = endPoint;
 	}
 
-	public List<GeoPoint> getOutliersBefore() {
+	public void addOutlierBefore(GPSPoint gpsPoint) {
+		if (gpsPoint != null)
+			outliersBefore.add(gpsPoint);
+	}
+	
+	public List<GPSPoint> getOutliersBefore() {
 		return outliersBefore;
 	}
 
-	public void setOutliersBefore(List<GeoPoint> outliersBefore) {
+	public void setOutliersBefore(List<GPSPoint> outliersBefore) {
 		this.outliersBefore = outliersBefore;
 	}
 
-	public List<GeoPoint> getOutliersAfter() {
+	public void addOutlierAfter(GPSPoint gpsPoint) {
+		if (gpsPoint != null)
+			outliersAfter.add(gpsPoint);
+	}
+	
+	public List<GPSPoint> getOutliersAfter() {
 		return outliersAfter;
 	}
 
-	public void setOutliersAfter(List<GeoPoint> outliersAfter) {
+	public void setOutliersAfter(List<GPSPoint> outliersAfter) {
 		this.outliersAfter = outliersAfter;
 	}
 
@@ -78,7 +111,8 @@ public class Trip {
 	}
 
 	public void setShapeMatching(ShapeLine shapeMatching) {
-		this.shapeMatching = shapeMatching;
+		if (shapeMatching != null)
+			this.shapeMatching = shapeMatching;
 	}
 
 	@Override

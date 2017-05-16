@@ -6,7 +6,8 @@ public enum Problem {
 	NO_TRIP(-1),
 	TRIP_PROBLEM(-2),
 	OUTLIER_POINT(-3),
-	POINT_ABOVE_THRESHOLD(-4);
+	POINT_ABOVE_THRESHOLD(-4),
+	NO_SHAPE(-5);
 	
 	private int code;
 	private Problem(int code) {
@@ -15,6 +16,4 @@ public enum Problem {
 	public int getCode() {
 		return code;
 	}
-	
-
 }
