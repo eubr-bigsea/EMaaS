@@ -94,11 +94,11 @@ public class ShapePoint extends GeoPoint {
 		this.route = route;
 	}
 
-//	@Override
-//	public String toString() {
-//		return "ShapePoint [id=" + id + ", pointSequence=" + pointSequence + 
-//				", distanceTraveled=" + distanceTraveled + ", route=" + route + "]";
-//	}
+	@Override
+	public String toString() {
+		return "ShapePoint [id=" + id + ", pointSequence=" + pointSequence + 
+				", distanceTraveled=" + distanceTraveled + ", route=" + route + "]";
+	}
 
 	@Override
 	public int hashCode() {

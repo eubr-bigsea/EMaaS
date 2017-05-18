@@ -5,30 +5,40 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.vividsolutions.jts.geom.Point;
-
 import LineDependencies.ShapeLine;
 import PointDependencies.GPSPoint;
 import PointDependencies.GeoPoint;
+import PointDependencies.ShapePoint;
 import scala.Tuple2;
 
 public class Trip {
 	
 	private Integer route;
 	private GPSPoint initialPoint;
-	private Map<GeoPoint, Tuple2<Point, Float>> path; // MAP<POINT_GPS, TUPLE<POINT_SHAPE, DISTANCE>> PATH
+	private Map<GeoPoint, Tuple2<ShapePoint, Float>> path; // MAP<POINT_GPS, TUPLE<POINT_SHAPE, DISTANCE>> PATH
 	private GeoPoint endPoint;
 	private List<GPSPoint> outliersBefore;
 	private List<GPSPoint> outliersAfter;
 	private ShapeLine shapeMatching;
 	private float distanceToInitialPoint;
 	private boolean hasFoundInitialPoint;
+	private boolean isNearToEndPoint;
 	
 	public Trip(){
+		this.distanceToInitialPoint = Float.MAX_VALUE;
 		this.hasFoundInitialPoint = false;
+		this.isNearToEndPoint = false;
 		this.path = new HashMap<>();
 		this.outliersBefore = new ArrayList<>();
 		this.outliersAfter = new ArrayList<>();
+	}
+
+	public boolean isNearToEndPoint() {
+		return isNearToEndPoint;
+	}
+
+	public void setNearToEndPoint(boolean isNearToEndPoint) {
+		this.isNearToEndPoint = isNearToEndPoint;
 	}
 
 	public boolean hasFoundInitialPoint() {
@@ -64,11 +74,11 @@ public class Trip {
 			this.initialPoint = initialPoint;
 	}
 
-	public Map<GeoPoint, Tuple2<Point, Float>> getPath() {
+	public Map<GeoPoint, Tuple2<ShapePoint, Float>> getPath() {
 		return path;
 	}
 
-	public void setPath(Map<GeoPoint, Tuple2<Point, Float>> path) {
+	public void setPath(Map<GeoPoint, Tuple2<ShapePoint, Float>> path) {
 		this.path = path;
 	}
 
@@ -81,7 +91,7 @@ public class Trip {
 	}
 
 	public void addOutlierBefore(GPSPoint gpsPoint) {
-		if (gpsPoint != null)
+		if (gpsPoint != null && !outliersBefore.contains(gpsPoint))
 			outliersBefore.add(gpsPoint);
 	}
 	
@@ -94,7 +104,7 @@ public class Trip {
 	}
 
 	public void addOutlierAfter(GPSPoint gpsPoint) {
-		if (gpsPoint != null)
+		if (gpsPoint != null && !outliersAfter.contains(gpsPoint))
 			outliersAfter.add(gpsPoint);
 	}
 	
@@ -120,5 +130,9 @@ public class Trip {
 		return "Trip [route=" + route + ", initalPoint=" + initialPoint + ", path=" + path + ", endPoint=" + endPoint
 				+ ", outliersBefore=" + outliersBefore + ", outliersAfter=" + outliersAfter + ", shapeMatching="
 				+ shapeMatching + "]";
+	}
+
+	public void addPointToPath(GPSPoint gpsPoint, ShapePoint closestPoint, Float smallerDistance) {
+		this.path.put(gpsPoint, new Tuple2<ShapePoint, Float>(closestPoint, smallerDistance));
 	}
 }
