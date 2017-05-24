@@ -10,16 +10,16 @@ public class ShapeLine extends GeoLine {
 
 	private static final long serialVersionUID = 1L;
 	
-	private String distanceTraveled;
+	private Float distanceTraveled;
 	private String route;
 	private int thresholdDistance;
 		
-	public ShapeLine(String id, LineString lineString, String distanceTraveled, String blockingKey) {
+	public ShapeLine(String id, LineString lineString, Float distanceTraveled, String blockingKey) {
 		super(id, lineString, blockingKey);
 		this.distanceTraveled = distanceTraveled;
 	}
 	
-	public ShapeLine(String id, LineString lineString, String distanceTraveled, String blockingKey,
+	public ShapeLine(String id, LineString lineString, Float distanceTraveled, String blockingKey,
 			List<GeoPoint> listGeoPoints, String route, float greaterDistancePoints) {
 		super(id, lineString, blockingKey, listGeoPoints, greaterDistancePoints);
 		this.distanceTraveled = distanceTraveled;
@@ -38,7 +38,7 @@ public class ShapeLine extends GeoLine {
 		return Double.valueOf(distanceTraveled);
 	}
 
-	public void setDistanceTraveled(String distanceTraveled) {
+	public void setDistanceTraveled(Float distanceTraveled) {
 		this.distanceTraveled = distanceTraveled;
 	}
 	

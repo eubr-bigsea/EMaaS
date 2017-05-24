@@ -15,11 +15,11 @@ public class Trip {
 	
 	private Integer route;
 	private GPSPoint initialPoint;
-	private Map<GeoPoint, Tuple2<ShapePoint, Float>> path; // MAP<POINT_GPS, TUPLE<POINT_SHAPE, DISTANCE>> PATH
+	private Map<GPSPoint, Tuple2<ShapePoint, Float>> path; // MAP<POINT_GPS, TUPLE<POINT_SHAPE, DISTANCE>> PATH
 	private GeoPoint endPoint;
 	private List<GPSPoint> outliersBefore;
 	private List<GPSPoint> outliersAfter;
-	private ShapeLine shapeMatching;
+	private ShapeLine shapeMatched;
 	private float distanceToInitialPoint;
 	private boolean hasFoundInitialPoint;
 	private boolean isNearToEndPoint;
@@ -74,11 +74,11 @@ public class Trip {
 			this.initialPoint = initialPoint;
 	}
 
-	public Map<GeoPoint, Tuple2<ShapePoint, Float>> getPath() {
+	public Map<GPSPoint, Tuple2<ShapePoint, Float>> getPath() {
 		return path;
 	}
 
-	public void setPath(Map<GeoPoint, Tuple2<ShapePoint, Float>> path) {
+	public void setPath(Map<GPSPoint, Tuple2<ShapePoint, Float>> path) {
 		this.path = path;
 	}
 
@@ -116,20 +116,20 @@ public class Trip {
 		this.outliersAfter = outliersAfter;
 	}
 
-	public ShapeLine getShapeMatching() {
-		return shapeMatching;
+	public ShapeLine getShapeMatched() {
+		return shapeMatched;
 	}
 
-	public void setShapeMatching(ShapeLine shapeMatching) {
-		if (shapeMatching != null)
-			this.shapeMatching = shapeMatching;
+	public void setShapeMatched(ShapeLine shapeMatched) {
+		if (shapeMatched != null)
+			this.shapeMatched = shapeMatched;
 	}
 
 	@Override
 	public String toString() {
 		return "Trip [route=" + route + ", initalPoint=" + initialPoint + ", path=" + path + ", endPoint=" + endPoint
-				+ ", outliersBefore=" + outliersBefore + ", outliersAfter=" + outliersAfter + ", shapeMatching="
-				+ shapeMatching + "]";
+				+ ", outliersBefore=" + outliersBefore + ", outliersAfter=" + outliersAfter + ", shapeMatched="
+				+ shapeMatched + "]";
 	}
 
 	public void addPointToPath(GPSPoint gpsPoint, ShapePoint closestPoint, Float smallerDistance) {

@@ -78,8 +78,8 @@ public class ShapePoint extends GeoPoint {
 		this.pointSequence = pointSequence;
 	}
 
-	public String getDistanceTraveled() {
-		return distanceTraveled;
+	public Float getDistanceTraveled() {
+		return Float.valueOf(distanceTraveled);
 	}
 
 	public void setDistanceTraveled(String distanceTraveled) {
@@ -94,12 +94,16 @@ public class ShapePoint extends GeoPoint {
 		this.route = route;
 	}
 
+//	@Override
+//	public String toString() {
+//		return "ShapePoint [id=" + id + ", route=" + route + "]";
+//	}
+
 	@Override
 	public String toString() {
-		return "ShapePoint [id=" + id + ", pointSequence=" + pointSequence + 
-				", distanceTraveled=" + distanceTraveled + ", route=" + route + "]";
+		return "[id=" + id + "]";
 	}
-
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;

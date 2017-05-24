@@ -71,6 +71,20 @@ public class GeoLine extends GeoObject implements Serializable {
 	public List<GeoPoint> getListGeoPoints() {
 		return this.listGeoPoints;
 	}
+	
+	public GeoPoint getFirstPoint() {
+		if (listGeoPoints.size() == 0) {
+			return null;
+		}
+		return this.listGeoPoints.get(0);
+	}
+	
+	public GeoPoint getLastPoint() {
+		if (listGeoPoints.size() == 0) {
+			return null;
+		}
+		return this.listGeoPoints.get(listGeoPoints.size() -1);
+	}
 
 	public void setListGeoPoints(List<GeoPoint> listGeoPoints) {
 		this.listGeoPoints = listGeoPoints;

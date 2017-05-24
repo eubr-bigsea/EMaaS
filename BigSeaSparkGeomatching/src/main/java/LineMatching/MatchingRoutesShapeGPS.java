@@ -59,7 +59,8 @@ public class MatchingRoutesShapeGPS {
 			System.out.println("The output directory should not be the same as the GPS files directory.");
 		}
 		
-		SparkConf sparkConf = new SparkConf().setAppName("JavaDeduplication").setMaster("local");
+//		SparkConf sparkConf = new SparkConf().setAppName("JavaDeduplication").setMaster("local");
+		SparkConf sparkConf = new SparkConf().setAppName("JavaDeduplication");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
 		generateOutputFiles(pathFileShapes, pathGPSFile, pathOutput, minPartitions, context);
@@ -112,7 +113,7 @@ public class MatchingRoutesShapeGPS {
 						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode(), gpsPoint);
 
 					}
-				}).groupByKey();
+				}).groupByKey(minPartitions);
 
 		JavaPairRDD<String, Iterable<GeoPoint>> rddShapePointsPair = shapeString
 				.mapToPair(new PairFunction<String, String, GeoPoint>() {
@@ -122,7 +123,7 @@ public class MatchingRoutesShapeGPS {
 						ShapePoint shapePoint = ShapePoint.createShapePointRoute(s);
 						return new Tuple2<String, GeoPoint>(shapePoint.getId(), shapePoint);
 					}
-				}).groupByKey();
+				}).groupByKey(minPartitions);
 
 		JavaPairRDD<String, GeoLine> rddGPSLinePair = rddGPSPointsPair
 				.mapToPair(new PairFunction<Tuple2<String, Iterable<GeoPoint>>, String, GeoLine>() {
@@ -219,7 +220,7 @@ public class MatchingRoutesShapeGPS {
 						Coordinate[] array = new Coordinate[coordinates.size()];
 
 						LineString lineString = geometryFactory.createLineString(coordinates.toArray(array));
-						String distanceTraveled = lastPoint.getDistanceTraveled();
+						Float distanceTraveled = lastPoint.getDistanceTraveled();
 						String route = lastPoint.getRoute();
 						GeoLine geoLine = new ShapeLine(pair._1, lineString, distanceTraveled, lineBlockingKey,
 								listGeoPoint, route, greaterDistance);
@@ -229,7 +230,7 @@ public class MatchingRoutesShapeGPS {
 				});
 
 		JavaPairRDD<String, Iterable<GeoLine>> rddGroupedUnionLines = rddGPSLinePair.union(rddShapeLinePair)
-				.groupByKey();
+				.groupByKey(minPartitions);
 
 		JavaRDD<List<GPSLine>> rddPossibleShapes = rddGroupedUnionLines
 				.map(new Function<Tuple2<String, Iterable<GeoLine>>, List<GPSLine>>() {

@@ -140,12 +140,14 @@ public class GPSPoint  extends GeoPoint{
 	}
 	
 		
+//	@Override
+//	public String toString() {
+//		return "GPSPoint [gpsId=" + gpsId + ", busCode=" + busCode + ", timeStamp=" + timeStamp +"]";
+//	}
+	
 	@Override
 	public String toString() {
-		return "GPSPoint [gpsId=" + gpsId + ", busCode=" + busCode + ", timeStamp=" + timeStamp + ", lineCode="
-				+ lineCode + ", closestPoint=" + closestPoint + ", numberTrip=" + numberTrip
-				+ ", distanceClosestShapePoint=" + distanceClosestShapePoint + 
-				", thresholdShape=" + thresholdShape + "]";
+		return getLongitude() + "," + getLatitude() + ", timeStamp=" + timeStamp;
 	}
 
 	@Override
