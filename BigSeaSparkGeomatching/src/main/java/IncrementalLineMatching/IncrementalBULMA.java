@@ -173,129 +173,132 @@ public class IncrementalBULMA {
 				String route = currentGPSPoint.getLineCode();
 				
 //				if (route.equals("207") && currentGPSPoint.getBusCode().equals("BC301")) {
-//				if (route.equals("022") && currentGPSPoint.getBusCode().equals("GL323")) {
-				if (route.equals("030") && currentGPSPoint.getBusCode().equals("KB603")) {
+				if (route.equals("022") && currentGPSPoint.getBusCode().equals("GL323")) {
+//				if (route.equals("030") && currentGPSPoint.getBusCode().equals("KB603")) {
 					populateTrueShapes(route, currentGPSPoint);
 				
 					Trip trip = mapBusCodeCurrentTrip.get(currentGPSPoint.getBusCode() + route);
 					if (trip == null) {
 						trip = new Trip();
-					}					
+					}
+					
+					List<ShapeLine> listTrueShapes = mapTrueShapes.get(currentGPSPoint.getBusCode() + route);
+					if (listTrueShapes != null && listTrueShapes.size() == 1) {
 						
-					if (trip.hasFoundInitialPoint()) {
+						addClosestPoint(currentGPSPoint, listTrueShapes.get(0), trip, listOutput);
 						
-						ShapeLine shapeMatched = trip.getShapeMatched();
-						
-						ShapePoint startPointShape = (ShapePoint) shapeMatched.getFirstPoint();
-						ShapePoint endPointShape = (ShapePoint) shapeMatched.getLastPoint();
-						float currentDistanceToStartPoint = GeoPoint.getDistanceInMeters(currentGPSPoint,
-								startPointShape);
-						float currentDistanceToEndPoint = GeoPoint.getDistanceInMeters(currentGPSPoint,
-								endPointShape);
-						
-						int threshold = shapeMatched.getThresholdDistance();
-						
-						// TODO What to do if the last point is missing?
-						if (currentDistanceToStartPoint > threshold && currentDistanceToEndPoint <= threshold) {
-							if (mapPossibleEndPoint.get(currentGPSPoint.getBusCode() + route + shapeMatched.getId()) != null) {
-								if (mapPossibleEndPoint.get(currentGPSPoint.getBusCode() + route + shapeMatched.getId())._1 <= currentDistanceToEndPoint) {
-									mapPossibleEndPoint.put(currentGPSPoint.getBusCode() + route + shapeMatched.getId(), new Tuple2<Float, GPSPoint>(currentDistanceToEndPoint, currentGPSPoint));
-								
-								} else { // found last point
-									trip.setEndPoint(mapPossibleEndPoint.get(currentGPSPoint.getBusCode() + route + shapeMatched.getId())._2);
-									cleanMaps(currentGPSPoint, shapeMatched, route, trip);
-									trip = new Trip();
-									trip.setInitialPoint(currentGPSPoint);
-								}
-								
-							} else {
-								mapPossibleEndPoint.put(currentGPSPoint.getBusCode() + route + shapeMatched.getId(), new Tuple2<Float, GPSPoint>(currentDistanceToEndPoint, currentGPSPoint));
-							}	
-						} 
-						
-						addClosestPoint(currentGPSPoint, shapeMatched, trip, listOutput);
-						mapBusCodeCurrentTrip.put(currentGPSPoint.getBusCode() + route, trip);
-						
-					} else { // searching the first point
-						
-						if (mapTrueShapes.get(currentGPSPoint.getBusCode() + route) != null) {
-
-							for (ShapeLine shapeLine : mapTrueShapes.get(currentGPSPoint.getBusCode() + route)) {
-								
-								Tuple2<Float, List<GPSPoint>> possibleOutliersPointsAndDistance = mapPossibleOutliersPoints.get(currentGPSPoint.getBusCode() + route + shapeLine.getId());
-
-								List<GPSPoint> listPossibleOutiliers;
-								Float smallerDistanceToFirstPoint = Float.MAX_VALUE;
-								if (possibleOutliersPointsAndDistance != null) {
-									smallerDistanceToFirstPoint = possibleOutliersPointsAndDistance._1;
-									listPossibleOutiliers = possibleOutliersPointsAndDistance._2;
-								} else {
-									 listPossibleOutiliers = new ArrayList<>();
-								}
-								
-								ShapePoint startPointShape = (ShapePoint) shapeLine.getFirstPoint();
-								float currentDistanceToFirstPoint = GeoPoint.getDistanceInMeters(currentGPSPoint, startPointShape);
-								
-								if (currentDistanceToFirstPoint < smallerDistanceToFirstPoint
-										|| smallerDistanceToFirstPoint > shapeLine.getGreaterDistancePoints()) {
+					} else {
+						if (trip.hasFoundInitialPoint()) {
+							
+							ShapeLine shapeMatched = trip.getShapeMatched();
+							
+							ShapePoint startPointShape = (ShapePoint) shapeMatched.getFirstPoint();
+							ShapePoint endPointShape = (ShapePoint) shapeMatched.getLastPoint();
+							float currentDistanceToStartPoint = GeoPoint.getDistanceInMeters(currentGPSPoint,
+									startPointShape);
+							float currentDistanceToEndPoint = GeoPoint.getDistanceInMeters(currentGPSPoint,
+									endPointShape);
+							
+							int threshold = shapeMatched.getThresholdDistance();
+							
+							// TODO What to do if the last point is missing?
+							if (currentDistanceToStartPoint > threshold) {
+								if (mapPossibleEndPoint.get(currentGPSPoint.getBusCode() + route + shapeMatched.getId()) != null) {
+									if (mapPossibleEndPoint.get(currentGPSPoint.getBusCode() + route + shapeMatched.getId())._1 <= currentDistanceToEndPoint) {
+										mapPossibleEndPoint.put(currentGPSPoint.getBusCode() + route + shapeMatched.getId(), new Tuple2<Float, GPSPoint>(currentDistanceToEndPoint, currentGPSPoint));
 									
-									smallerDistanceToFirstPoint = currentDistanceToFirstPoint;
-									listPossibleOutiliers.add(currentGPSPoint);
-																		
-									mapPossibleOutliersPoints.put(currentGPSPoint.getBusCode() + route + shapeLine.getId(),
-											new Tuple2<Float, List<GPSPoint>>(smallerDistanceToFirstPoint,
-													listPossibleOutiliers));
-									
-								} else if (smallerDistanceToFirstPoint <= shapeLine.getGreaterDistancePoints()) { // found initial point
-									// TODO Check threshold: errado para pontos iniciais
-									// TODO Check which shape it chose: errado para circulares
-									
-									for (int i = 0; i < listPossibleOutiliers.size() - 1; i++) {
-										GPSPoint currentProblemanticPoint = listPossibleOutiliers.get(i);
-										Tuple3<ShapeLine, ShapePoint, Float> firstProblematicPoint = getFirstProblematicPoint(currentProblemanticPoint, route);
-										
-										if (!trip.hasFoundInitialPoint()) {
-											if (firstProblematicPoint == null) {
-												trip.addOutlierBefore(currentProblemanticPoint);
-												listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentProblemanticPoint, null, null));
-												
-											} else {
-												trip.setInitialPoint(currentProblemanticPoint);
-												trip.setHasFoundInitialPoint(true);
-												trip.addPointToPath(currentProblemanticPoint, firstProblematicPoint._2(), firstProblematicPoint._3());
-												trip.setShapeMatched(firstProblematicPoint._1());
-												listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentProblemanticPoint, firstProblematicPoint._2(), firstProblematicPoint._3()));
-											}
-											
-										} else {
-											addClosestPoint(currentProblemanticPoint, trip.getShapeMatched(), trip, listOutput);
-										}										
+									} else { // found last point
+										trip.setEndPoint(mapPossibleEndPoint.get(currentGPSPoint.getBusCode() + route + shapeMatched.getId())._2);
+										cleanMaps(currentGPSPoint, shapeMatched, route, trip);
+										trip = new Trip();
+										trip.setInitialPoint(currentGPSPoint);
 									}
 									
-									mapBusCodeCurrentTrip.put(currentGPSPoint.getBusCode() + route, trip);
-									cleanMaps(currentGPSPoint, shapeLine, route, trip);
-									
-									trip = new Trip();
-//									trip.setInitialPoint(currentGPSPoint);									
-									trip.setHasFoundInitialPoint(true);
-									GPSPoint initialGPSPoint = listPossibleOutiliers.get(listPossibleOutiliers.size() - 1);
-									trip.setInitialPoint(initialGPSPoint);
-									trip.setShapeMatched(shapeLine);
-
-									addClosestPoint(initialGPSPoint, shapeLine, trip, listOutput);
-									addClosestPoint(currentGPSPoint, shapeLine, trip, listOutput);
-									trip.addPointToPath(initialGPSPoint, startPointShape,
-											smallerDistanceToFirstPoint);
-									trip.addPointToPath(currentGPSPoint, startPointShape,
-											smallerDistanceToFirstPoint);
-									mapBusCodeCurrentTrip.put(currentGPSPoint.getBusCode() + route, trip);
-									break;
-									
-								} 
-							}
+								} else {
+									mapPossibleEndPoint.put(currentGPSPoint.getBusCode() + route + shapeMatched.getId(), new Tuple2<Float, GPSPoint>(currentDistanceToEndPoint, currentGPSPoint));
+								}	
+							} 
 							
-						} else { // when doesn't have shape in the dataset
-							listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, null, Float.valueOf(Problem.NO_SHAPE.getCode())));
+							addClosestPoint(currentGPSPoint, shapeMatched, trip, listOutput);
+							mapBusCodeCurrentTrip.put(currentGPSPoint.getBusCode() + route, trip);
+							
+						} else { // searching the first point
+							
+							if (listTrueShapes != null) {
+
+								for (ShapeLine shapeLine : listTrueShapes) {
+									
+									Tuple2<Float, List<GPSPoint>> possibleOutliersPointsAndDistance = mapPossibleOutliersPoints.get(currentGPSPoint.getBusCode() + route + shapeLine.getId());
+
+									List<GPSPoint> listPossibleOutiliers;
+									Float smallerDistanceToFirstPoint = Float.MAX_VALUE;
+									if (possibleOutliersPointsAndDistance != null) {
+										smallerDistanceToFirstPoint = possibleOutliersPointsAndDistance._1;
+										listPossibleOutiliers = possibleOutliersPointsAndDistance._2;
+									} else {
+										 listPossibleOutiliers = new ArrayList<>();
+									}
+									
+									ShapePoint startPointShape = (ShapePoint) shapeLine.getFirstPoint();
+									float currentDistanceToFirstPoint = GeoPoint.getDistanceInMeters(currentGPSPoint, startPointShape);
+									
+									if (currentDistanceToFirstPoint < smallerDistanceToFirstPoint
+											|| smallerDistanceToFirstPoint > shapeLine.getGreaterDistancePoints()) {
+										
+										smallerDistanceToFirstPoint = currentDistanceToFirstPoint;
+										listPossibleOutiliers.add(currentGPSPoint);
+																			
+										mapPossibleOutliersPoints.put(currentGPSPoint.getBusCode() + route + shapeLine.getId(),
+												new Tuple2<Float, List<GPSPoint>>(smallerDistanceToFirstPoint,
+														listPossibleOutiliers));
+										
+									} else if (smallerDistanceToFirstPoint <= shapeLine.getGreaterDistancePoints()) { // found initial point
+										
+										for (int i = 0; i < listPossibleOutiliers.size() - 1; i++) {
+											GPSPoint currentProblemanticPoint = listPossibleOutiliers.get(i);
+											Tuple3<ShapeLine, ShapePoint, Float> firstProblematicPoint = getFirstProblematicPoint(currentProblemanticPoint, route);
+											
+											if (!trip.hasFoundInitialPoint()) {
+												if (firstProblematicPoint == null) {
+													trip.addOutlierBefore(currentProblemanticPoint);
+													listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentProblemanticPoint, null, null));
+													
+												} else {
+													trip.setInitialPoint(currentProblemanticPoint);
+													trip.setHasFoundInitialPoint(true);
+													trip.addPointToPath(currentProblemanticPoint, firstProblematicPoint._2(), firstProblematicPoint._3());
+													trip.setShapeMatched(firstProblematicPoint._1());
+													listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentProblemanticPoint, firstProblematicPoint._2(), firstProblematicPoint._3()));
+												}
+												
+											} else {
+												addClosestPoint(currentProblemanticPoint, trip.getShapeMatched(), trip, listOutput);
+											}										
+										}
+										
+										mapBusCodeCurrentTrip.put(currentGPSPoint.getBusCode() + route, trip);
+										cleanMaps(currentGPSPoint, shapeLine, route, trip);
+										
+										trip = new Trip();									
+										trip.setHasFoundInitialPoint(true);
+										GPSPoint initialGPSPoint = listPossibleOutiliers.get(listPossibleOutiliers.size() - 1);
+										trip.setInitialPoint(initialGPSPoint);
+										trip.setShapeMatched(shapeLine);
+
+										addClosestPoint(initialGPSPoint, shapeLine, trip, listOutput);
+										addClosestPoint(currentGPSPoint, shapeLine, trip, listOutput);
+										trip.addPointToPath(initialGPSPoint, startPointShape,
+												smallerDistanceToFirstPoint);
+										trip.addPointToPath(currentGPSPoint, startPointShape,
+												smallerDistanceToFirstPoint);
+										mapBusCodeCurrentTrip.put(currentGPSPoint.getBusCode() + route, trip);
+										break;
+									} 
+								}
+								
+							} else { // when doesn't have shape in the dataset
+								listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, null, Float.valueOf(Problem.NO_SHAPE.getCode())));
+							}
 						}
 					}
 				}
@@ -326,7 +329,6 @@ public class IncrementalBULMA {
 				return null;
 			}
 			
-
 			private void cleanMaps(GPSPoint gpsPoint, ShapeLine shapeMatched, String route, Trip trip) {
 				mapPossibleEndPoint.put(gpsPoint.getBusCode() + route + shapeMatched.getId(), null);
 				mapBusCodeCurrentTrip.put(gpsPoint.getBusCode() + route, null);
@@ -373,9 +375,9 @@ public class IncrementalBULMA {
 						Point endPoint = bestShape.getLine().getEndPoint();
 
 						if (GPSPoint.getDistanceInMeters(firstPoint, endPoint) <= thresholdShapesSequence) {						
-							listMatchedShapes.add(bestShape); // shape circular, apenas 1				
+							listMatchedShapes.add(bestShape);				
 						} else {
-							listMatchedShapes.addAll(mapPossibleShapeLines.values()); // shapes complementares
+							listMatchedShapes.addAll(mapPossibleShapeLines.values());
 						}
 						
 					} else if (mapPossibleShapeLines != null && mapPossibleShapeLines.size() == 1) {
@@ -398,7 +400,6 @@ public class IncrementalBULMA {
 					}
 				}
 				return new Tuple2<ShapePoint, Float>(closestShapePoint, smallerDistance);
-				
 			}
 
 			private void addClosestPoint(GPSPoint gpsPoint, ShapeLine shapeLine, Trip trip,
@@ -413,6 +414,11 @@ public class IncrementalBULMA {
 						gpsPoint.setClosestPoint(shapePoint);
 					}
 				}
+				
+				if (smallerDistance > shapeLine.getGreaterDistancePoints()) {
+					gpsPoint.setProblem(Problem.POINT_ABOVE_THRESHOLD.getCode());
+				}
+				
 				trip.addPointToPath(gpsPoint, gpsPoint.getClosestPoint(), smallerDistance);
 				listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(gpsPoint, gpsPoint.getClosestPoint(),
 						smallerDistance));

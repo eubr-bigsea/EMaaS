@@ -4,6 +4,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.StringTokenizer;
 
+import LineDependencies.Problem;
 import genericEntity.util.data.GenericObject;
 
 public class GPSPoint  extends GeoPoint{
@@ -19,20 +20,31 @@ public class GPSPoint  extends GeoPoint{
 	private Integer numberTrip;
 	private float distanceClosestShapePoint;
 	private int thresholdShape;
+	private int problem;
 
 	public GPSPoint(String busCode, String latitude, String longitude, String timeStamp, String lineCode) {
 		super(latitude, longitude);
 		this.busCode = busCode;
 		this.timeStamp = timeStamp;
 		this.lineCode = lineCode;
+		this.problem = Problem.NO_PROBLEM.getCode();
 	}
 	
 	public GPSPoint(String busCode, String latitude, String longitude, String timeStamp, String lineCode, 
 			String gpsId) {
         this(busCode, latitude, longitude, timeStamp, lineCode);
         this.gpsId = gpsId;
+		this.problem = Problem.NO_PROBLEM.getCode();
 	}
 	
+	public int getProblem() {
+		return problem;
+	}
+
+	public void setProblem(int problem) {
+		this.problem = problem;
+	}
+
 	public String getGpsId() {
 	    return gpsId;
 	}
@@ -139,15 +151,10 @@ public class GPSPoint  extends GeoPoint{
 		this.closestPoint = shapePoint;
 	}
 	
-		
-//	@Override
-//	public String toString() {
-//		return "GPSPoint [gpsId=" + gpsId + ", busCode=" + busCode + ", timeStamp=" + timeStamp +"]";
-//	}
-	
 	@Override
 	public String toString() {
-		return getLongitude() + "," + getLatitude() + ", timeStamp=" + timeStamp;
+		return "GPSPoint [gpsId=" + gpsId + ", busCode=" + busCode + ", timeStamp=" + timeStamp + ", lineCode="
+				+ lineCode + ", problem=" + problem + super.toString() + "]";
 	}
 
 	@Override

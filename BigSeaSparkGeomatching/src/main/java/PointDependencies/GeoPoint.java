@@ -118,7 +118,7 @@ public abstract class GeoPoint extends GeoObject implements Serializable{
 	
 	@Override
 	public String toString() {
-		return "POINT(" + latitude + " " + longitude + ")";
+		return "(" + latitude + " " + longitude + ")";
 	}
 
 	@Override
