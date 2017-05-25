@@ -2,12 +2,19 @@ package LineMatching;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -41,7 +48,7 @@ public class MatchingRoutesShapeGPS {
 	private static final double PERCENTAGE_DISTANCE = 0.09;
 	private static final String FILE_SEPARATOR = ",";
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException, URISyntaxException {
 
 		if (args.length < 4) {
 			System.err.println("Usage: <shape file> <directory of GPS files> <directory of output path> <number of partitions>");
@@ -55,33 +62,46 @@ public class MatchingRoutesShapeGPS {
 		String pathOutput = args[2];
 		int minPartitions = Integer.valueOf(args[3]);
 
-		if (pathGPSFile.equals(pathOutput)) {
-			System.out.println("The output directory should not be the same as the GPS files directory.");
-		}
-		
-//		SparkConf sparkConf = new SparkConf().setAppName("JavaDeduplication").setMaster("local");
-		SparkConf sparkConf = new SparkConf().setAppName("JavaDeduplication");
+//		SparkConf sparkConf = new SparkConf().setAppName("BULMA").setMaster("local");
+		SparkConf sparkConf = new SparkConf().setAppName("BULMA");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
 		generateOutputFiles(pathFileShapes, pathGPSFile, pathOutput, minPartitions, context);
 		
+//		Uncomment the line below to execute locally
+//		generateLocalOutputFiles(pathFileShapes, pathGPSFile, pathOutput, minPartitions, context);
+		
 		context.stop();
 		context.close();
-		System.out.println("Tempo de Execução sem Dataset: " + (System.currentTimeMillis() - tempoInicial));
+		System.out.println("Execution time: " + (System.currentTimeMillis() - tempoInicial));
 	}
 	
-	private static void generateOutputFiles(String pathFileShapes, String pathGPSFiles, String pathOutput, int minPartitions, JavaSparkContext context){
-		
+	private static void generateLocalOutputFiles(String pathFileShapes, String pathGPSFiles, String pathOutput, int minPartitions, JavaSparkContext context){
 		File dir = new File(pathGPSFiles);
+		
 
 		for (File file : dir.listFiles()) {
 
 			JavaRDD<String> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getName(),
 					minPartitions, context);
-			
-//			saveOutputFile(rddOutputBuLMA, pathOutput + file.getName());
 			rddOutputBuLMA.saveAsTextFile(pathOutput + file.getName());
 		}
+	}
+	
+	private static void generateOutputFiles(String pathFileShapes, String pathGPSFiles, String pathOutput, int minPartitions, JavaSparkContext context) throws IOException, URISyntaxException{
+		
+		Configuration conf = new Configuration();
+	    FileSystem fs = FileSystem.get(new URI(pathGPSFiles), conf);
+	    FileStatus[] fileStatus = fs.listStatus(new Path(pathGPSFiles));
+
+		for (FileStatus file : fileStatus) {
+			JavaRDD<String> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getPath().getName(),
+					minPartitions, context);
+			
+			rddOutputBuLMA.saveAsTextFile(pathOutput + file.getPath().getName());
+		}
+		
+		
 	}
 
 	@SuppressWarnings("serial")
