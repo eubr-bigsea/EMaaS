@@ -38,13 +38,13 @@ import PointDependencies.GeoPoint;
 import PointDependencies.ShapePoint;
 import scala.Tuple2;
 
-public class MatchingRoutes {
+public class MatchingRoutesV2 {
 
 	private static final double THRESHOLD_TIME = 600000; // 20 minutes
 	private static final double PERCENTAGE_DISTANCE = 0.09;
 	private static final String FILE_SEPARATOR = ",";
 
-	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(String pathShapeFile, String pathGPSFile,
+	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(Dataset<String> shapeFile, Dataset<String> gpsFile,
 			Integer minPartitions, SparkSession spark) throws Exception {
 
 		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
@@ -60,10 +60,8 @@ public class MatchingRoutes {
 		};
 		JavaSparkContext ctx = new JavaSparkContext(spark.sparkContext());
 
-		JavaRDD<String> gpsString = ctx.textFile(pathGPSFile, minPartitions).mapPartitionsWithIndex(removeHeader,
-				false);
-		JavaRDD<String> shapeString = ctx.textFile(pathShapeFile, minPartitions).mapPartitionsWithIndex(removeHeader,
-				false);
+		JavaRDD<String> gpsString = gpsFile.toJavaRDD();
+		JavaRDD<String> shapeString = shapeFile.toJavaRDD();
 
 		JavaPairRDD<String, Iterable<GeoPoint>> rddGPSPointsPair = gpsString
 				.mapToPair(new PairFunction<String, String, GeoPoint>() {
