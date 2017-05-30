@@ -1,20 +1,14 @@
 package LineMatching20;
 
-import java.io.File;
-import java.util.Iterator;
-import java.util.List;
-
-import org.apache.spark.api.java.JavaRDD;
+import LineDependencies.GeoLine;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-
-import LineDependencies.GeoLine;
-import LineDependencies.GeoObject;
 import scala.Tuple2;
+
+import java.util.Iterator;
 
 public class RunBULMAv2 {
 
@@ -51,15 +45,12 @@ public class RunBULMAv2 {
 				}
 			}
 		};
+
 		JavaSparkContext ctx = new JavaSparkContext(spark.sparkContext());
 
-		JavaRDD<String> gpsString = ctx.textFile(pathGPSFile, minPartitions).mapPartitionsWithIndex(removeHeader,
-				false);
-		JavaRDD<String> shapeString = ctx.textFile(pathFileShapes, minPartitions).mapPartitionsWithIndex(removeHeader,
-				false);	
+		Dataset<Row> datasetGPSFile = spark.read().text(pathGPSFile);
+		Dataset<Row> datasetShapeFile = spark.read().text(pathFileShapes);
 		
-		Dataset<String> datasetGPSFile = spark.createDataset(JavaRDD.toRDD(gpsString), Encoders.STRING());
-		Dataset<String> datasetShapeFile = spark.createDataset(JavaRDD.toRDD(shapeString), Encoders.STRING());
 		Dataset<Tuple2<String, GeoLine>> lines = MatchingRoutesV2.generateDataFrames(datasetShapeFile, datasetGPSFile, minPartitions, spark);
 		Dataset<String> output = MatchingRoutesV2.run(lines,minPartitions, spark);
 		output.toJavaRDD().saveAsTextFile(pathOutput);
