@@ -1,22 +1,14 @@
 package LineMatching20;
 
-import java.io.File;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.spark.api.java.JavaRDD;
+import LineDependencies.GeoLine;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-
-import LineDependencies.GeoLine;
-import LineDependencies.GeoObject;
 import scala.Tuple2;
+
+import java.util.Iterator;
 
 public class RunBULMAv2 {
 
@@ -25,7 +17,6 @@ public class RunBULMAv2 {
 			System.err.println("Usage: <shape file> <GPS file> <directory of output path> <number of partitions>");
 			System.exit(1);
 		}
-		Map<String, String> env = System.getenv();
 
 		Long tempoInicial = System.currentTimeMillis();
 		
