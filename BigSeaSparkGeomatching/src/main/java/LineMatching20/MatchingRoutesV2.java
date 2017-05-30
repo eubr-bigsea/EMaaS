@@ -15,10 +15,7 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.api.java.function.VoidFunction;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoder;
-import org.apache.spark.sql.Encoders;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.*;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 
 import com.clearspring.analytics.util.Lists;
@@ -44,42 +41,29 @@ public class MatchingRoutesV2 {
 	private static final double PERCENTAGE_DISTANCE = 0.09;
 	private static final String FILE_SEPARATOR = ",";
 
-	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(Dataset<String> shapeFile, Dataset<String> gpsFile,
-			Integer minPartitions, SparkSession spark) throws Exception {
+	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(Dataset<Row> shapeFile, Dataset<Row> gpsFile,
+																	  Integer minPartitions, SparkSession spark) throws Exception {
 
-		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
-			@Override
-			public Iterator<String> call(Integer index, Iterator<String> iterator) throws Exception {
-				if (index == 0 && iterator.hasNext()) {
-					iterator.next();
-					return iterator;
-				} else {
-					return iterator;
-				}
-			}
-		};
-		JavaSparkContext ctx = new JavaSparkContext(spark.sparkContext());
-
-		JavaRDD<String> gpsString = gpsFile.toJavaRDD();
-		JavaRDD<String> shapeString = shapeFile.toJavaRDD();
+		JavaRDD<Row> gpsString = gpsFile.toJavaRDD();
+		JavaRDD<Row> shapeString = shapeFile.toJavaRDD();
 
 		JavaPairRDD<String, Iterable<GeoPoint>> rddGPSPointsPair = gpsString
-				.mapToPair(new PairFunction<String, String, GeoPoint>() {
+				.mapToPair(new PairFunction<Row, String, GeoPoint>() {
 
 					@Override
-					public Tuple2<String, GeoPoint> call(String s) throws Exception {
-						GPSPoint gpsPoint = GPSPoint.createGPSPointWithId(s);
+					public Tuple2<String, GeoPoint> call(Row s) throws Exception {
+						GPSPoint gpsPoint = GPSPoint.createGPSPointWithId(s.getString(0));
 						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode(), gpsPoint);
 
 					}
 				}).groupByKey(minPartitions);
 
 		JavaPairRDD<String, Iterable<GeoPoint>> rddShapePointsPair = shapeString
-				.mapToPair(new PairFunction<String, String, GeoPoint>() {
+				.mapToPair(new PairFunction<Row, String, GeoPoint>() {
 
 					@Override
-					public Tuple2<String, GeoPoint> call(String s) throws Exception {
-						ShapePoint shapePoint = ShapePoint.createShapePointRoute(s);
+					public Tuple2<String, GeoPoint> call(Row s) throws Exception {
+						ShapePoint shapePoint = ShapePoint.createShapePointRoute(s.getString(0));
 						return new Tuple2<String, GeoPoint>(shapePoint.getId(), shapePoint);
 					}
 				}).groupByKey(minPartitions);
