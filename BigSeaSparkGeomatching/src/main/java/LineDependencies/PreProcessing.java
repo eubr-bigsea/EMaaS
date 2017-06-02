@@ -12,11 +12,16 @@ import java.util.TreeMap;
 
 public class PreProcessing {
 
-	private static String inputDir = "C:/Users/Andreza/Desktop/april/csv/";
-	private static String outputDir = "C:/Users/Andreza/Desktop/april/sortedCSV/";
-
 	public static void main(String[] args) throws Exception {
 
+		if (args.length < 2) {
+			System.err.println("Usage: <directory of inputs> <directory of outputs>");
+			System.exit(1);
+		}
+		
+		String inputDir = args[0];
+		String outputDir = args[1];
+		
 		File dir = new File(inputDir);
 		File[] directoryListing = dir.listFiles();
 		if (directoryListing != null) {
