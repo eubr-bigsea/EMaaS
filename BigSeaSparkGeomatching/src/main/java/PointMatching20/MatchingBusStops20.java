@@ -3,30 +3,33 @@ package PointMatching20;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.spark.Accumulator;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FilterFunction;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.FlatMapGroupsFunction;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.KeyValueGroupedDataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+
+import com.vividsolutions.jts.io.ParseException;
 
 import LineDependencies.GeoObject;
 import PointDependencies.GeoPoint2;
 import PointDependencies.PointPair;
 import PolygonDependencies.InputTypes;
 import PolygonDependencies.PolygonClassification;
-import genericEntity.datasource.DataSource;
-import genericEntity.exec.AbstractExec;
-import genericEntity.util.data.GenericObject;
-import genericEntity.util.data.storage.StorageManager;
 import scala.Tuple2;
 import uk.ac.shef.wit.simmetrics.similaritymetrics.JaccardSimilarity;
 
@@ -35,84 +38,69 @@ public final class MatchingBusStops20 {
 	private static final Pattern SPACE = Pattern.compile(" ");
 	private static final int rangeBlockingKey = 7; 
 	
-	public static Dataset<GeoObject> generateDataFrames(String dataSource1, String dataSource2, String sourceType, SparkSession spark) throws Exception {
-		DataSource source1 = null;
-		DataSource source2 = null;
-		if (sourceType.equals("CSV")) {
-			source1 = AbstractExec.getDataCSV(dataSource1, ';');
-			source2 = AbstractExec.getDataCSV(dataSource2, ';');
-		} else { // is postgis
-			source1 = AbstractExec.getDataPostGres(dataSource1);
-			source2 = AbstractExec.getDataPostGres(dataSource2);
-		}
+	private static GeoPoint2 createGeoPoint(String row, InputTypes inputType) throws ParseException {
+		StringTokenizer st = new StringTokenizer(row, ";");
+		String geometry = st.nextToken(); 
+		String name = st.nextToken();
+		int index = Integer.valueOf(st.nextToken());
+		int id =	Integer.valueOf(st.nextToken());	
+		return new GeoPoint2(geometry, name, inputType, index, id);
+	}
+	
+	public static Dataset<GeoObject> generateDataFrames(Dataset<Row> dataSourceGeoPref, Dataset<Row> dataSourceGeoOSM, SparkSession spark) throws Exception {
 		
+		dataSourceGeoPref = removeHeader(dataSourceGeoPref);
+		dataSourceGeoOSM = removeHeader(dataSourceGeoOSM);
 		
-		StorageManager storageDS1 = new StorageManager();
-		StorageManager storageDS2 = new StorageManager();
+		JavaRDD<Row> rddRowDataSourceGeoPref = dataSourceGeoPref.toJavaRDD();		
+		JavaRDD<Row> rddRowDataSourceGeoOSM = dataSourceGeoOSM.javaRDD();
+		
+		JavaRDD<GeoObject> rddGeoPointsPref =  rddRowDataSourceGeoPref.map(new Function<Row, GeoObject>() {
 
-		// enables in-memory execution for faster processing
-		// this can be done since the whole data fits into memory
-		storageDS1.enableInMemoryProcessing();
-		storageDS2.enableInMemoryProcessing();
-
-		// adds the "data" to the algorithm
-		storageDS1.addDataSource(source1);
-		storageDS2.addDataSource(source2);
-
-		if (!storageDS1.isDataExtracted()) {
-			storageDS1.extractData();
-		}
-		if (!storageDS2.isDataExtracted()) {
-			storageDS2.extractData();
-		}
-
-		List<GeoObject> geoPointsDS1 = new ArrayList<GeoObject>();
-		List<GeoObject> geoPointsDS2 = new ArrayList<GeoObject>();
-
-		// the algorithm returns each generated pair step-by-step
-		int indexOfPref = 0;
-		for (GenericObject dude : storageDS1.getExtractedData()) {
-			String nome = "";
-			Integer id;
-			// if (!dude.getData().get("name").toString().equals("null")) {//for
-			// curitiba use atribute "nome" for new york "signname"
-			nome = new String(dude.getData().get("name").toString().getBytes("UTF8"), "UTF8");
-			id = Integer.parseInt(dude.getData().get("id").toString());// for curitiba use atribute "gid", for new york "id"
-
-			if (!dude.getData().get("geometry").toString().contains("INF")) {
-				geoPointsDS1.add(new GeoPoint2(dude.getData().get("geometry").toString(), nome, InputTypes.GOV_POLYGON,
-						indexOfPref, id));
-				indexOfPref++;
+			@Override
+			public GeoObject call(Row s) throws Exception {
+				return createGeoPoint(s.getString(0), InputTypes.GOV_POLYGON);
 			}
-			// }
+			
+		});
+		
+		JavaRDD<GeoObject> rddGeoPointsOSM =  rddRowDataSourceGeoOSM.map(new Function<Row, GeoObject>() {
 
-		}
+			@Override
+			public GeoObject call(Row s) throws Exception {
+				return createGeoPoint(s.getString(0), InputTypes.OSM_POLYGON);
+			}
 
-		int indexOfOSM = 0;
-		for (GenericObject dude : storageDS2.getExtractedData()) {
-			// System.out.println(dude.getData().get("geometry"));
-			String nome = "";
-			Integer id;
-			// if (!dude.getData().get("name").toString().equals("null")) {
-			nome = new String(dude.getData().get("name").toString().getBytes(), "UTF-8");
-			id = Integer.parseInt(dude.getData().get("id").toString());
-			geoPointsDS2.add(new GeoPoint2(dude.getData().get("geometry").toString(), nome, InputTypes.OSM_POLYGON,
-					indexOfOSM, id));
-			indexOfOSM++;
-			// }
-
-		}
+		});
 
 		Encoder<GeoObject> geoObjEncoder = Encoders.javaSerialization(GeoObject.class);
 		
-		Dataset<GeoObject> pointsDS1 = spark.createDataset(geoPointsDS1, geoObjEncoder);
-		Dataset<GeoObject> pointsDS2 = spark.createDataset(geoPointsDS2, geoObjEncoder);
+		Dataset<GeoObject> pointsDS1 = spark.createDataset(JavaRDD.toRDD(rddGeoPointsPref), geoObjEncoder);
+		Dataset<GeoObject> pointsDS2 = spark.createDataset(JavaRDD.toRDD(rddGeoPointsOSM), geoObjEncoder);
 		
 		Dataset<GeoObject> points = pointsDS1.union(pointsDS2);
 		
 		return points;
 	}
 	
+	private static Dataset<Row> removeHeader(Dataset<Row> dataset) {
+		Row headerDataset3 = dataset.first();
+		dataset = dataset.filter(new FilterFunction<Row>() {
+
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public boolean call(Row value) throws Exception {
+				if (value.equals(headerDataset3) || value.getString(0).split(";")[0].contains("INF")) {
+					return false;
+				}
+				return true;
+			}
+		});
+		
+		return dataset;
+	}
+
 	public static Dataset<String> run(Dataset<GeoObject> points, double thresholdLinguistic, double thresholdPointDistance, Integer amountPartition, SparkSession spark) throws Exception {
 		JavaSparkContext ctx = new JavaSparkContext(spark.sparkContext());
 		Broadcast<Integer> numReplication = ctx.broadcast(amountPartition);

@@ -1,6 +1,7 @@
 package PointMatching20;
 
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 import LineDependencies.GeoObject;
@@ -27,12 +28,14 @@ public class RunGeoPoint {
 				  .getOrCreate();
 		
 		
-		ContextMatchingBusStops20 mp = new ContextMatchingBusStops20();
-		Dataset<GeoObject> busStops = mp.generateDataFrames(dataSource1, dataSource2, dataSourceContext, sourceType, spark);
-		mp.run(busStops, thresholdLinguistic, thresholdDistance, amountPartition, spark).javaRDD().saveAsTextFile(outputPath);
+		Dataset<Row> dataset1 = spark.read().text(dataSource1);
+		Dataset<Row> dataset2 = spark.read().text(dataSource2);
+		Dataset<Row> dataset3 = spark.read().text(dataSourceContext);
 		
-//		MatchingBusStops20 mp = new MatchingBusStops20();
-//		Dataset<GeoObject> busStops = MatchingBusStops20.generateDataFrames(dataSource1, dataSource2, sourceType, spark);
+		Dataset<GeoObject> busStops = ContextMatchingBusStops20.generateDataFrames(dataset1, dataset2, dataset3, spark);
+		ContextMatchingBusStops20.run(busStops, thresholdLinguistic, thresholdDistance, amountPartition, spark).javaRDD().saveAsTextFile(outputPath);
+		
+//		Dataset<GeoObject> busStops = MatchingBusStops20.generateDataFrames(dataset1, dataset2, spark);
 //		MatchingBusStops20.run(busStops, thresholdLinguistic, thresholdDistance, amountPartition, spark).javaRDD().saveAsTextFile(outputPath);
 
 	}

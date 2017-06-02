@@ -32,36 +32,8 @@ public class RunBULMAv2 {
 				  .getOrCreate();
 			
 		Dataset<Row> datasetGPSFile = spark.read().text(pathGPSFile);
-		Row headerGPSFile = datasetGPSFile.first();
-		datasetGPSFile = datasetGPSFile.filter(new FilterFunction<Row>() {
-
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public boolean call(Row value) throws Exception {
-				if (value.equals(headerGPSFile)) {
-					return false;
-				}
-				return true;
-			}
-		});
-		
-		
 		Dataset<Row> datasetShapesFile = spark.read().text(pathFileShapes);
-		Row headerShapesFile = datasetShapesFile.first();
-		datasetShapesFile = datasetShapesFile.filter(new FilterFunction<Row>() {
-
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public boolean call(Row value) throws Exception {
-				if (value.equals(headerShapesFile)) {
-					return false;
-				}
-				return true;
-			}
-		});
-		
+				
 		Dataset<Tuple2<String, GeoLine>> lines = MatchingRoutesV2.generateDataFrames(datasetShapesFile, datasetGPSFile, minPartitions, spark);
 		Dataset<String> output = MatchingRoutesV2.run(lines,minPartitions, spark);
 		output.toJavaRDD().saveAsTextFile(pathOutput);

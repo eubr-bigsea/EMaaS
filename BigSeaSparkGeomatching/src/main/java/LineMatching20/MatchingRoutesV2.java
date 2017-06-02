@@ -1,7 +1,5 @@
 package LineMatching20;
 
-import java.io.FileWriter;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -9,13 +7,15 @@ import java.util.Queue;
 
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FilterFunction;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
-import org.apache.spark.api.java.function.VoidFunction;
-import org.apache.spark.sql.*;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoder;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 
 import com.clearspring.analytics.util.Lists;
@@ -41,11 +41,14 @@ public class MatchingRoutesV2 {
 	private static final double PERCENTAGE_DISTANCE = 0.09;
 	private static final String FILE_SEPARATOR = ",";
 
-	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(Dataset<Row> shapeFile, Dataset<Row> gpsFile,
+	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(Dataset<Row> shapeFileDS, Dataset<Row> gpsFileDS,
 																	  Integer minPartitions, SparkSession spark) throws Exception {
 
-		JavaRDD<Row> gpsString = gpsFile.toJavaRDD();
-		JavaRDD<Row> shapeString = shapeFile.toJavaRDD();
+		gpsFileDS = removeHeader(gpsFileDS);
+		shapeFileDS = removeHeader(shapeFileDS);
+		
+		JavaRDD<Row> gpsString = gpsFileDS.toJavaRDD();
+		JavaRDD<Row> shapeString = shapeFileDS.toJavaRDD();
 
 		JavaPairRDD<String, Iterable<GeoPoint>> rddGPSPointsPair = gpsString
 				.mapToPair(new PairFunction<Row, String, GeoPoint>() {
@@ -177,7 +180,24 @@ public class MatchingRoutesV2 {
 		Encoder<GeoLine> geoLineEncoder = Encoders.javaSerialization(GeoLine.class);
 
 		return spark.createDataset(JavaPairRDD.toRDD(union), Encoders.tuple(Encoders.STRING(), geoLineEncoder));
+	}
+	
+	private static Dataset<Row> removeHeader(Dataset<Row> dataset) {
+		Row headerDataset3 = dataset.first();
+		dataset = dataset.filter(new FilterFunction<Row>() {
+
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public boolean call(Row value) throws Exception {
+				if (value.equals(headerDataset3)) {
+					return false;
+				}
+				return true;
+			}
+		});
 		
+		return dataset;
 	}
 
 	public static Dataset<String> run(Dataset<Tuple2<String, GeoLine>> lines, Integer minPartitions, SparkSession spark) throws Exception {

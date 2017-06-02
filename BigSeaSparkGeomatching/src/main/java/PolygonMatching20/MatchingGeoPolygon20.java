@@ -3,29 +3,31 @@ package PolygonMatching20;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
 import org.apache.commons.collections.IteratorUtils;
-import org.apache.spark.SparkConf;
-import org.apache.spark.SparkContext;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FilterFunction;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.FlatMapGroupsFunction;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.KeyValueGroupedDataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+
+import com.vividsolutions.jts.io.ParseException;
+
 import PolygonDependencies.GeoPolygon;
 import PolygonDependencies.InputTypes;
 import PolygonDependencies.PolygonClassification;
 import PolygonDependencies.PolygonPair;
-import genericEntity.datasource.DataSource;
-import genericEntity.exec.AbstractExec;
-import genericEntity.util.data.GenericObject;
-import genericEntity.util.data.storage.StorageManager;
 import scala.Tuple2;
 import uk.ac.shef.wit.simmetrics.similaritymetrics.JaccardSimilarity;
 
@@ -34,80 +36,69 @@ public final class MatchingGeoPolygon20 {
 	private static final Pattern SPACE = Pattern.compile(" ");
 	private static final int rangeBlockingKey = 7; 
 	
-	public static Dataset<GeoPolygon> generateDataFrames(String dataSource1, String dataSource2, String sourceType, SparkSession spark) throws Exception {
-		DataSource dataSourcePref = null;
-		DataSource dataSourceOSM = null;
-		if (sourceType.equals("CSV")) {
-			dataSourcePref = AbstractExec.getDataCSV(dataSource1, ';');
-			dataSourceOSM = AbstractExec.getDataCSV(dataSource2, ';');
-		} else { //is postgis
-			dataSourcePref = AbstractExec.getDataPostGres(dataSource1);
-			dataSourceOSM = AbstractExec.getDataPostGres(dataSource2);
-		}
+	
+	private static GeoPolygon createGeoPolygon(String row, InputTypes inputType) throws ParseException {
+		StringTokenizer st = new StringTokenizer(row, ";");
+		String geometry = st.nextToken(); 
+		String name = st.nextToken();
+		int indexOfPref = Integer.valueOf(st.nextToken());
+		int id =	Integer.valueOf(st.nextToken());				
+		return new GeoPolygon(geometry, name, inputType, indexOfPref, id);
+	}
+	
+	public static Dataset<GeoPolygon> generateDataFrames(Dataset<Row> dataSourceGeoPref, Dataset<Row> dataSourceGeoOSM, SparkSession spark) throws Exception {
+		
+		dataSourceGeoPref = removeHeader(dataSourceGeoPref);
+		dataSourceGeoOSM = removeHeader(dataSourceGeoOSM);
+		
+		JavaRDD<Row> rddRowDataSourceGeoPref = dataSourceGeoPref.toJavaRDD();		
+		JavaRDD<Row> rddRowDataSourceGeoOSM = dataSourceGeoOSM.javaRDD();
+		
+		JavaRDD<GeoPolygon> rddGeoentitiesPref =  rddRowDataSourceGeoPref.map(new Function<Row, GeoPolygon>() {
 
-        StorageManager storagePref = new StorageManager();
-        StorageManager storageOSM = new StorageManager();
-		
-        storagePref.enableInMemoryProcessing();
-        storageOSM.enableInMemoryProcessing();
-
-		// adds the "data" to the algorithm
-        storagePref.addDataSource(dataSourcePref);
-        storageOSM.addDataSource(dataSourceOSM);
-
-		if(!storagePref.isDataExtracted()) {
-			storagePref.extractData();
-		}
-		if(!storageOSM.isDataExtracted()) {
-			storageOSM.extractData();
-		}
-		
-		
-		List<GeoPolygon> geoentitiesPref = new ArrayList<GeoPolygon>();
-		List<GeoPolygon> geoentitiesOSM = new ArrayList<GeoPolygon>();
-		
-		// the algorithm returns each generated pair step-by-step
-		int indexOfPref = 0;
-		for (GenericObject genericObj : storagePref.getExtractedData()) {
-			String nome = "";
-			Integer id;
-			if (!genericObj.getData().get("name").toString().equals("null")) {//for curitiba use atribute "nome" for new york "signname"
-				nome = genericObj.getData().get("name").toString();
-				id = Integer.parseInt(genericObj.getData().get("id").toString());//for curitiba use atribute "gid" for new york "id"
-				geoentitiesPref.add(new GeoPolygon(genericObj.getData().get("geometry").toString(), nome, InputTypes.GOV_POLYGON, indexOfPref, id));
-				indexOfPref++;
+			@Override
+			public GeoPolygon call(Row s) throws Exception {
+				return createGeoPolygon(s.getString(0), InputTypes.GOV_POLYGON);
 			}
 			
-		}
+		});
 		
-		
-		int indexOfOSM = 0;
-		for (GenericObject genericObj : storageOSM.getExtractedData()) {
-			String nome = "";
-			Integer id;
-			if (!genericObj.getData().get("name").toString().equals("null")) {
-				nome = genericObj.getData().get("name").toString();
-				id = Integer.parseInt(genericObj.getData().get("id").toString());
-				geoentitiesOSM.add(new GeoPolygon(genericObj.getData().get("geometry").toString(), nome, InputTypes.OSM_POLYGON, indexOfOSM, id));
-				indexOfOSM++;
+		JavaRDD<GeoPolygon> rddGeoentitiesOSM =  rddRowDataSourceGeoOSM.map(new Function<Row, GeoPolygon>() {
+
+			@Override
+			public GeoPolygon call(Row s) throws Exception {
+				return createGeoPolygon(s.getString(0), InputTypes.OSM_POLYGON);
 			}
-			
-		}
+
+		});
 		
-//		Dataset<Row> squaresDF = spark.createDataFrame(geoentitiesOSM, GeoPolygon.class);
-//		squaresDF.show();
-		
-//		Encoder<GeoPolygon> polygonEncoder = Encoders.bean(GeoPolygon.class);
 		Encoder<GeoPolygon> polygonEncoder = Encoders.javaSerialization(GeoPolygon.class);
 		
-		Dataset<GeoPolygon> polygonsOSM = spark.createDataset(geoentitiesOSM, polygonEncoder);
-		Dataset<GeoPolygon> polygonsPref = spark.createDataset(geoentitiesPref, polygonEncoder);
+		Dataset<GeoPolygon> polygonsOSM = spark.createDataset(JavaRDD.toRDD(rddGeoentitiesOSM), polygonEncoder);
+		Dataset<GeoPolygon> polygonsPref = spark.createDataset(JavaRDD.toRDD(rddGeoentitiesPref), polygonEncoder);
 		
 		Dataset<GeoPolygon> polygons = polygonsPref.union(polygonsOSM);
 		
 		return polygons;
 	}
 	
+	private static Dataset<Row> removeHeader(Dataset<Row> dataset) {
+		Row headerDataset3 = dataset.first();
+		dataset = dataset.filter(new FilterFunction<Row>() {
+
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public boolean call(Row value) throws Exception {
+				if (value.equals(headerDataset3)) {
+					return false;
+				}
+				return true;
+			}
+		});
+		
+		return dataset;
+	}
 	
 	public static Dataset<String> run(Dataset<GeoPolygon> polygons, double thresholdLinguistic, double thresholdPolygon, Integer amountPartition, SparkSession spark) throws Exception {
 		JavaSparkContext ctx = new JavaSparkContext(spark.sparkContext());
