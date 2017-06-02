@@ -556,7 +556,7 @@ public class MatchingRoutesShapeGPS {
 							GPSPoint gpsPoint;
 							for (GeoPoint geoPoint: gpsLine.getListGeoPoints()) {
 								gpsPoint = (GPSPoint) geoPoint;
-								stringOutput += Problem.NO_TRIP.getCode() + FILE_SEPARATOR;
+								stringOutput += Problem.NO_SHAPE.getCode() + FILE_SEPARATOR;
 								stringOutput +=gpsPoint.getLineCode() + FILE_SEPARATOR;
 								
 								stringOutput +="-" + FILE_SEPARATOR;
@@ -574,7 +574,7 @@ public class MatchingRoutesShapeGPS {
 								stringOutput +="-" + FILE_SEPARATOR;
 								stringOutput +="-" + FILE_SEPARATOR;
 								
-								stringOutput +=Problem.NO_TRIP.getCode() + "/n";
+								stringOutput +=Problem.NO_SHAPE.getCode() + "/n";
 								
 							}
 						}
@@ -666,7 +666,7 @@ public class MatchingRoutesShapeGPS {
 							GPSPoint gpsPoint;
 							for (GeoPoint geoPoint: gpsLine.getListGeoPoints()) {
 								gpsPoint = (GPSPoint) geoPoint;
-								printWriter.print(Problem.NO_TRIP.getCode() + FILE_SEPARATOR);
+								printWriter.print(Problem.NO_SHAPE.getCode() + FILE_SEPARATOR);
 								printWriter.print(gpsPoint.getLineCode() + FILE_SEPARATOR);
 								
 								printWriter.print("-" + FILE_SEPARATOR);
@@ -684,7 +684,7 @@ public class MatchingRoutesShapeGPS {
 								printWriter.print("-" + FILE_SEPARATOR);
 								printWriter.print("-" + FILE_SEPARATOR);
 								
-								printWriter.println(Problem.NO_TRIP.getCode());
+								printWriter.println(Problem.NO_SHAPE.getCode());
 								
 							}
 						}
