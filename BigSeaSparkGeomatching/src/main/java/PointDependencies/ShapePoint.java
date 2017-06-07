@@ -53,6 +53,17 @@ public class ShapePoint extends GeoPoint {
 				st.nextToken().replace("\"", ""));
 	}
 	
+	public static ShapePoint createShapePointRoute(String line, int[] sequence, String separatorCharacter) {
+        String[] splittedLine = line.split(separatorCharacter);
+    
+        return new ShapePoint(splittedLine[sequence[0]].replace("\"", ""), 
+                splittedLine[sequence[1]].replace("\"", ""),
+                splittedLine[sequence[2]].replace("\"", ""),
+                splittedLine[sequence[3]].replace("\"", ""),
+                splittedLine[sequence[4]].replace("\"", ""),
+                splittedLine[sequence[5]].replace("\"", ""));
+    }
+	
 	public static ShapePoint createShapePointRoute(GenericObject line) {
 		return new ShapePoint(line.getData().get("route_id").toString(),
 				line.getData().get("shape_id").toString(),

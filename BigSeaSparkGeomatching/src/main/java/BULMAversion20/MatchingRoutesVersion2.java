@@ -7,11 +7,9 @@ import java.util.Queue;
 
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FilterFunction;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
@@ -26,6 +24,8 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
 
+import BULMADependences.BULMAFieldsInputGPS;
+import BULMADependences.BULMAFieldsInputShape;
 import BULMADependences.GPSLine;
 import BULMADependences.GeoLine;
 import BULMADependences.PossibleShape;
@@ -42,28 +42,36 @@ public class MatchingRoutesVersion2 {
 	private static final double THRESHOLD_TIME = 600000; // 20 minutes
 	private static final double PERCENTAGE_DISTANCE = 0.09;
 	private static final String FILE_SEPARATOR = ",";
+	private static final int NUMBER_ATTRIBUTES_INPUTS = 6;
+	private static int[] arrayIndexFieldsInputGPS = new int[NUMBER_ATTRIBUTES_INPUTS];
+	private static int[] arrayIndexFieldsInputShape = new int[NUMBER_ATTRIBUTES_INPUTS];
 
-	
+	/**
+	 * Generates DataFrames from csv input files
+	 */
 	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(String pathShapeFile, String pathGPSFile,
 			Integer minPartitions, SparkSession spark, String paramsGPS, String paramsShapes) throws Exception {
 
 		Dataset<Row> datasetGPSFile = spark.read().text(pathGPSFile);
 		Dataset<Row> datasetShapesFile = spark.read().text(pathShapeFile);
-		
-		// TODO create objects BulmaInputs
-		
-		return generateDataFrames(datasetShapesFile, datasetGPSFile, minPartitions, spark);
+		BULMAFieldsInputGPS paramsDatasetGPS = new BULMAFieldsInputGPS(paramsGPS);
+		BULMAFieldsInputShape paramsDatasetShape = new BULMAFieldsInputShape(paramsShapes);
 
+		return generateDataFrames(datasetShapesFile, datasetGPSFile, paramsDatasetGPS, paramsDatasetShape,
+				minPartitions, spark);
 	}
-	
-	
-	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(Dataset<Row> shapeFileDS, Dataset<Row> gpsFileDS, Integer minPartitions, SparkSession spark) throws Exception {
 
-		// TODO update to receive BulmaInputs objects
-		
-		gpsFileDS = removeHeader(gpsFileDS);
-		shapeFileDS = removeHeader(shapeFileDS);
-		
+	/**
+	 * Generates DataFrames
+	 */
+	@SuppressWarnings("serial")
+	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(Dataset<Row> shapeFileDS, Dataset<Row> gpsFileDS,
+			BULMAFieldsInputGPS paramsDatasetGPS, BULMAFieldsInputShape paramsDatasetShape, Integer minPartitions,
+			SparkSession spark) throws Exception {
+
+		gpsFileDS = removeHeaderGPS(gpsFileDS, paramsDatasetGPS);
+		shapeFileDS = removeHeaderShape(shapeFileDS, paramsDatasetShape);
+
 		JavaRDD<Row> gpsString = gpsFileDS.toJavaRDD();
 		JavaRDD<Row> shapeString = shapeFileDS.toJavaRDD();
 
@@ -72,7 +80,8 @@ public class MatchingRoutesVersion2 {
 
 					@Override
 					public Tuple2<String, GeoPoint> call(Row s) throws Exception {
-						GPSPoint gpsPoint = GPSPoint.createGPSPointWithId(s.getString(0));
+						GPSPoint gpsPoint = GPSPoint.createGPSPointWithId(s.getString(0), arrayIndexFieldsInputGPS,
+								FILE_SEPARATOR);
 						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode(), gpsPoint);
 
 					}
@@ -83,7 +92,8 @@ public class MatchingRoutesVersion2 {
 
 					@Override
 					public Tuple2<String, GeoPoint> call(Row s) throws Exception {
-						ShapePoint shapePoint = ShapePoint.createShapePointRoute(s.getString(0));
+						ShapePoint shapePoint = ShapePoint.createShapePointRoute(s.getString(0),
+								arrayIndexFieldsInputShape, FILE_SEPARATOR);
 						return new Tuple2<String, GeoPoint>(shapePoint.getId(), shapePoint);
 					}
 				}).groupByKey(minPartitions);
@@ -198,26 +208,91 @@ public class MatchingRoutesVersion2 {
 
 		return spark.createDataset(JavaPairRDD.toRDD(union), Encoders.tuple(Encoders.STRING(), geoLineEncoder));
 	}
-	
-	private static Dataset<Row> removeHeader(Dataset<Row> dataset) {
-		Row headerDataset3 = dataset.first();
+
+	private static Dataset<Row> removeHeaderGPS(Dataset<Row> dataset, BULMAFieldsInputGPS fieldsInputGPS) {
+		Row header = dataset.first();
 		dataset = dataset.filter(new FilterFunction<Row>() {
 
 			private static final long serialVersionUID = 1L;
 
 			@Override
 			public boolean call(Row value) throws Exception {
-				if (value.equals(headerDataset3)) {
+				if (value.equals(header)) {
+
+					String[] fields = value.getString(0).split(FILE_SEPARATOR);
+
+					for (int i = 0; i < NUMBER_ATTRIBUTES_INPUTS; i++) {
+
+						if (fields[i].equals(fieldsInputGPS.getBusCode())) {
+							arrayIndexFieldsInputGPS[0] = i;
+						} else if (fields[i].equals(fieldsInputGPS.getLatitude())) {
+							arrayIndexFieldsInputGPS[1] = i;
+						} else if (fields[i].equals(fieldsInputGPS.getLongitude())) {
+							arrayIndexFieldsInputGPS[2] = i;
+						} else if (fields[i].equals(fieldsInputGPS.getTimestamp())) {
+							arrayIndexFieldsInputGPS[3] = i;
+						} else if (fields[i].equals(fieldsInputGPS.getLineCode())) {
+							arrayIndexFieldsInputGPS[4] = i;
+						} else if (fields[i].equals(fieldsInputGPS.getGpsId())) {
+							arrayIndexFieldsInputGPS[5] = i;
+						} else {
+							throw new Exception("Input fields do not match GPS file fields.");
+						}
+					}
+
 					return false;
+
 				}
 				return true;
 			}
 		});
-		
+
 		return dataset;
 	}
 
-	public static Dataset<String> run(Dataset<Tuple2<String, GeoLine>> lines, Integer minPartitions, SparkSession spark) throws Exception {
+	private static Dataset<Row> removeHeaderShape(Dataset<Row> dataset, BULMAFieldsInputShape fieldsInputShape) {
+		Row header = dataset.first();
+		dataset = dataset.filter(new FilterFunction<Row>() {
+
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public boolean call(Row value) throws Exception {
+				if (value.equals(header)) {
+
+					String[] fields = value.getString(0).split(FILE_SEPARATOR);
+
+					for (int i = 0; i < NUMBER_ATTRIBUTES_INPUTS; i++) {
+						if (fields[i].equals(fieldsInputShape.getRoute())) {
+							arrayIndexFieldsInputShape[0] = i;
+						} else if (fields[i].equals(fieldsInputShape.getShapeId())) {
+							arrayIndexFieldsInputShape[1] = i;
+						} else if (fields[i].equals(fieldsInputShape.getLatitude())) {
+							arrayIndexFieldsInputShape[2] = i;
+						} else if (fields[i].equals(fieldsInputShape.getLongitude())) {
+							arrayIndexFieldsInputShape[3] = i;
+						} else if (fields[i].equals(fieldsInputShape.getSequence())) {
+							arrayIndexFieldsInputShape[4] = i;
+						} else if (fields[i].equals(fieldsInputShape.getDistanceTraveled())) {
+							arrayIndexFieldsInputShape[5] = i;
+						} else {
+							throw new Exception("Input fields do not match shape file fields.");
+						}
+					}
+
+					return false;
+				}
+
+				return true;
+			}
+		});
+
+		return dataset;
+	}
+
+	@SuppressWarnings("serial")
+	public static Dataset<String> run(Dataset<Tuple2<String, GeoLine>> lines, Integer minPartitions, SparkSession spark)
+			throws Exception {
 
 		JavaRDD<Tuple2<String, GeoLine>> rddUnionLines = lines.toJavaRDD();
 
@@ -485,7 +560,7 @@ public class MatchingRoutesVersion2 {
 		JavaRDD<List<GPSLine>> rddClosestPoint = rddSetUpTrips.map(new Function<List<GPSLine>, List<GPSLine>>() {
 
 			@Override
-			public List call(List<GPSLine> entry) throws Exception {
+			public List<GPSLine> call(List<GPSLine> entry) throws Exception {
 
 				for (GPSLine gpsLine : entry) {
 
@@ -520,7 +595,7 @@ public class MatchingRoutesVersion2 {
 				return entry;
 			}
 		});
-		
+
 		JavaRDD<String> rddOutput = rddClosestPoint.flatMap(new FlatMapFunction<List<GPSLine>, String>() {
 
 			@Override
@@ -532,28 +607,27 @@ public class MatchingRoutesVersion2 {
 
 						if (gpsLine.getMapTrips().isEmpty()) {
 							GPSPoint gpsPoint;
-							for (GeoPoint geoPoint: gpsLine.getListGeoPoints()) {
+							for (GeoPoint geoPoint : gpsLine.getListGeoPoints()) {
 								gpsPoint = (GPSPoint) geoPoint;
 								stringOutput += Problem.NO_SHAPE.getCode() + FILE_SEPARATOR;
-								stringOutput +=gpsPoint.getLineCode() + FILE_SEPARATOR;
-								
-								stringOutput +="-" + FILE_SEPARATOR;
-								stringOutput +="-"  + FILE_SEPARATOR;
-								stringOutput +="-"  + FILE_SEPARATOR;
-								stringOutput +="-" + FILE_SEPARATOR;
-								
+								stringOutput += gpsPoint.getLineCode() + FILE_SEPARATOR;
 
-								stringOutput +=gpsPoint.getGpsId() + FILE_SEPARATOR;
-								stringOutput +=gpsPoint.getBusCode() + FILE_SEPARATOR;
-								stringOutput +=gpsPoint.getTimeStamp() + FILE_SEPARATOR;
-								stringOutput +=gpsPoint.getLatitude() + FILE_SEPARATOR;
-								stringOutput +=gpsPoint.getLongitude() + FILE_SEPARATOR;
-								
-								stringOutput +="-" + FILE_SEPARATOR;
-								stringOutput +="-" + FILE_SEPARATOR;
-								
-								stringOutput +=Problem.NO_SHAPE.getCode() + "/n";
-								
+								stringOutput += "-" + FILE_SEPARATOR;
+								stringOutput += "-" + FILE_SEPARATOR;
+								stringOutput += "-" + FILE_SEPARATOR;
+								stringOutput += "-" + FILE_SEPARATOR;
+
+								stringOutput += gpsPoint.getGpsId() + FILE_SEPARATOR;
+								stringOutput += gpsPoint.getBusCode() + FILE_SEPARATOR;
+								stringOutput += gpsPoint.getTimeStamp() + FILE_SEPARATOR;
+								stringOutput += gpsPoint.getLatitude() + FILE_SEPARATOR;
+								stringOutput += gpsPoint.getLongitude() + FILE_SEPARATOR;
+
+								stringOutput += "-" + FILE_SEPARATOR;
+								stringOutput += "-" + FILE_SEPARATOR;
+
+								stringOutput += Problem.NO_SHAPE.getCode() + "/n";
+
 							}
 						}
 
@@ -564,52 +638,52 @@ public class MatchingRoutesVersion2 {
 
 									GPSPoint gpsPoint = (GPSPoint) geoPoint;
 
-									stringOutput +=key  + FILE_SEPARATOR;
-									stringOutput +=gpsPoint.getLineCode()  + FILE_SEPARATOR;
+									stringOutput += key + FILE_SEPARATOR;
+									stringOutput += gpsPoint.getLineCode() + FILE_SEPARATOR;
 									if (trip.getShapeLine() == null) {
-										stringOutput +="-" + FILE_SEPARATOR;
-										stringOutput +="-" + FILE_SEPARATOR;
-										stringOutput +="-" + FILE_SEPARATOR;
-										stringOutput +="-" + FILE_SEPARATOR;
+										stringOutput += "-" + FILE_SEPARATOR;
+										stringOutput += "-" + FILE_SEPARATOR;
+										stringOutput += "-" + FILE_SEPARATOR;
+										stringOutput += "-" + FILE_SEPARATOR;
 									} else {
-										stringOutput +=gpsPoint.getClosestPoint().getId() + FILE_SEPARATOR;
-										stringOutput +=gpsPoint.getClosestPoint().getPointSequence() + FILE_SEPARATOR;
-										stringOutput +=gpsPoint.getClosestPoint().getLatitude() + FILE_SEPARATOR;
-										stringOutput +=gpsPoint.getClosestPoint().getLongitude() + FILE_SEPARATOR;
+										stringOutput += gpsPoint.getClosestPoint().getId() + FILE_SEPARATOR;
+										stringOutput += gpsPoint.getClosestPoint().getPointSequence() + FILE_SEPARATOR;
+										stringOutput += gpsPoint.getClosestPoint().getLatitude() + FILE_SEPARATOR;
+										stringOutput += gpsPoint.getClosestPoint().getLongitude() + FILE_SEPARATOR;
 									}
 
-									stringOutput +=gpsPoint.getGpsId() + FILE_SEPARATOR;
-									stringOutput +=gpsPoint.getBusCode() + FILE_SEPARATOR;
-									stringOutput +=gpsPoint.getTimeStamp() + FILE_SEPARATOR;
-									stringOutput +=gpsPoint.getLatitude() + FILE_SEPARATOR;
-									stringOutput +=gpsPoint.getLongitude() + FILE_SEPARATOR;
+									stringOutput += gpsPoint.getGpsId() + FILE_SEPARATOR;
+									stringOutput += gpsPoint.getBusCode() + FILE_SEPARATOR;
+									stringOutput += gpsPoint.getTimeStamp() + FILE_SEPARATOR;
+									stringOutput += gpsPoint.getLatitude() + FILE_SEPARATOR;
+									stringOutput += gpsPoint.getLongitude() + FILE_SEPARATOR;
 
 									if (trip.getShapeLine() == null) {
-										stringOutput +="-" + FILE_SEPARATOR;
-										stringOutput +="-" + FILE_SEPARATOR;
+										stringOutput += "-" + FILE_SEPARATOR;
+										stringOutput += "-" + FILE_SEPARATOR;
 									} else {
-										stringOutput +=gpsPoint.getDistanceClosestShapePoint() + FILE_SEPARATOR;
-										stringOutput +=gpsPoint.getThresholdShape() + FILE_SEPARATOR;
+										stringOutput += gpsPoint.getDistanceClosestShapePoint() + FILE_SEPARATOR;
+										stringOutput += gpsPoint.getThresholdShape() + FILE_SEPARATOR;
 									}
 
 									if (trip.getProblem().equals(Problem.TRIP_PROBLEM)) {
-										stringOutput +=trip.getProblem().getCode() + "/n";
+										stringOutput += trip.getProblem().getCode() + "/n";
 									} else if (gpsPoint.getDistanceClosestShapePoint() > gpsPoint.getThresholdShape()) {
-										stringOutput +=Problem.OUTLIER_POINT.getCode() + "/n";
+										stringOutput += Problem.OUTLIER_POINT.getCode() + "/n";
 									} else {
-										stringOutput +=trip.getProblem().getCode() + "/n";
+										stringOutput += trip.getProblem().getCode() + "/n";
 									}
 								}
 							}
 						}
 					}
-					
+
 					listOutput.add(stringOutput);
 				}
 				return listOutput.iterator();
 			}
 		});
-		
+
 		return spark.createDataset(rddOutput.rdd(), Encoders.STRING());
 	}
 

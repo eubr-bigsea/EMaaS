@@ -109,13 +109,7 @@ public abstract class GeoPoint extends GeoObject implements Serializable{
 		return getDistanceInMeters(Double.valueOf(point1.getLatitude()), Double.valueOf(point1.getLongitude()), 
 				Double.valueOf(point2.getLatitude()), Double.valueOf(point2.getLongitude()));
 	}
-	
-	
-//	@Override
-//	public String toString() {
-//		return "GeoPoint [latitude=" + latitude + ", longitude=" + longitude + "]";
-//	}
-	
+		
 	@Override
 	public String toString() {
 		return "(" + latitude + " " + longitude + ")";
