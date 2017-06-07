@@ -578,7 +578,7 @@ public class MatchingRoutesV2 {
 									if (trip.getProblem().equals(Problem.TRIP_PROBLEM)) {
 										stringOutput +=trip.getProblem().getCode() + "/n";
 									} else if (gpsPoint.getDistanceClosestShapePoint() > gpsPoint.getThresholdShape()) {
-										stringOutput +=Problem.POINT_ABOVE_THRESHOLD.getCode() + "/n";
+										stringOutput +=Problem.OUTLIER_POINT.getCode() + "/n";
 									} else {
 										stringOutput +=trip.getProblem().getCode() + "/n";
 									}

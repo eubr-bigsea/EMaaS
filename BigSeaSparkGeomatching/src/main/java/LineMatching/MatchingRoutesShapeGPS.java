@@ -617,7 +617,7 @@ public class MatchingRoutesShapeGPS {
 									if (trip.getProblem().equals(Problem.TRIP_PROBLEM)) {
 										stringOutput +=trip.getProblem().getCode() + "/n";
 									} else if (gpsPoint.getDistanceClosestShapePoint() > gpsPoint.getThresholdShape()) {
-										stringOutput +=Problem.POINT_ABOVE_THRESHOLD.getCode() + "/n";
+										stringOutput +=Problem.OUTLIER_POINT.getCode() + "/n";
 									} else {
 										stringOutput +=trip.getProblem().getCode() + "/n";
 									}
@@ -727,7 +727,7 @@ public class MatchingRoutesShapeGPS {
 									if (trip.getProblem().equals(Problem.TRIP_PROBLEM)) {
 										printWriter.println(trip.getProblem().getCode());
 									} else if (gpsPoint.getDistanceClosestShapePoint() > gpsPoint.getThresholdShape()) {
-										printWriter.println(Problem.POINT_ABOVE_THRESHOLD.getCode());
+										printWriter.println(Problem.OUTLIER_POINT.getCode());
 									} else {
 										printWriter.println(trip.getProblem().getCode());
 									}
