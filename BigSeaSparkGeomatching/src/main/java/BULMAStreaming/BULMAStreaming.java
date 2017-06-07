@@ -1,4 +1,4 @@
-package LineMatchingStreaming;
+package BULMAStreaming;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,10 +26,9 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
 
-import LineDependencies.GeoLine;
-import LineDependencies.Problem;
-import LineDependencies.ShapeLine;
-import LineDependenciesStreaming.Trip;
+import BULMADependences.GeoLine;
+import BULMADependences.Problem;
+import BULMADependences.ShapeLine;
 import PointDependencies.GPSPoint;
 import PointDependencies.GeoPoint;
 import PointDependencies.ShapePoint;

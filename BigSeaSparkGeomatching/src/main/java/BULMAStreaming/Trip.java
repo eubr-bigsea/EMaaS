@@ -1,11 +1,11 @@
-package LineDependenciesStreaming;
+package BULMAStreaming;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import LineDependencies.ShapeLine;
+import BULMADependences.ShapeLine;
 import PointDependencies.GPSPoint;
 import PointDependencies.GeoPoint;
 import PointDependencies.ShapePoint;

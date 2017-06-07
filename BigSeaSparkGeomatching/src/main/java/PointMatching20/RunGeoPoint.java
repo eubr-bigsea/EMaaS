@@ -4,7 +4,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
-import LineDependencies.GeoObject;
+import BULMADependences.GeoObject;
 
 public class RunGeoPoint {
 

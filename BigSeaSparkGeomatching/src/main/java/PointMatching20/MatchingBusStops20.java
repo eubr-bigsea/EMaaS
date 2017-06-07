@@ -25,7 +25,7 @@ import org.apache.spark.sql.SparkSession;
 
 import com.vividsolutions.jts.io.ParseException;
 
-import LineDependencies.GeoObject;
+import BULMADependences.GeoObject;
 import PointDependencies.GeoPoint2;
 import PointDependencies.PointPair;
 import PolygonDependencies.InputTypes;

@@ -11,7 +11,8 @@ import com.vividsolutions.jts.geom.IntersectionMatrix;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
-import LineDependencies.GeoObject;
+
+import BULMADependences.GeoObject;
 import PolygonDependencies.InputTypes;
 
 public class GeoPoint2 extends GeoObject implements Serializable, Cloneable, Comparable<GeoPoint2>{

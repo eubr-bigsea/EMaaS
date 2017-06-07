@@ -1,4 +1,4 @@
-package LineMatching;
+package BULMA;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -31,12 +31,12 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
 
-import LineDependencies.GPSLine;
-import LineDependencies.GeoLine;
-import LineDependencies.PossibleShape;
-import LineDependencies.Problem;
-import LineDependencies.ShapeLine;
-import LineDependencies.Trip;
+import BULMADependences.GPSLine;
+import BULMADependences.GeoLine;
+import BULMADependences.PossibleShape;
+import BULMADependences.Problem;
+import BULMADependences.ShapeLine;
+import BULMADependences.Trip;
 import PointDependencies.GPSPoint;
 import PointDependencies.GeoPoint;
 import PointDependencies.ShapePoint;

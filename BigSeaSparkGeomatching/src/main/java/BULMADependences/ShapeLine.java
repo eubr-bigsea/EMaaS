@@ -1,4 +1,4 @@
-package LineDependencies;
+package BULMADependences;
 
 import java.util.List;
 

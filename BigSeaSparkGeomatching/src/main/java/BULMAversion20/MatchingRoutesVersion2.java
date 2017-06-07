@@ -1,4 +1,4 @@
-package LineMatching20;
+package BULMAversion20;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -7,9 +7,11 @@ import java.util.Queue;
 
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FilterFunction;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
@@ -24,26 +26,41 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
 
-import LineDependencies.GPSLine;
-import LineDependencies.GeoLine;
-import LineDependencies.PossibleShape;
-import LineDependencies.Problem;
-import LineDependencies.ShapeLine;
-import LineDependencies.Trip;
+import BULMADependences.GPSLine;
+import BULMADependences.GeoLine;
+import BULMADependences.PossibleShape;
+import BULMADependences.Problem;
+import BULMADependences.ShapeLine;
+import BULMADependences.Trip;
 import PointDependencies.GPSPoint;
 import PointDependencies.GeoPoint;
 import PointDependencies.ShapePoint;
 import scala.Tuple2;
 
-public class MatchingRoutesV2 {
+public class MatchingRoutesVersion2 {
 
 	private static final double THRESHOLD_TIME = 600000; // 20 minutes
 	private static final double PERCENTAGE_DISTANCE = 0.09;
 	private static final String FILE_SEPARATOR = ",";
 
-	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(Dataset<Row> shapeFileDS, Dataset<Row> gpsFileDS,
-																	  Integer minPartitions, SparkSession spark) throws Exception {
+	
+	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(String pathShapeFile, String pathGPSFile,
+			Integer minPartitions, SparkSession spark, String paramsGPS, String paramsShapes) throws Exception {
 
+		Dataset<Row> datasetGPSFile = spark.read().text(pathGPSFile);
+		Dataset<Row> datasetShapesFile = spark.read().text(pathShapeFile);
+		
+		// TODO create objects BulmaInputs
+		
+		return generateDataFrames(datasetShapesFile, datasetGPSFile, minPartitions, spark);
+
+	}
+	
+	
+	public static Dataset<Tuple2<String, GeoLine>> generateDataFrames(Dataset<Row> shapeFileDS, Dataset<Row> gpsFileDS, Integer minPartitions, SparkSession spark) throws Exception {
+
+		// TODO update to receive BulmaInputs objects
+		
 		gpsFileDS = removeHeader(gpsFileDS);
 		shapeFileDS = removeHeader(shapeFileDS);
 		

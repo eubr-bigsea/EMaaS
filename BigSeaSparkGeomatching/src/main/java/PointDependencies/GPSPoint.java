@@ -4,7 +4,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.StringTokenizer;
 
-import LineDependencies.Problem;
+import BULMADependences.Problem;
 import genericEntity.util.data.GenericObject;
 
 public class GPSPoint  extends GeoPoint{

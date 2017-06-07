@@ -1,12 +1,13 @@
-package LineMatching20;
+package BULMAversion20;
 
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
-import LineDependencies.GeoLine;
+import BULMADependences.GeoLine;
 import scala.Tuple2;
 
-public class RunBULMA {
+public class RunBULMAv2 {
 
 	public static void main(String[] args) throws Exception {
 		if (args.length < 4) {
@@ -14,7 +15,7 @@ public class RunBULMA {
 			System.exit(1);
 		}
 
-		Long tempoInicial = System.currentTimeMillis();
+		Long initialTime = System.currentTimeMillis();
 		
 		String pathFileShapes = args[0];
 		String pathGPSFile = args[1];
@@ -22,19 +23,21 @@ public class RunBULMA {
 		int minPartitions = Integer.valueOf(args[3]);
 		
 		
-//		SparkConf sparkConf = new SparkConf().setAppName("GeoMatchingSpark").setMaster("local");
 		SparkSession spark = SparkSession
 				  .builder()
 				  .master("local")
 				  .config("spark.some.config.option", "some-value")
 				  .config("spark.sql.warehouse.dir", "file:///tmp/spark-warehouse")
 				  .getOrCreate();
-		
-		Dataset<Tuple2<String, GeoLine>> lines = MatchingRoutes.generateDataFrames(pathFileShapes, pathGPSFile, minPartitions, spark);
-		Dataset<String> output = MatchingRoutes.run(lines,minPartitions, spark);
-		output.toJavaRDD().saveAsTextFile(pathOutput);
+			
+		Dataset<Row> datasetGPSFile = spark.read().text(pathGPSFile);
+		Dataset<Row> datasetShapesFile = spark.read().text(pathFileShapes);
 				
-		System.out.println("Execution time with Dataset: " + (System.currentTimeMillis() - tempoInicial));
+		Dataset<Tuple2<String, GeoLine>> lines = MatchingRoutesVersion2.generateDataFrames(datasetShapesFile, datasetGPSFile, minPartitions, spark);
+		Dataset<String> output = MatchingRoutesVersion2.run(lines,minPartitions, spark);
+		output.toJavaRDD().saveAsTextFile(pathOutput);
+		
+		System.out.println("Execution time with Dataset: " + (System.currentTimeMillis() - initialTime));
 		
 	}
 

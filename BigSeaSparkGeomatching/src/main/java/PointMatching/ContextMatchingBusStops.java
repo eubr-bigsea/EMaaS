@@ -20,8 +20,8 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-import LineDependencies.GeoLine;
-import LineDependencies.GeoObject;
+import BULMADependences.GeoLine;
+import BULMADependences.GeoObject;
 import PointDependencies.GeoPoint2;
 import PointDependencies.PointPair;
 import PolygonDependencies.InputTypes;

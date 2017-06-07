@@ -6,7 +6,7 @@ import java.util.List;
 
 import com.vividsolutions.jts.geom.Point;
 
-import LineDependencies.GeoObject;
+import BULMADependences.GeoObject;
 
 public abstract class GeoPoint extends GeoObject implements Serializable{
 
