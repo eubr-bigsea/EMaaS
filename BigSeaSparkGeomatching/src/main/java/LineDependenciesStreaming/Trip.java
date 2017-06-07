@@ -1,4 +1,4 @@
-package IncrementalLineDependencies;
+package LineDependenciesStreaming;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -128,5 +128,6 @@ public class Trip {
 
 	public void addPointToPath(GPSPoint gpsPoint, ShapePoint closestPoint, Float smallerDistance) {
 		this.path.put(gpsPoint, new Tuple2<ShapePoint, Float>(closestPoint, smallerDistance));
+		this.endPoint = gpsPoint;
 	}
 }

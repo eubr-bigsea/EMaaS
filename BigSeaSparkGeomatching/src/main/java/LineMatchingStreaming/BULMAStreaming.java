@@ -1,0 +1,440 @@
+package LineMatchingStreaming;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.streaming.Durations;
+import org.apache.spark.streaming.api.java.JavaDStream;
+import org.apache.spark.streaming.api.java.JavaStreamingContext;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+
+import com.google.common.collect.Lists;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.Point;
+
+import LineDependencies.GeoLine;
+import LineDependencies.Problem;
+import LineDependencies.ShapeLine;
+import LineDependenciesStreaming.Trip;
+import PointDependencies.GPSPoint;
+import PointDependencies.GeoPoint;
+import PointDependencies.ShapePoint;
+import scala.Tuple2;
+import scala.Tuple3;
+
+public class BULMAStreaming {
+	
+	private static Map<String, Map<String, ShapeLine>> mapShapeLines = new HashMap<>();
+	private static Map<String, Trip> mapCurrentTrip = new HashMap<>();
+	private static Map<String, List<ShapeLine>> mapTrueShapes = new HashMap<>();
+	private static Map<String, Tuple2<Float,Float>> mapPreviousDistances = new HashMap<>();
+	private static Map<String, List<GPSPoint>> mapRetrocessingPoints =  new HashMap<>();
+	private static Map<String, Integer> mapExtraThreshold =  new HashMap<>();
+	private static Map<String, List<Trip>> mapPreviousTrips = new HashMap<>();
+	
+	private static final double PERCENTAGE_DISTANCE = 0.09;
+	private static final int THRESHOLD_RETROCESSING_POINTS = 2;
+	private static final int THRESHOLD_DISTANCE_BETWEEN_POINTS = 50;
+		
+	@SuppressWarnings({ "serial", "resource" })
+	public static void main(String[] args) {
+
+		if (args.length < 6) {
+			System.err.println("Usage: <shape file path> <GPS files hostname> <GPS files port> <output path> "
+					+ "<partitions number> <batch duration>");
+			System.exit(1);
+		}
+
+		String pathFileShapes = args[0];
+		String hostnameGPS = args[1];
+		Integer portGPS = Integer.valueOf(args[2]);
+		String pathOutput = args[3];
+		int minPartitions = Integer.valueOf(args[4]);
+		int batchDuration = Integer.valueOf(args[5]);
+
+		SparkConf sparkConf = new SparkConf().setMaster("local[2]").setAppName("IncrementalBulma");
+		JavaStreamingContext context = new JavaStreamingContext(sparkConf, Durations.seconds(batchDuration));
+
+		Broadcast<Map<String, Map<String, ShapeLine>>> mapShapeLinesBroadcast = context.sparkContext().broadcast(mapShapeLines);
+		Broadcast<Map<String, Trip>> mapCurrentTripBroadcast = context.sparkContext().broadcast(mapCurrentTrip);
+		Broadcast<Map<String, List<ShapeLine>>> mapTrueShapesBroadcast = context.sparkContext().broadcast(mapTrueShapes);
+		Broadcast<Map<String, Tuple2<Float, Float>>> mapPreviousDistancesBroadcast = context.sparkContext().broadcast(mapPreviousDistances);
+		Broadcast<Map<String, List<GPSPoint>>> mapRetrocessingPointsBroadcast = context.sparkContext().broadcast(mapRetrocessingPoints);
+		Broadcast<Map<String, Integer>> mapExtraThresholdBroadcast = context.sparkContext().broadcast(mapExtraThreshold);
+		Broadcast<Map<String, List<Trip>>> mapPreviousTripsBroadcast = context.sparkContext().broadcast(mapPreviousTrips);
+		
+		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
+			@Override
+			public Iterator<String> call(Integer index, Iterator<String> iterator) throws Exception {
+				if (index == 0 && iterator.hasNext()) {
+					iterator.next();
+					return iterator;
+				} else {
+					return iterator;
+				}
+			}
+		};
+
+		JavaRDD<String> shapeString = context.sparkContext().textFile(pathFileShapes, minPartitions)
+				.mapPartitionsWithIndex(removeHeader, false);
+
+		JavaPairRDD<String, Iterable<GeoPoint>> rddShapePointsPair = shapeString
+				.mapToPair(new PairFunction<String, String, GeoPoint>() {
+
+					@Override
+					public Tuple2<String, GeoPoint> call(String s) throws Exception {
+						ShapePoint shapePoint = ShapePoint.createShapePointRoute(s);
+						return new Tuple2<String, GeoPoint>(shapePoint.getId(), shapePoint);
+					}
+				}).groupByKey();
+
+		JavaPairRDD<String, GeoLine> rddShapeLinePair = rddShapePointsPair
+				.mapToPair(new PairFunction<Tuple2<String, Iterable<GeoPoint>>, String, GeoLine>() {
+
+					@SuppressWarnings("deprecation")
+					GeometryFactory geometryFactory = JtsSpatialContext.GEO.getGeometryFactory();
+
+					@Override
+					public Tuple2<String, GeoLine> call(Tuple2<String, Iterable<GeoPoint>> pair) throws Exception {
+
+						List<Coordinate> coordinates = new ArrayList<>();
+						Double latitude;
+						Double longitude;
+						ShapePoint lastPoint = null;
+						String lineBlockingKey = null;
+						float greaterDistance = 0;
+
+						List<GeoPoint> listGeoPoint = Lists.newArrayList(pair._2);
+						for (int i = 0; i < listGeoPoint.size(); i++) {
+							GeoPoint currentGeoPoint = listGeoPoint.get(i);
+							if (i < listGeoPoint.size() - 1) {
+								float currentDistance = GeoPoint.getDistanceInMeters(currentGeoPoint,
+										listGeoPoint.get(i + 1));
+								if (currentDistance > greaterDistance) {
+									greaterDistance = currentDistance;
+								}
+							}
+
+							latitude = Double.valueOf(currentGeoPoint.getLatitude());
+							longitude = Double.valueOf(currentGeoPoint.getLongitude());
+							coordinates.add(new Coordinate(latitude, longitude));
+							lastPoint = (ShapePoint) currentGeoPoint;
+
+							if (lineBlockingKey == null) {
+								lineBlockingKey = ((ShapePoint) currentGeoPoint).getRoute();
+							}
+						}
+
+						Coordinate[] array = new Coordinate[coordinates.size()];
+
+						LineString lineString = geometryFactory.createLineString(coordinates.toArray(array));
+						Float distanceTraveled = lastPoint.getDistanceTraveled();
+						String route = lastPoint.getRoute();
+						ShapeLine shapeLine = new ShapeLine(pair._1, lineString, distanceTraveled, lineBlockingKey,
+								listGeoPoint, route, greaterDistance);
+
+						int thresholdDistanceCurrentShape = (int) (shapeLine.getDistanceTraveled()
+								/ (shapeLine.getListGeoPoints().size() * PERCENTAGE_DISTANCE));
+						shapeLine.setThresholdDistance(thresholdDistanceCurrentShape);
+
+						if (!mapShapeLinesBroadcast.getValue().containsKey(route)) {
+							mapShapeLinesBroadcast.getValue().put(route, new HashMap<>());
+						}
+
+						mapShapeLinesBroadcast.getValue().get(route).put(pair._1, shapeLine);
+
+						return new Tuple2<String, GeoLine>(lineBlockingKey, shapeLine);
+					}
+				});
+
+		JavaDStream<String> gpsStream = context.socketTextStream(hostnameGPS, portGPS);
+
+		JavaDStream<GPSPoint> gpsPointsRDD = gpsStream.map(new Function<String, GPSPoint>() {
+
+			@Override
+			public GPSPoint call(String entry) throws Exception {
+				return GPSPoint.createGPSPointWithId(entry);
+			}
+		});
+		
+		JavaDStream<Tuple3<GPSPoint, ShapePoint, Float>> similarityOutput = gpsPointsRDD
+				.flatMap(new FlatMapFunction<GPSPoint, Tuple3<GPSPoint, ShapePoint, Float>>() {
+
+					@Override
+					public Iterator<Tuple3<GPSPoint, ShapePoint, Float>> call(GPSPoint currentGPSPoint) throws Exception {
+						
+						List<Tuple3<GPSPoint, ShapePoint, Float>> listOutput = new ArrayList<>();
+						String route = currentGPSPoint.getLineCode();
+						String keyMaps = currentGPSPoint.getBusCode() + route;
+						Trip trip = mapCurrentTripBroadcast.getValue().get(keyMaps);
+						if (trip == null) {
+							trip = new Trip();
+						}
+//						 if (currentGPSPoint.getBusCode().equals("DL313")){// OK mas escolheu o shape 3212 no lugar do 3215
+//						 if (currentGPSPoint.getLineCode().equals("207") && currentGPSPoint.getBusCode().equals("BC301")) {// OK *_*
+//						 if (currentGPSPoint.getBusCode().equals("KB603")) { // deveria acabar o shape 1715 de 9:40 mas acabou de 09:01
+//						 if (currentGPSPoint.getLineCode().equals("183") && currentGPSPoint.getBusCode().equals("BC004")) {
+													
+						populateTrueShapes(route,currentGPSPoint);
+						List<ShapeLine> listTrueShapes = mapTrueShapesBroadcast.getValue().get(keyMaps);
+						
+						
+						if (listTrueShapes != null) {
+							if (trip.hasFoundInitialPoint()) {
+								findEndPoint(trip,currentGPSPoint,listOutput, listTrueShapes, keyMaps);
+
+							}
+							if (!trip.hasFoundInitialPoint()) { 
+								findFirstPoint(listTrueShapes, currentGPSPoint, trip, listOutput, keyMaps);
+							}
+						} else {
+							currentGPSPoint.setProblem(Problem.NO_SHAPE.getCode());
+							listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, null,
+									Float.valueOf(currentGPSPoint.getProblem())));
+						}
+//						}
+						return listOutput.iterator();
+					}
+					
+					private void populateTrueShapes(String route, GPSPoint possibleFirstPoint) {
+
+						String currentBusCodeAndRoute = possibleFirstPoint.getBusCode() + route;
+						if (route.equals("REC")) {
+							mapTrueShapesBroadcast.getValue().put(currentBusCodeAndRoute, null);
+						
+						} else {
+							if (mapTrueShapesBroadcast.getValue().get(currentBusCodeAndRoute) == null) {
+
+								List<ShapeLine> listMatchedShapes = new ArrayList<>();
+								Map<String, ShapeLine> mapPossibleShapeLines = mapShapeLinesBroadcast.getValue().get(route);
+
+								if (mapPossibleShapeLines != null && mapPossibleShapeLines.size() >= 2) {
+									ShapeLine bestShape = null;
+									Float smallerDistanceTraveled = Float.MAX_VALUE;
+									float sumGreaterDistancePoints = 0;
+
+									for (Entry<String, ShapeLine> entry : mapPossibleShapeLines.entrySet()) {
+										ShapeLine shapeLine = entry.getValue();
+										sumGreaterDistancePoints += shapeLine.getGreaterDistancePoints();
+										ShapePoint closestPoint = getClosestShapePoint(possibleFirstPoint,
+												shapeLine)._1;
+
+										if (closestPoint != null
+												&& closestPoint.getDistanceTraveled() <= smallerDistanceTraveled) {
+											smallerDistanceTraveled = closestPoint.getDistanceTraveled();
+											bestShape = shapeLine;
+										}
+									}
+
+									float thresholdShapesSequence = sumGreaterDistancePoints
+											/ mapPossibleShapeLines.size();
+
+									Point firstPoint = bestShape.getLine().getStartPoint();
+									Point endPoint = bestShape.getLine().getEndPoint();
+
+									if (GPSPoint.getDistanceInMeters(firstPoint, endPoint) <= thresholdShapesSequence) {
+										listMatchedShapes.add(bestShape);
+									} else {
+										listMatchedShapes.addAll(mapPossibleShapeLines.values());
+									}
+
+								} else if (mapPossibleShapeLines != null && mapPossibleShapeLines.size() == 1) {
+									listMatchedShapes.addAll(mapPossibleShapeLines.values());
+								}
+
+								mapTrueShapesBroadcast.getValue().put(currentBusCodeAndRoute, listMatchedShapes);
+							}
+						}
+					}
+
+					private void findFirstPoint(List<ShapeLine> listTrueShapes, GPSPoint currentGPSPoint, Trip trip, List<Tuple3<GPSPoint, ShapePoint, Float>> listOutput, String keyMaps) {
+						
+						Tuple3<ShapeLine, ShapePoint, Float> shapeMatchedAndClosestPoint = getShapeMatchedAndClosestPoint(currentGPSPoint, listTrueShapes);
+						
+						if (shapeMatchedAndClosestPoint == null) {
+							listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, null, Float.valueOf(currentGPSPoint.getProblem())));
+						
+						} else {
+							trip.setInitialPoint(currentGPSPoint);
+							trip.setShapeMatched(shapeMatchedAndClosestPoint._1());
+							trip.addPointToPath(currentGPSPoint, shapeMatchedAndClosestPoint._2(), shapeMatchedAndClosestPoint._3());
+							listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, shapeMatchedAndClosestPoint._2(), shapeMatchedAndClosestPoint._3()));
+							mapCurrentTripBroadcast.getValue().put(keyMaps, trip);
+							mapPreviousDistancesBroadcast.getValue().put(keyMaps, new Tuple2<Float, Float>(shapeMatchedAndClosestPoint._2().getDistanceTraveled(), shapeMatchedAndClosestPoint._3()));
+							mapCurrentTripBroadcast.getValue().put(keyMaps, trip);
+						}
+					}
+					
+					private Tuple3<ShapeLine, ShapePoint, Float> getShapeMatchedAndClosestPoint(GPSPoint gpsPoint, List<ShapeLine>  listTrueShapes) {
+						
+						if (listTrueShapes == null || listTrueShapes.size() == 0) {
+							gpsPoint.setProblem(Problem.NO_SHAPE.getCode());
+							return null;
+						}
+						
+						Float smallerDistanceTraveled = null;
+						ShapePoint shapePointMatched = null;
+						Float distanceInMeters = null;
+						ShapeLine shapeLineMatched = null;
+						
+						Tuple2<ShapePoint, Float> closestPoint;
+						for (ShapeLine currentShapeLine : listTrueShapes) {
+							closestPoint = getClosestShapePoint(gpsPoint, currentShapeLine);
+							if (smallerDistanceTraveled == null || closestPoint._1.getDistanceTraveled() < smallerDistanceTraveled) {
+								smallerDistanceTraveled = closestPoint._1.getDistanceTraveled();
+								shapePointMatched = closestPoint._1;
+								distanceInMeters = closestPoint._2;
+								shapeLineMatched = currentShapeLine;
+							}
+						}
+
+						if (distanceInMeters > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
+							gpsPoint.setProblem(Problem.OUTLIER_POINT.getCode());
+						}
+						
+						return new Tuple3<ShapeLine, ShapePoint, Float>(shapeLineMatched,shapePointMatched, distanceInMeters);
+					}
+					
+					private Tuple2<ShapePoint, Float> getClosestShapePoint(GPSPoint gpsPoint, ShapeLine shapeLine) {
+					
+						Float smallerDistance = Float.MAX_VALUE;
+						ShapePoint closestShapePoint = null;
+						
+						Float currentDistance;
+						for (GeoPoint shapePoint : shapeLine.getListGeoPoints()) {
+							currentDistance = GeoPoint.getDistanceInMeters(gpsPoint, shapePoint);
+							if (currentDistance < smallerDistance) {
+								smallerDistance = currentDistance;
+								closestShapePoint = (ShapePoint) shapePoint;
+							}
+						}
+						
+						return new Tuple2<ShapePoint, Float>(closestShapePoint, smallerDistance);
+					}
+					
+					private void findEndPoint(Trip trip, GPSPoint currentGPSPoint, List<Tuple3<GPSPoint, ShapePoint, Float>> listOutput, List<ShapeLine> listTrueShapes, String keyMaps) {
+						
+						Tuple2<Float, Float> previousDistance = mapPreviousDistancesBroadcast.getValue().get(keyMaps);
+						Float previousDistanceTraveled = previousDistance._1;
+						Float previousDistanceInMeters = previousDistance._2;
+ 						List<GPSPoint> listRetrocessingPoints = mapRetrocessingPointsBroadcast.getValue().get(keyMaps);
+ 						Integer extraThreshold = mapExtraThresholdBroadcast.getValue().get(keyMaps);
+ 						Tuple2<ShapePoint, Float> currentClosestShapePoint = getClosestShapePoint(currentGPSPoint, trip.getShapeMatched());
+						
+						if (currentClosestShapePoint._1.getDistanceTraveled() <= previousDistanceTraveled) {
+							
+							if (extraThreshold == null) {
+								extraThreshold = 0;
+							}
+							
+							if (currentClosestShapePoint._1.getDistanceTraveled().equals(previousDistanceTraveled) 
+									&& (currentClosestShapePoint._2.equals(previousDistanceInMeters) || currentClosestShapePoint._2 < previousDistanceInMeters)) { // conditions to add equals points in the list without compromise the algorithm
+								extraThreshold += 1;
+								mapExtraThresholdBroadcast.getValue().put(keyMaps, extraThreshold);
+							}
+							if (listRetrocessingPoints == null) {
+								listRetrocessingPoints = new ArrayList<>();
+							}
+							
+							if (listRetrocessingPoints.size() < THRESHOLD_RETROCESSING_POINTS + extraThreshold) {
+								listRetrocessingPoints.add(currentGPSPoint);
+								mapRetrocessingPointsBroadcast.getValue().put(keyMaps, listRetrocessingPoints);
+								mapPreviousDistancesBroadcast.getValue().put(keyMaps, new Tuple2<Float, Float>(currentClosestShapePoint._1().getDistanceTraveled(), currentClosestShapePoint._2));
+							} else {
+								
+								List<Trip> previousTrips = mapPreviousTripsBroadcast.getValue().get(keyMaps);
+								if (previousTrips == null) {
+									previousTrips = new ArrayList<>();
+								}
+								previousTrips.add(trip);
+								mapPreviousTripsBroadcast.getValue().put(keyMaps, previousTrips);
+
+								trip = new Trip();
+								
+								GPSPoint currentRetrocessingPoint;
+								for (int i = 0; i < listRetrocessingPoints.size(); i++) {
+									currentRetrocessingPoint = listRetrocessingPoints.get(i);
+									if (i == 0) {
+										Tuple3<ShapeLine, ShapePoint, Float> shapeMatchedAndClosestPoint = getShapeMatchedAndClosestPoint(currentRetrocessingPoint, listTrueShapes);
+										if (shapeMatchedAndClosestPoint != null ){
+											trip.setInitialPoint(currentRetrocessingPoint);
+											trip.setShapeMatched(shapeMatchedAndClosestPoint._1());
+											trip.addPointToPath(currentRetrocessingPoint, shapeMatchedAndClosestPoint._2(), shapeMatchedAndClosestPoint._3());
+											listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(listRetrocessingPoints.get(0), shapeMatchedAndClosestPoint._2(), shapeMatchedAndClosestPoint._3()));
+										}
+										
+									} else {
+										Tuple2<ShapePoint, Float> closestShapePointRetrocessing = getClosestShapePoint(currentRetrocessingPoint, trip.getShapeMatched());
+										if (currentClosestShapePoint._2 > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
+											currentRetrocessingPoint.setProblem(Problem.OUTLIER_POINT.getCode());
+										}
+										trip.addPointToPath(currentRetrocessingPoint, closestShapePointRetrocessing._1, closestShapePointRetrocessing._2);
+										listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentRetrocessingPoint, closestShapePointRetrocessing._1(), closestShapePointRetrocessing._2));
+									}
+								}
+								mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<>());
+								mapExtraThresholdBroadcast.getValue().put(keyMaps, 0);
+								
+								currentClosestShapePoint = getClosestShapePoint(currentGPSPoint, trip.getShapeMatched());
+								mapPreviousDistancesBroadcast.getValue().put(keyMaps, new Tuple2<Float, Float>(currentClosestShapePoint._1().getDistanceTraveled(), currentClosestShapePoint._2()));
+								
+								if (currentClosestShapePoint._2 > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
+									currentGPSPoint.setProblem(Problem.OUTLIER_POINT.getCode());
+								}
+								
+								trip.addPointToPath(currentGPSPoint, currentClosestShapePoint._1, currentClosestShapePoint._2);
+								listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, currentClosestShapePoint._1(), currentClosestShapePoint._2));
+								mapCurrentTripBroadcast.getValue().put(keyMaps, trip);
+							}
+						} else {
+							
+							if (listRetrocessingPoints != null) {
+							
+								for (GPSPoint retrocessingPoint : listRetrocessingPoints) {
+									Tuple2<ShapePoint, Float> closestPointRetrocessing = getClosestShapePoint(retrocessingPoint, trip.getShapeMatched());
+									trip.addPointToPath(retrocessingPoint, closestPointRetrocessing._1, closestPointRetrocessing._2);
+									listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(retrocessingPoint, closestPointRetrocessing._1(), closestPointRetrocessing._2));
+								}
+							}
+							mapExtraThresholdBroadcast.getValue().put(keyMaps, 0);
+							mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<>());
+							
+							if (currentClosestShapePoint._2 > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
+								currentGPSPoint.setProblem(Problem.OUTLIER_POINT.getCode());
+							}
+							
+							trip.addPointToPath(currentGPSPoint, currentClosestShapePoint._1, currentClosestShapePoint._2);
+							listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, currentClosestShapePoint._1(), currentClosestShapePoint._2));
+							mapCurrentTripBroadcast.getValue().put(keyMaps, trip);
+							mapPreviousDistancesBroadcast.getValue().put(keyMaps, new Tuple2<Float, Float>(currentClosestShapePoint._1().getDistanceTraveled(), currentClosestShapePoint._2()));
+						}						
+						
+					}
+		});
+		
+		rddShapeLinePair.saveAsTextFile(pathOutput + "Shape");
+		similarityOutput.dstream().saveAsTextFiles(pathOutput, "GPS");
+
+		context.start();
+		try {
+			context.awaitTermination();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+}
