@@ -21,22 +21,12 @@ public class Trip {
 	private List<GPSPoint> outliersAfter;
 	private ShapeLine shapeMatched;
 	private float distanceToInitialPoint;
-	private boolean isNearToEndPoint;
 	
 	public Trip(){
 		this.distanceToInitialPoint = Float.MAX_VALUE;
-		this.isNearToEndPoint = false;
 		this.path = new HashMap<>();
 		this.outliersBefore = new ArrayList<>();
 		this.outliersAfter = new ArrayList<>();
-	}
-
-	public boolean isNearToEndPoint() {
-		return isNearToEndPoint;
-	}
-
-	public void setNearToEndPoint(boolean isNearToEndPoint) {
-		this.isNearToEndPoint = isNearToEndPoint;
 	}
 
 	public boolean hasFoundInitialPoint() {

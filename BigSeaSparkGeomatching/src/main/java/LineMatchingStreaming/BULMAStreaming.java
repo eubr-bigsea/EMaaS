@@ -66,7 +66,7 @@ public class BULMAStreaming {
 		int minPartitions = Integer.valueOf(args[4]);
 		int batchDuration = Integer.valueOf(args[5]);
 
-		SparkConf sparkConf = new SparkConf().setMaster("local[2]").setAppName("IncrementalBulma");
+		SparkConf sparkConf = new SparkConf().setMaster("local[2]").setAppName("BulmaStreaming");
 		JavaStreamingContext context = new JavaStreamingContext(sparkConf, Durations.seconds(batchDuration));
 
 		Broadcast<Map<String, Map<String, ShapeLine>>> mapShapeLinesBroadcast = context.sparkContext().broadcast(mapShapeLines);
@@ -183,12 +183,7 @@ public class BULMAStreaming {
 						Trip trip = mapCurrentTripBroadcast.getValue().get(keyMaps);
 						if (trip == null) {
 							trip = new Trip();
-						}
-//						 if (currentGPSPoint.getBusCode().equals("DL313")){// OK mas escolheu o shape 3212 no lugar do 3215
-//						 if (currentGPSPoint.getLineCode().equals("207") && currentGPSPoint.getBusCode().equals("BC301")) {// OK *_*
-//						 if (currentGPSPoint.getBusCode().equals("KB603")) { // deveria acabar o shape 1715 de 9:40 mas acabou de 09:01
-//						 if (currentGPSPoint.getLineCode().equals("183") && currentGPSPoint.getBusCode().equals("BC004")) {
-													
+						}							
 						populateTrueShapes(route,currentGPSPoint);
 						List<ShapeLine> listTrueShapes = mapTrueShapesBroadcast.getValue().get(keyMaps);
 						
@@ -206,7 +201,6 @@ public class BULMAStreaming {
 							listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, null,
 									Float.valueOf(currentGPSPoint.getProblem())));
 						}
-//						}
 						return listOutput.iterator();
 					}
 					
@@ -436,5 +430,4 @@ public class BULMAStreaming {
 			e.printStackTrace();
 		}
 	}
-
 }
