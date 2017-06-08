@@ -46,7 +46,7 @@ public class BULMAStreaming {
 	private static Map<String, List<Trip>> mapPreviousTrips = new HashMap<>();
 	
 	private static final double PERCENTAGE_DISTANCE = 0.09;
-	private static final int THRESHOLD_RETROCESSING_POINTS = 2;
+	private static final int THRESHOLD_RETROCESSING_POINTS = 1;
 	private static final int THRESHOLD_DISTANCE_BETWEEN_POINTS = 50;
 		
 	@SuppressWarnings({ "serial", "resource" })
@@ -182,7 +182,10 @@ public class BULMAStreaming {
 						Trip trip = mapCurrentTripBroadcast.getValue().get(keyMaps);
 						if (trip == null) {
 							trip = new Trip();
-						}							
+						}	
+						
+						if (currentGPSPoint.getBusCode().equals("BC004")) {
+							
 						populateTrueShapes(route,currentGPSPoint);
 						List<ShapeLine> listTrueShapes = mapTrueShapesBroadcast.getValue().get(keyMaps);
 						
@@ -199,6 +202,8 @@ public class BULMAStreaming {
 							currentGPSPoint.setProblem(Problem.NO_SHAPE.getCode());
 							listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, null,
 									Float.valueOf(currentGPSPoint.getProblem())));
+						}
+						
 						}
 						return listOutput.iterator();
 					}
@@ -395,14 +400,17 @@ public class BULMAStreaming {
 							}
 						} else {
 							
-							if (listRetrocessingPoints != null) {
-							
+							if (listRetrocessingPoints != null) {							
 								for (GPSPoint retrocessingPoint : listRetrocessingPoints) {
 									Tuple2<ShapePoint, Float> closestPointRetrocessing = getClosestShapePoint(retrocessingPoint, trip.getShapeMatched());
+									if (closestPointRetrocessing._2 > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
+										retrocessingPoint.setProblem(Problem.OUTLIER_POINT.getCode());
+									}
 									trip.addPointToPath(retrocessingPoint, closestPointRetrocessing._1, closestPointRetrocessing._2);
 									listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(retrocessingPoint, closestPointRetrocessing._1(), closestPointRetrocessing._2));
 								}
 							}
+							
 							mapExtraThresholdBroadcast.getValue().put(keyMaps, 0);
 							mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<>());
 							
