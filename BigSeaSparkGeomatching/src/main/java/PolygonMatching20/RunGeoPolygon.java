@@ -4,6 +4,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
+import PointDependencies.FieldsInputsMatchUp;
 import PolygonDependencies.GeoPolygon;
 
 public class RunGeoPolygon {
@@ -28,9 +29,12 @@ public class RunGeoPolygon {
 		
 		Dataset<Row> dataset1 = spark.read().text(dataSource1);
 		Dataset<Row> dataset2 = spark.read().text(dataSource2);
-						
+		
+		FieldsInputsMatchUp headerPref = new FieldsInputsMatchUp("geometry","name", "indexOfID","id");
+		FieldsInputsMatchUp headerOSM = new FieldsInputsMatchUp("geometry","name", "indexOfID","id");
+		
 		MatchingGeoPolygon20 mp = new MatchingGeoPolygon20();
-		Dataset<GeoPolygon> polygons = MatchingGeoPolygon20.generateDataFrames(dataset1, dataset2, spark);
+		Dataset<GeoPolygon> polygons = MatchingGeoPolygon20.generateDataFrames(dataset1, dataset2, headerPref, headerOSM, spark);
 		MatchingGeoPolygon20.run(polygons, thresholdLinguistic, thresholdPolygon, amountPartition, spark).javaRDD().saveAsTextFile(outputPath);
 
 	}

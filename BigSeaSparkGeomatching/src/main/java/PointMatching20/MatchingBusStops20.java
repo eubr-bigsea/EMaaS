@@ -3,8 +3,6 @@ package PointMatching20;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.StringTokenizer;
-import java.util.regex.Pattern;
 
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.spark.Accumulator;
@@ -26,6 +24,7 @@ import org.apache.spark.sql.SparkSession;
 import com.vividsolutions.jts.io.ParseException;
 
 import BULMADependences.GeoObject;
+import PointDependencies.FieldsInputsMatchUp;
 import PointDependencies.GeoPoint2;
 import PointDependencies.PointPair;
 import PolygonDependencies.InputTypes;
@@ -35,72 +34,63 @@ import uk.ac.shef.wit.simmetrics.similaritymetrics.JaccardSimilarity;
 
 public final class MatchingBusStops20 {
 	
-	private static final Pattern SPACE = Pattern.compile(" ");
-	private static final int rangeBlockingKey = 7; 
+	private static final String FILE_SEPARATOR = ";";
+	private static final int NUMBER_ATTRIBUTES_INPUTS = 4;
 	
-	private static GeoPoint2 createGeoPoint(String row, InputTypes inputType) throws ParseException {
-		StringTokenizer st = new StringTokenizer(row, ";");
-		String geometry = st.nextToken(); 
-		String name = st.nextToken();
-		int index = Integer.valueOf(st.nextToken());
-		int id =	Integer.valueOf(st.nextToken());	
-		return new GeoPoint2(geometry, name, inputType, index, id);
+	/**
+	 * Generates DataFrames from csv input files
+	 */
+	public static Dataset<GeoObject> generateDataFrames(String dataset1CSV, String dataset2CSV, String paramsDataset1, String paramsDataset2, SparkSession spark) throws Exception {
+
+		Dataset<Row> dataset1 = spark.read().text(dataset1CSV);
+		Dataset<Row> dataset2 = spark.read().text(dataset2CSV);
+		
+		FieldsInputsMatchUp fieldsDataset1  = new FieldsInputsMatchUp(paramsDataset1);
+		FieldsInputsMatchUp fieldsDataset2  = new FieldsInputsMatchUp(paramsDataset2);
+		
+		return generateDataFrames(dataset1, dataset2, fieldsDataset1, fieldsDataset2, spark);
+		
 	}
 	
-	public static Dataset<GeoObject> generateDataFrames(Dataset<Row> dataSourceGeoPref, Dataset<Row> dataSourceGeoOSM, SparkSession spark) throws Exception {
+	public static Dataset<GeoObject> generateDataFrames(Dataset<Row> dataset1, Dataset<Row> dataset2, FieldsInputsMatchUp fieldsDataset1, FieldsInputsMatchUp fieldsDataset2, SparkSession spark) throws Exception {
 		
-		dataSourceGeoPref = removeHeader(dataSourceGeoPref);
-		dataSourceGeoOSM = removeHeader(dataSourceGeoOSM);
+		int[] arrayIndexFieldsInputDS1 = new int[NUMBER_ATTRIBUTES_INPUTS];
+		int[] arrayIndexFieldsInputDS2 = new int[NUMBER_ATTRIBUTES_INPUTS];
 		
-		JavaRDD<Row> rddRowDataSourceGeoPref = dataSourceGeoPref.toJavaRDD();		
-		JavaRDD<Row> rddRowDataSourceGeoOSM = dataSourceGeoOSM.javaRDD();
+		dataset1 = removeHeader(dataset1, fieldsDataset1, arrayIndexFieldsInputDS1);
+		dataset2 = removeHeader(dataset2, fieldsDataset2, arrayIndexFieldsInputDS2);
 		
-		JavaRDD<GeoObject> rddGeoPointsPref =  rddRowDataSourceGeoPref.map(new Function<Row, GeoObject>() {
+		JavaRDD<Row> rddRowDataSourceGeoPref = dataset1.toJavaRDD();		
+		JavaRDD<Row> rddRowDataSourceGeoOSM = dataset2.javaRDD();
+		
+		JavaRDD<GeoObject> rddGeoPointsDS1 =  rddRowDataSourceGeoPref.map(new Function<Row, GeoObject>() {
 
 			@Override
 			public GeoObject call(Row s) throws Exception {
-				return createGeoPoint(s.getString(0), InputTypes.GOV_POLYGON);
+				return createGeoPoint(s.getString(0), InputTypes.GOV_POLYGON, arrayIndexFieldsInputDS1);
 			}
 			
 		});
 		
-		JavaRDD<GeoObject> rddGeoPointsOSM =  rddRowDataSourceGeoOSM.map(new Function<Row, GeoObject>() {
+		JavaRDD<GeoObject> rddGeoPointsDS2 =  rddRowDataSourceGeoOSM.map(new Function<Row, GeoObject>() {
 
 			@Override
 			public GeoObject call(Row s) throws Exception {
-				return createGeoPoint(s.getString(0), InputTypes.OSM_POLYGON);
+				return createGeoPoint(s.getString(0), InputTypes.OSM_POLYGON, arrayIndexFieldsInputDS2);
 			}
 
 		});
 
 		Encoder<GeoObject> geoObjEncoder = Encoders.javaSerialization(GeoObject.class);
 		
-		Dataset<GeoObject> pointsDS1 = spark.createDataset(JavaRDD.toRDD(rddGeoPointsPref), geoObjEncoder);
-		Dataset<GeoObject> pointsDS2 = spark.createDataset(JavaRDD.toRDD(rddGeoPointsOSM), geoObjEncoder);
+		Dataset<GeoObject> pointsDS1 = spark.createDataset(JavaRDD.toRDD(rddGeoPointsDS1), geoObjEncoder);
+		Dataset<GeoObject> pointsDS2 = spark.createDataset(JavaRDD.toRDD(rddGeoPointsDS2), geoObjEncoder);
 		
 		Dataset<GeoObject> points = pointsDS1.union(pointsDS2);
 		
 		return points;
 	}
 	
-	private static Dataset<Row> removeHeader(Dataset<Row> dataset) {
-		Row headerDataset3 = dataset.first();
-		dataset = dataset.filter(new FilterFunction<Row>() {
-
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public boolean call(Row value) throws Exception {
-				if (value.equals(headerDataset3) || value.getString(0).split(";")[0].contains("INF")) {
-					return false;
-				}
-				return true;
-			}
-		});
-		
-		return dataset;
-	}
-
 	public static Dataset<String> run(Dataset<GeoObject> points, double thresholdLinguistic, double thresholdPointDistance, Integer amountPartition, SparkSession spark) throws Exception {
 		JavaSparkContext ctx = new JavaSparkContext(spark.sparkContext());
 		Broadcast<Integer> numReplication = ctx.broadcast(amountPartition);
@@ -127,14 +117,6 @@ public final class MatchingBusStops20 {
 			}
 			
 		}, tupleEncoder);
-		
-//		JavaPairRDD<Integer, GeoPoint2> pointsPaired = pointLabed.mapToPair(new PairFunction<Tuple2<Integer,GeoPoint2>, Integer, GeoPoint2>() {
-//
-//			@Override
-//			public Tuple2<Integer, GeoPoint2> call(Tuple2<Integer, GeoPoint2> tuple) throws Exception {
-//				return new Tuple2<Integer, GeoPoint2>(tuple._1(), tuple._2());
-//			}
-//		});
 		
 		KeyValueGroupedDataset<Integer, Tuple2<Integer, GeoObject>> pointsGrouped = pointsPaired.groupByKey(new MapFunction<Tuple2<Integer, GeoObject>, Integer>() {
 
@@ -227,5 +209,61 @@ public final class MatchingBusStops20 {
 		}, Encoders.STRING()).repartition(amountPartition);
 		
 		return output;
+	}
+
+	private static GeoPoint2 createGeoPoint(String row, InputTypes inputType, int[] arraySequence) throws ParseException {
+		
+		String[] splittedRow = row.split(FILE_SEPARATOR);
+		
+		Integer index = null;
+		Integer id = null;
+		try {
+			index = Integer.valueOf(splittedRow[arraySequence[2]]);
+			id = Integer.valueOf(splittedRow[arraySequence[3]]);
+		} catch (NumberFormatException e) {
+			System.err.println("Index and Id of the Geometry should be integer numbers.");
+		}
+		
+		return new GeoPoint2(splittedRow[arraySequence[0]], splittedRow[arraySequence[1]], inputType, index, id);
+	}
+	
+	private static Dataset<Row> removeHeader (Dataset<Row> dataset, FieldsInputsMatchUp fieldsInputDS, int[] arraySequence) {
+		Row header = dataset.first();
+		dataset = dataset.filter(new FilterFunction<Row>() {
+
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public boolean call(Row value) throws Exception {
+				if (value.equals(header)) {
+
+					String[] fields = value.getString(0).split(FILE_SEPARATOR);
+
+					for (int i = 0; i < NUMBER_ATTRIBUTES_INPUTS; i++) {
+
+						if (fields[i].equals(fieldsInputDS.getGeometry())) {
+							arraySequence[0] = i;
+						} else if (fields[i].equals(fieldsInputDS.getName())) {
+							arraySequence[1] = i;
+						} else if (fields[i].equals(fieldsInputDS.getIndexOfID())) {
+							arraySequence[2] = i;
+						} else if (fields[i].equals(fieldsInputDS.getId())) {
+							arraySequence[3] = i;
+						} else {
+							throw new Exception("Input fields do not match Input file fields.");
+						}
+					}
+					return false;
+				}
+				
+				if (value.getString(0).split(";")[0].contains("INF")) {
+					return false;
+				}
+				
+				return true;
+			}
+		});
+
+		return dataset;
 	}
 }
