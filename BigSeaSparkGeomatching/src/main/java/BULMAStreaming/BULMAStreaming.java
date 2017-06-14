@@ -47,7 +47,9 @@ public class BULMAStreaming {
 	
 	private static final double PERCENTAGE_DISTANCE = 0.09;
 	private static final int THRESHOLD_RETROCESSING_POINTS = 1;
+	private static final int THRESHOLD_OUTLIERS_POINTS = 2;
 	private static final int THRESHOLD_DISTANCE_BETWEEN_POINTS = 50;
+	private static final int NUMBER_SHAPES_IN_BASIC_CASE = 2;
 		
 	@SuppressWarnings({ "serial", "resource" })
 	public static void main(String[] args) {
@@ -184,14 +186,15 @@ public class BULMAStreaming {
 							trip = new Trip();
 						}	
 						
-						if (currentGPSPoint.getBusCode().equals("BC004")) {
-							
 						populateTrueShapes(route,currentGPSPoint);
 						List<ShapeLine> listTrueShapes = mapTrueShapesBroadcast.getValue().get(keyMaps);
 						
 						
 						if (listTrueShapes != null) {
 							if (trip.hasFoundInitialPoint()) {
+								if (trip.getNumberOfOutliersInSequence() >= THRESHOLD_OUTLIERS_POINTS && listTrueShapes.size() > NUMBER_SHAPES_IN_BASIC_CASE) {
+									findRightShape(listTrueShapes, trip);
+								}
 								findEndPoint(trip,currentGPSPoint,listOutput, listTrueShapes, keyMaps);
 
 							}
@@ -204,7 +207,6 @@ public class BULMAStreaming {
 									Float.valueOf(currentGPSPoint.getProblem())));
 						}
 						
-						}
 						return listOutput.iterator();
 					}
 					
@@ -258,6 +260,39 @@ public class BULMAStreaming {
 							}
 						}
 					}
+					
+					private void findRightShape(List<ShapeLine> listTrueShapes, Trip trip) {
+						
+						List<ShapePoint> matchedShapesList;
+						
+						Tuple2<ShapePoint, Float> closestPoint;							
+						for (ShapeLine currentShapeLine : listTrueShapes) {
+							matchedShapesList = new ArrayList<>();
+							for (GPSPoint outlierPoint : trip.getOutliersInSequence()) {
+							
+								closestPoint = getClosestShapePoint(outlierPoint, currentShapeLine);
+								if (closestPoint._2 <= THRESHOLD_DISTANCE_BETWEEN_POINTS) { 
+										matchedShapesList.add(closestPoint._1);
+								}
+							}
+							
+							Float previousDistanceTraveled = Float.MAX_VALUE;
+							for (int i = 0; i < matchedShapesList.size(); i++) {
+								if ( matchedShapesList.get(i).getDistanceTraveled() > previousDistanceTraveled) {
+									previousDistanceTraveled = null;
+									break;
+								}
+								
+								previousDistanceTraveled = matchedShapesList.get(i).getDistanceTraveled();
+							}
+							
+							if (!matchedShapesList.isEmpty() && previousDistanceTraveled != null) {
+								trip.setShapeMatched(currentShapeLine);
+								trip.cleanOutliersInSequenceList();
+								break;
+							}
+						}
+					}
 
 					private void findFirstPoint(List<ShapeLine> listTrueShapes, GPSPoint currentGPSPoint, Trip trip, List<Tuple3<GPSPoint, ShapePoint, Float>> listOutput, String keyMaps) {
 						
@@ -292,7 +327,11 @@ public class BULMAStreaming {
 						Tuple2<ShapePoint, Float> closestPoint;
 						for (ShapeLine currentShapeLine : listTrueShapes) {
 							closestPoint = getClosestShapePoint(gpsPoint, currentShapeLine);
-							if (smallerDistanceTraveled == null || closestPoint._1.getDistanceTraveled() < smallerDistanceTraveled) {
+							if (smallerDistanceTraveled == null || 
+								(closestPoint._1.getDistanceTraveled() < smallerDistanceTraveled && 								 
+								(closestPoint._2 <= THRESHOLD_DISTANCE_BETWEEN_POINTS ||
+								closestPoint._2 < distanceInMeters))) { 
+								
 								smallerDistanceTraveled = closestPoint._1.getDistanceTraveled();
 								shapePointMatched = closestPoint._1;
 								distanceInMeters = closestPoint._2;
@@ -377,8 +416,11 @@ public class BULMAStreaming {
 										
 									} else {
 										Tuple2<ShapePoint, Float> closestShapePointRetrocessing = getClosestShapePoint(currentRetrocessingPoint, trip.getShapeMatched());
-										if (currentClosestShapePoint._2 > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
+										if (closestShapePointRetrocessing._2 > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
 											currentRetrocessingPoint.setProblem(Problem.OUTLIER_POINT.getCode());
+											trip.addOutlierInSequence(currentGPSPoint);
+										} else {
+											trip.cleanOutliersInSequenceList();
 										}
 										trip.addPointToPath(currentRetrocessingPoint, closestShapePointRetrocessing._1, closestShapePointRetrocessing._2);
 										listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentRetrocessingPoint, closestShapePointRetrocessing._1(), closestShapePointRetrocessing._2));
@@ -392,6 +434,9 @@ public class BULMAStreaming {
 								
 								if (currentClosestShapePoint._2 > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
 									currentGPSPoint.setProblem(Problem.OUTLIER_POINT.getCode());
+									trip.addOutlierInSequence(currentGPSPoint);
+								} else {
+									trip.cleanOutliersInSequenceList();
 								}
 								
 								trip.addPointToPath(currentGPSPoint, currentClosestShapePoint._1, currentClosestShapePoint._2);
@@ -405,10 +450,17 @@ public class BULMAStreaming {
 									Tuple2<ShapePoint, Float> closestPointRetrocessing = getClosestShapePoint(retrocessingPoint, trip.getShapeMatched());
 									if (closestPointRetrocessing._2 > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
 										retrocessingPoint.setProblem(Problem.OUTLIER_POINT.getCode());
+										trip.addOutlierInSequence(currentGPSPoint);
+									} else {
+										trip.cleanOutliersInSequenceList();
 									}
 									trip.addPointToPath(retrocessingPoint, closestPointRetrocessing._1, closestPointRetrocessing._2);
 									listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(retrocessingPoint, closestPointRetrocessing._1(), closestPointRetrocessing._2));
 								}
+							}
+							
+							if (trip.getNumberOfOutliersInSequence() >= THRESHOLD_OUTLIERS_POINTS && listTrueShapes.size() > NUMBER_SHAPES_IN_BASIC_CASE) {
+								findRightShape(listTrueShapes, trip);
 							}
 							
 							mapExtraThresholdBroadcast.getValue().put(keyMaps, 0);
@@ -416,6 +468,9 @@ public class BULMAStreaming {
 							
 							if (currentClosestShapePoint._2 > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
 								currentGPSPoint.setProblem(Problem.OUTLIER_POINT.getCode());
+								trip.addOutlierInSequence(currentGPSPoint);
+							} else {
+								trip.cleanOutliersInSequenceList();
 							}
 							
 							trip.addPointToPath(currentGPSPoint, currentClosestShapePoint._1, currentClosestShapePoint._2);

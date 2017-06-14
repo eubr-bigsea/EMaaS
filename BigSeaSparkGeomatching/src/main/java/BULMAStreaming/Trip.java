@@ -12,7 +12,7 @@ import PointDependencies.ShapePoint;
 import scala.Tuple2;
 
 public class Trip {
-	
+
 	private Integer route;
 	private GPSPoint initialPoint;
 	private Map<GPSPoint, Tuple2<ShapePoint, Float>> path; // MAP<POINT_GPS, TUPLE<POINT_SHAPE, DISTANCE>> PATH
@@ -21,12 +21,14 @@ public class Trip {
 	private List<GPSPoint> outliersAfter;
 	private ShapeLine shapeMatched;
 	private float distanceToInitialPoint;
+	private List<GPSPoint> outliersInSequence;
 	
 	public Trip(){
 		this.distanceToInitialPoint = Float.MAX_VALUE;
 		this.path = new HashMap<>();
 		this.outliersBefore = new ArrayList<>();
 		this.outliersAfter = new ArrayList<>();
+		this.outliersInSequence = new ArrayList<>();
 	}
 
 	public boolean hasFoundInitialPoint() {
@@ -107,6 +109,26 @@ public class Trip {
 	public void setShapeMatched(ShapeLine shapeMatched) {
 		if (shapeMatched != null)
 			this.shapeMatched = shapeMatched;
+	}
+
+	public int getNumberOfOutliersInSequence() {
+		return this.outliersInSequence.size();
+	}
+
+	public void cleanOutliersInSequenceList() {
+		this.outliersInSequence = new ArrayList<>();
+	}
+	
+	public void addOutlierInSequence(GPSPoint outlier) {
+		this.outliersInSequence.add(outlier);
+	}
+
+	public List<GPSPoint> getOutliersInSequence() {
+		return outliersInSequence;
+	}
+
+	public void setOutliersInSequence(List<GPSPoint> outliersInSequence) {
+		this.outliersInSequence = outliersInSequence;
 	}
 
 	@Override
