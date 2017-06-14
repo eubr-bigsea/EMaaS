@@ -15,10 +15,8 @@ public class Trip {
 
 	private Integer route;
 	private GPSPoint initialPoint;
-	private Map<GPSPoint, Tuple2<ShapePoint, Float>> path; // MAP<POINT_GPS, TUPLE<POINT_SHAPE, DISTANCE>> PATH
+	private Map<GPSPoint, Tuple2<ShapePoint, Float>> path;
 	private GeoPoint endPoint;
-	private List<GPSPoint> outliersBefore;
-	private List<GPSPoint> outliersAfter;
 	private ShapeLine shapeMatched;
 	private float distanceToInitialPoint;
 	private List<GPSPoint> outliersInSequence;
@@ -26,8 +24,6 @@ public class Trip {
 	public Trip(){
 		this.distanceToInitialPoint = Float.MAX_VALUE;
 		this.path = new HashMap<>();
-		this.outliersBefore = new ArrayList<>();
-		this.outliersAfter = new ArrayList<>();
 		this.outliersInSequence = new ArrayList<>();
 	}
 
@@ -75,33 +71,7 @@ public class Trip {
 	public void setEndPoint(GPSPoint endPoint) {
 		this.endPoint = endPoint;
 	}
-
-	public void addOutlierBefore(GPSPoint gpsPoint) {
-		if (gpsPoint != null && !outliersBefore.contains(gpsPoint))
-			outliersBefore.add(gpsPoint);
-	}
 	
-	public List<GPSPoint> getOutliersBefore() {
-		return outliersBefore;
-	}
-
-	public void setOutliersBefore(List<GPSPoint> outliersBefore) {
-		this.outliersBefore = outliersBefore;
-	}
-
-	public void addOutlierAfter(GPSPoint gpsPoint) {
-		if (gpsPoint != null && !outliersAfter.contains(gpsPoint))
-			outliersAfter.add(gpsPoint);
-	}
-	
-	public List<GPSPoint> getOutliersAfter() {
-		return outliersAfter;
-	}
-
-	public void setOutliersAfter(List<GPSPoint> outliersAfter) {
-		this.outliersAfter = outliersAfter;
-	}
-
 	public ShapeLine getShapeMatched() {
 		return shapeMatched;
 	}
@@ -134,8 +104,7 @@ public class Trip {
 	@Override
 	public String toString() {
 		return "Trip [route=" + route + ", initalPoint=" + initialPoint + ", path=" + path + ", endPoint=" + endPoint
-				+ ", outliersBefore=" + outliersBefore + ", outliersAfter=" + outliersAfter + ", shapeMatched="
-				+ shapeMatched + "]";
+				  + ", shapeMatched=" + shapeMatched + "]";
 	}
 
 	public void addPointToPath(GPSPoint gpsPoint, ShapePoint closestPoint, Float smallerDistance) {

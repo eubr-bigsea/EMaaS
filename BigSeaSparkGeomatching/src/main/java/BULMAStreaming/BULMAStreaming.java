@@ -37,8 +37,8 @@ import scala.Tuple3;
 
 public class BULMAStreaming {
 	
-	private static Map<String, Map<String, ShapeLine>> mapShapeLines = new HashMap<>();
-	private static Map<String, Trip> mapCurrentTrip = new HashMap<>();
+	private static Map<String, Map<String, ShapeLine>> mapShapeLines = new HashMap<>(); // key = route
+	private static Map<String, Trip> mapCurrentTrip = new HashMap<>(); // key = bus code + route
 	private static Map<String, List<ShapeLine>> mapTrueShapes = new HashMap<>();
 	private static Map<String, Tuple2<Float,Float>> mapPreviousDistances = new HashMap<>();
 	private static Map<String, List<GPSPoint>> mapRetrocessingPoints =  new HashMap<>();
@@ -78,6 +78,10 @@ public class BULMAStreaming {
 		Broadcast<Map<String, Integer>> mapExtraThresholdBroadcast = context.sparkContext().broadcast(mapExtraThreshold);
 		Broadcast<Map<String, List<Trip>>> mapPreviousTripsBroadcast = context.sparkContext().broadcast(mapPreviousTrips);
 		
+		/**
+		 * Removes header (first line) from file
+		 * @return the file without the header
+		 */
 		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
 			@Override
 			public Iterator<String> call(Integer index, Iterator<String> iterator) throws Exception {
@@ -90,9 +94,16 @@ public class BULMAStreaming {
 			}
 		};
 
+		/**
+		 * Reads the shape file directory and puts it in JavaRDD<String>
+		 */
 		JavaRDD<String> shapeString = context.sparkContext().textFile(pathFileShapes, minPartitions)
 				.mapPartitionsWithIndex(removeHeader, false);
 
+		/**
+		 * Creates shape point and groups by shape id
+		 * @return tuples of id and geo point set
+		 */
 		JavaPairRDD<String, Iterable<GeoPoint>> rddShapePointsPair = shapeString
 				.mapToPair(new PairFunction<String, String, GeoPoint>() {
 
@@ -103,6 +114,11 @@ public class BULMAStreaming {
 					}
 				}).groupByKey();
 
+		
+		/**
+		 * Creates a shape line with all points on the same route, puts in MapShapeLines and groups by shape route
+		 * @return tuples of route and geo line set  
+		 */
 		JavaPairRDD<String, GeoLine> rddShapeLinePair = rddShapePointsPair
 				.mapToPair(new PairFunction<Tuple2<String, Iterable<GeoPoint>>, String, GeoLine>() {
 
@@ -162,8 +178,15 @@ public class BULMAStreaming {
 					}
 				});
 
+		/**
+		 * Receives the gps data stream by host name and port and put it in JavaDStream<String>
+		 */
 		JavaDStream<String> gpsStream = context.socketTextStream(hostnameGPS, portGPS);
 
+		
+		/**
+		 * Creates gps point and put it in JavaDStream<GPSPoint>
+		 */
 		JavaDStream<GPSPoint> gpsPointsRDD = gpsStream.map(new Function<String, GPSPoint>() {
 
 			@Override
@@ -172,6 +195,11 @@ public class BULMAStreaming {
 			}
 		});
 		
+		
+		/**
+		 * Calculates the best match between the current gps point and shape point
+		 * @return tuples with the gps point, the shape point matched and the distance between them.
+		 */
 		JavaDStream<Tuple3<GPSPoint, ShapePoint, Float>> similarityOutput = gpsPointsRDD
 				.flatMap(new FlatMapFunction<GPSPoint, Tuple3<GPSPoint, ShapePoint, Float>>() {
 
@@ -210,6 +238,12 @@ public class BULMAStreaming {
 						return listOutput.iterator();
 					}
 					
+					/**
+					 * Selects the case of the route (circular or complementary), look for shapes that are of the the same route
+					 * and put them in MapTrueShapes
+					 * @param route
+					 * @param possibleFirstPoint
+					 */
 					private void populateTrueShapes(String route, GPSPoint possibleFirstPoint) {
 
 						String currentBusCodeAndRoute = possibleFirstPoint.getBusCode() + route;
@@ -222,7 +256,7 @@ public class BULMAStreaming {
 								List<ShapeLine> listMatchedShapes = new ArrayList<>();
 								Map<String, ShapeLine> mapPossibleShapeLines = mapShapeLinesBroadcast.getValue().get(route);
 
-								if (mapPossibleShapeLines != null && mapPossibleShapeLines.size() >= 2) {
+								if (mapPossibleShapeLines != null && mapPossibleShapeLines.size() >= NUMBER_SHAPES_IN_BASIC_CASE) {
 									ShapeLine bestShape = null;
 									Float smallerDistanceTraveled = Float.MAX_VALUE;
 									float sumGreaterDistancePoints = 0;
@@ -261,6 +295,12 @@ public class BULMAStreaming {
 						}
 					}
 					
+					/**
+					 * Finds the right shape when THRESHOLD_OUTLIERS_POINTS points is above THRESHOLD_DISTANCE_BETWEEN_POINTS
+					 * for the selected shape.
+					 * @param listTrueShapes shapes list of the route
+					 * @param trip current trip with outliers points
+					 */
 					private void findRightShape(List<ShapeLine> listTrueShapes, Trip trip) {
 						
 						List<ShapePoint> matchedShapesList;
@@ -280,7 +320,7 @@ public class BULMAStreaming {
 							for (int i = 0; i < matchedShapesList.size(); i++) {
 								if ( matchedShapesList.get(i).getDistanceTraveled() > previousDistanceTraveled) {
 									previousDistanceTraveled = null;
-									break;
+									break; 
 								}
 								
 								previousDistanceTraveled = matchedShapesList.get(i).getDistanceTraveled();
@@ -294,11 +334,19 @@ public class BULMAStreaming {
 						}
 					}
 
+					/**
+					 * Find the (possible) first point of the trip and update MapCurrentTrip and MapPreviousDistances
+					 * @param listTrueShapes shapes list of the route
+					 * @param currentGPSPoint
+					 * @param trip
+					 * @param listOutput
+					 * @param keyMaps bus code of the currentGPSPoint + route
+					 */
 					private void findFirstPoint(List<ShapeLine> listTrueShapes, GPSPoint currentGPSPoint, Trip trip, List<Tuple3<GPSPoint, ShapePoint, Float>> listOutput, String keyMaps) {
 						
 						Tuple3<ShapeLine, ShapePoint, Float> shapeMatchedAndClosestPoint = getShapeMatchedAndClosestPoint(currentGPSPoint, listTrueShapes);
 						
-						if (shapeMatchedAndClosestPoint == null) {
+						if (shapeMatchedAndClosestPoint == null) { // when doesn't have shape with the same route
 							listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, null, Float.valueOf(currentGPSPoint.getProblem())));
 						
 						} else {
@@ -312,6 +360,12 @@ public class BULMAStreaming {
 						}
 					}
 					
+					/**
+					 * Gets the closest shape point, with the shortest distance traveled, and its shape matched with the gps point
+					 * @param gpsPoint
+					 * @param listTrueShapes shapes list of the route
+					 * @return tuple with the shape matched, closest shape point e the distance between it and the gps point
+					 */
 					private Tuple3<ShapeLine, ShapePoint, Float> getShapeMatchedAndClosestPoint(GPSPoint gpsPoint, List<ShapeLine>  listTrueShapes) {
 						
 						if (listTrueShapes == null || listTrueShapes.size() == 0) {
@@ -346,6 +400,12 @@ public class BULMAStreaming {
 						return new Tuple3<ShapeLine, ShapePoint, Float>(shapeLineMatched,shapePointMatched, distanceInMeters);
 					}
 					
+					/**
+					 * Gets the closest shape point of the gps point
+					 * @param gpsPoint
+					 * @param shapeLine the shape line matched with the trip of the gps point
+					 * @return tuple with the closest shape point and the distance between it and the gps point
+					 */
 					private Tuple2<ShapePoint, Float> getClosestShapePoint(GPSPoint gpsPoint, ShapeLine shapeLine) {
 					
 						Float smallerDistance = Float.MAX_VALUE;
@@ -363,6 +423,16 @@ public class BULMAStreaming {
 						return new Tuple2<ShapePoint, Float>(closestShapePoint, smallerDistance);
 					}
 					
+					/**
+					 * Finds the end point of the trip. 
+					 * Puts current gps point in MapRetrocessingPoints, if its closest shape point has smaller distance traveled than the last one gps point.
+					 * Puts current gps point in ListOutlierInSequence, if its distance to closest shape point is above THRESHOLD_DISTANCE_BETWEEN_POINTS.
+					 * @param trip
+					 * @param currentGPSPoint
+					 * @param listOutput
+					 * @param listTrueShapes
+					 * @param keyMaps
+					 */
 					private void findEndPoint(Trip trip, GPSPoint currentGPSPoint, List<Tuple3<GPSPoint, ShapePoint, Float>> listOutput, List<ShapeLine> listTrueShapes, String keyMaps) {
 						
 						Tuple2<Float, Float> previousDistance = mapPreviousDistancesBroadcast.getValue().get(keyMaps);
@@ -379,8 +449,8 @@ public class BULMAStreaming {
 							}
 							
 							if (currentClosestShapePoint._1.getDistanceTraveled().equals(previousDistanceTraveled) 
-									&& (currentClosestShapePoint._2.equals(previousDistanceInMeters) || currentClosestShapePoint._2 < previousDistanceInMeters)) { // conditions to add equals points in the list without compromise the algorithm
-								extraThreshold += 1;
+									&& (currentClosestShapePoint._2.equals(previousDistanceInMeters) || currentClosestShapePoint._2 < previousDistanceInMeters)) { 
+								extraThreshold += 1; // conditions to add equals points in the list without compromise the algorithm
 								mapExtraThresholdBroadcast.getValue().put(keyMaps, extraThreshold);
 							}
 							if (listRetrocessingPoints == null) {
@@ -391,7 +461,8 @@ public class BULMAStreaming {
 								listRetrocessingPoints.add(currentGPSPoint);
 								mapRetrocessingPointsBroadcast.getValue().put(keyMaps, listRetrocessingPoints);
 								mapPreviousDistancesBroadcast.getValue().put(keyMaps, new Tuple2<Float, Float>(currentClosestShapePoint._1().getDistanceTraveled(), currentClosestShapePoint._2));
-							} else {
+							
+							} else { // checking which of the retrocessing points is end point
 								
 								List<Trip> previousTrips = mapPreviousTripsBroadcast.getValue().get(keyMaps);
 								if (previousTrips == null) {
@@ -426,6 +497,8 @@ public class BULMAStreaming {
 										listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentRetrocessingPoint, closestShapePointRetrocessing._1(), closestShapePointRetrocessing._2));
 									}
 								}
+								
+								//clean maps
 								mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<>());
 								mapExtraThresholdBroadcast.getValue().put(keyMaps, 0);
 								
@@ -443,7 +516,7 @@ public class BULMAStreaming {
 								listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, currentClosestShapePoint._1(), currentClosestShapePoint._2));
 								mapCurrentTripBroadcast.getValue().put(keyMaps, trip);
 							}
-						} else {
+						} else { // the current gps point continues on the same trip
 							
 							if (listRetrocessingPoints != null) {							
 								for (GPSPoint retrocessingPoint : listRetrocessingPoints) {
@@ -463,6 +536,7 @@ public class BULMAStreaming {
 								findRightShape(listTrueShapes, trip);
 							}
 							
+							//clean maps
 							mapExtraThresholdBroadcast.getValue().put(keyMaps, 0);
 							mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<>());
 							
@@ -477,11 +551,11 @@ public class BULMAStreaming {
 							listOutput.add(new Tuple3<GPSPoint, ShapePoint, Float>(currentGPSPoint, currentClosestShapePoint._1(), currentClosestShapePoint._2));
 							mapCurrentTripBroadcast.getValue().put(keyMaps, trip);
 							mapPreviousDistancesBroadcast.getValue().put(keyMaps, new Tuple2<Float, Float>(currentClosestShapePoint._1().getDistanceTraveled(), currentClosestShapePoint._2()));
-						}						
-						
+						}	
 					}
 		});
 		
+		//Saves the shape output e gps outputs
 		rddShapeLinePair.saveAsTextFile(pathOutput + "Shape");
 		similarityOutput.dstream().saveAsTextFiles(pathOutput, "GPS");
 
