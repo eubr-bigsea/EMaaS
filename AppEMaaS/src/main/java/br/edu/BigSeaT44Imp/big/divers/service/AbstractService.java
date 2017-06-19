@@ -6,17 +6,12 @@ import java.util.Properties;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
-import org.hibernate.jpa.event.spi.jpa.ListenerFactory;
 import org.json.JSONObject;
 import org.primefaces.model.UploadedFile;
 
 import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientRequest;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.filter.ConnectionListenerFilter;
-import com.sun.jersey.api.client.filter.ContainerListener;
-import com.sun.jersey.api.client.filter.OnStartConnectionListener;
 import com.sun.jersey.core.header.FormDataContentDisposition;
 import com.sun.jersey.multipart.FormDataBodyPart;
 import com.sun.jersey.multipart.FormDataMultiPart;

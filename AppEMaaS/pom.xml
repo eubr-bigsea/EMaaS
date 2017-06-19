@@ -128,7 +128,7 @@
 				<configuration>
 					<server>TomcatServer</server>
 					<path>/BigSeaT4-4Imp</path>
-					<port>8080</port>
+					<port>8082</port>
 					<contextFile>${project.basedir}/src/main/webapp/META-INF/context.xml</contextFile>
 				</configuration>
 
@@ -209,13 +209,14 @@
 			<artifactId>json</artifactId>
 			<version>20160212</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.jhades</groupId>
+			<artifactId>jhades</artifactId>
+			<version>1.0.4</version>
+		</dependency>
 
 		<!-- Dependencias do hadoop-manager -->
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-core</artifactId>
-			<version>3.0.7.RELEASE</version>
-		</dependency>
 
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
@@ -263,13 +264,7 @@
 		<dependency>
 			<groupId>com.sun.jersey.contribs</groupId>
 			<artifactId>jersey-multipart</artifactId>
-			<version>1.17</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.jvnet</groupId>
-					<artifactId>mimepull</artifactId>
-				</exclusion>
-			</exclusions>
+			<version>1.19.3</version>
 		</dependency>
 
 		<dependency>
@@ -356,8 +351,6 @@
 			<version>2.2.12</version>
 		</dependency>
 		<!-- Descomente a dependencia abaixo se estiver usando o wildfly -->
-
-
 
 		<!-- Faces Library -->
 		<!-- Descomente a dependencia abaixo se vc estiver usando o tomcat -->
@@ -552,6 +545,5 @@
 		</dependency>
 
 	</dependencies>
-
 
 </project>
