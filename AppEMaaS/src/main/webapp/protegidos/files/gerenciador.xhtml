@@ -12,7 +12,7 @@
 			<div class="ContainerIndent">
 
 				<p:breadCrumb>
-					<p:menuitem value="Home" url="../../index.xhtml" />
+					<p:menuitem value="Home" url="/protegidos/index.xhtml" />
 					<p:menuitem value="Files" url="/protegidos/files/gerenciador.xhtml" />
 				</p:breadCrumb>
 
@@ -121,8 +121,8 @@
 								</h:panelGrid>
 							</p:tab>
 						</p:tabView>
-
 					</p:layoutUnit>
+					
 					<p:layoutUnit position="center">
 						<p:accordionPanel id="idAccordion"
 							activeIndex="#{fileBean.activeIndex}">
@@ -134,14 +134,32 @@
 										<h:outputText value="#{fileRow.row}"/>
 									</p:dataScroller>
 								</h:form>
-
 							</p:tab>
+
 							<p:tab id="pnlContentJar" widgetVar="panelContentJar"
 								title="Job Execution">
 								<h:outputFormat id="outJar"
 									style="background:transparent; width:90%;"
 									value="#{jobBean.fileResult}" escape="false"/>
 							</p:tab>
+							
+							<p:tab id="pnlContentBulma" widgetVar="panelContentBulma"
+								title="Visualization Bulma">
+
+								<h:form>
+								<script src="http://maps.google.com/maps/api/js?key=AIzaSyC6Y7ApwOfP2oRvSclzI3IaCMqr3ltTOzo"
+										type="text/javascript"></script>
+									<p:growl id="growl" life="3000" />
+									<p:gmap id="gmap" center="36.890257,30.707417" zoom="13"
+										type="HYBRID" style="width:100%;height:400px"
+										model="#{bulmaOutput.polylineModel}">
+										<p:ajax event="overlaySelect"
+											listener="#{bulmaOutput.onPolylineSelect}" update="growl" />
+									</p:gmap>
+								</h:form>
+
+							</p:tab>
+							
 						</p:accordionPanel>
 					</p:layoutUnit>
 				</p:layout>

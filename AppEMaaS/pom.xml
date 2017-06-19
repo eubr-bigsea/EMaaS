@@ -4,7 +4,6 @@
 	<groupId>BigSeaT4-4Imp</groupId>
 	<artifactId>BigSeaT4-4Imp</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>war</packaging>
 
 
 	<properties>
