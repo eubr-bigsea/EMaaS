@@ -76,7 +76,7 @@
 												listener="#{fileBean.onSelectContextMenu}" />
 
 											<p:ajax event="select" listener="#{fileBean.onNodeSelect}"
-												update=":idAccordion :idAccordion:pnlContentFile" />
+												 update="pnlContentFile"  />
 
 											<p:treeNode expandedIcon="ui-icon-folder-open"
 												collapsedIcon="ui-icon-folder-collapsed">
@@ -109,6 +109,11 @@
 											<p:menuitem value="Download File" update="docs messages"
 												action="#{fileBean.downloadFile}" icon="ui-icon-carat-1-s"
 												process="@form" />
+											<p:menuitem value="View on the Map"  update="pnlContentBulma"
+												actionListener="#{bulmaBean.showPanel}"
+												icon="ui-icon-arrow-4-diag">
+												
+											</p:menuitem>
 											<p:separator />
 										</p:contextMenu>
 
@@ -123,44 +128,49 @@
 						</p:tabView>
 					</p:layoutUnit>
 					
-					<p:layoutUnit position="center">
-						<p:accordionPanel id="idAccordion"
-							activeIndex="#{fileBean.activeIndex}">
-							<p:tab id="pnlContentFile" widgetVar="panelContentFile"
-								title="File Content">
-								<h:form>
-									<p:dataScroller value="#{fileBean.fileRows}" var="fileRow"
+					<p:layoutUnit position="center" rendered="true">
+						<p:panel id="pnlContentFile" header="Output" toggleable="true"
+							closable="true" toggleSpeed="500" closeSpeed="500"
+							widgetVar="panel" style="margin-bottom:20px" visible="false">
+
+							<h:form>
+								<p:dataScroller value="#{fileBean.fileRows}" var="fileRow"
 										chunkSize="1000" mode="inline" scrollHeight="625">
 										<h:outputText value="#{fileRow.row}"/>
-									</p:dataScroller>
-								</h:form>
-							</p:tab>
+								</p:dataScroller>
+							</h:form>
+							
+						</p:panel>
 
-							<p:tab id="pnlContentJar" widgetVar="panelContentJar"
-								title="Job Execution">
-								<h:outputFormat id="outJar"
+						<p:panel id="pnlContentJar" header="Output" toggleable="true"
+							closable="true" toggleSpeed="500" closeSpeed="500"
+							widgetVar="panel1" style="margin-bottom:20px" visible="false">
+
+							<h:outputFormat id="outJar"
 									style="background:transparent; width:90%;"
 									value="#{jobBean.fileResult}" escape="false"/>
-							</p:tab>
-							
-							<p:tab id="pnlContentBulma" widgetVar="panelContentBulma"
-								title="Visualization Bulma">
+						</p:panel>
 
-								<h:form>
+
+						<p:panel id="pnlContentBulma" header="Output" toggleable="true"
+							closable="true" toggleSpeed="500" closeSpeed="500"
+							widgetVar="panel2" style="margin-bottom:20px" rendered="true">
+
+							<h:form>
 								<script src="http://maps.google.com/maps/api/js?key=AIzaSyC6Y7ApwOfP2oRvSclzI3IaCMqr3ltTOzo"
 										type="text/javascript"></script>
+								
 									<p:growl id="growl" life="3000" />
 									<p:gmap id="gmap" center="36.890257,30.707417" zoom="13"
-										type="HYBRID" style="width:100%;height:400px"
-										model="#{bulmaOutput.polylineModel}">
+										type="HYBRID" style="width:100%;height:500px"
+										model="#{bulmaBean.polylineModel}" rendered="true">
 										<p:ajax event="overlaySelect"
-											listener="#{bulmaOutput.onPolylineSelect}" update="growl" />
+											listener="#{bulmaBean.onPolylineSelect}" update="growl" />
 									</p:gmap>
 								</h:form>
+						</p:panel>
 
-							</p:tab>
-							
-						</p:accordionPanel>
+
 					</p:layoutUnit>
 				</p:layout>
 			</div>
@@ -378,11 +388,9 @@
 
 					<p:commandButton icon="ui-icon-document" value="Submit"
 						id="buttonSubmit" actionListener="#{jobBean.submitJob}"
-						update=":idAccordion:pnlContentJar :idAccordion :idTabView:formFiles formFiles:docs treeChooseFolder:treeDocs  messages"
+						update=":pnlContentJar :idTabView:formFiles formFiles:docs treeChooseFolder:treeDocs  messages"
 						onclick="PF('varDialogSubmitJob').hide()"
-						action="#{fileBean.refreshTreeFiles()}">
-						<f:setPropertyActionListener target="#{fileBean.activeIndex}"
-							value="1" />
+						action="#{fileBean.submitJob()}">
 					</p:commandButton>
 				</h:panelGrid>
 				<!-- <p:separator />

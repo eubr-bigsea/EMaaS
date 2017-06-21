@@ -11,6 +11,7 @@ import javax.ws.rs.core.MultivaluedMap;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.primefaces.context.RequestContext;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.event.NodeSelectEvent;
 import org.primefaces.model.TreeNode;
@@ -40,7 +41,6 @@ public class FileBean extends AbstractBean {
 	private String pathDelete;
 	private TreeNode selectedNode;
 	private String selectedPath;
-	private String activeIndex;
 	private List<FileRow> fileRows;
 	private Integer resultLength;
 	
@@ -51,11 +51,21 @@ public class FileBean extends AbstractBean {
 	public void init() {
 		refreshTreeFiles();
 		refreshTreeFolders();
-		activeIndex = null;
+		RequestContext context = RequestContext.getCurrentInstance();
+		context.execute("jQuery('#pnlContentBulma').hide()");
 	}
 	
 	public void refreshTreeFiles() {
 		files = service.createFiles();
+	}
+	
+	public void submitJob(){
+		refreshTreeFiles();
+		
+		RequestContext context = RequestContext.getCurrentInstance();
+		context.execute("jQuery('#pnlContentFile').hide()");
+		context.execute("jQuery('#pnlContentBulma').hide()");
+	    context.execute("jQuery('#pnlContentJar').show()");
 	}
 	
 	public void refreshTreeFolders() {
@@ -74,8 +84,11 @@ public class FileBean extends AbstractBean {
 		setSelectedPath(service.getNodePath(selectedNode));		
 		fileRows = service.getRowsFile(getSelectedPath().substring(1));
 		resultLength = getFileRows().size();
-		setActiveIndex("0");
 		
+		RequestContext context = RequestContext.getCurrentInstance();
+		context.execute("jQuery('#pnlContentJar').hide()");
+ 	    context.execute("jQuery('#pnlContentBulma').hide()");
+	    context.execute("jQuery('#pnlContentFile').show()");
 	}
 	
 	public void deleteDirectory() {
@@ -237,14 +250,6 @@ public class FileBean extends AbstractBean {
 		this.fileRows = fileRows;
 	}
 
-	public String getActiveIndex() {
-		return activeIndex;
-	}
-
-	public void setActiveIndex(String activeIndex) {
-		this.activeIndex = activeIndex;
-	}
-	
 	public String getPathDelete() {
 		return pathDelete;
 	}

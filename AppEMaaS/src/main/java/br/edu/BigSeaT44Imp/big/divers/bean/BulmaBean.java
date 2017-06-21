@@ -5,7 +5,8 @@ import javax.faces.application.FacesMessage;
 import javax.faces.bean.ManagedBean;
 import javax.faces.bean.ViewScoped;
 import javax.faces.context.FacesContext;
-  
+
+import org.primefaces.context.RequestContext;
 import org.primefaces.event.map.OverlaySelectEvent;
 import org.primefaces.model.map.DefaultMapModel;
 import org.primefaces.model.map.LatLng;
@@ -57,5 +58,13 @@ public class BulmaBean implements Serializable {
   
     public void onPolylineSelect(OverlaySelectEvent event) {
         FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO, "Polyline Selected", null));
-    }	
+    }
+    
+    public void showPanel(){
+    	RequestContext context = RequestContext.getCurrentInstance();
+    	
+    	context.execute("jQuery('#pnlContentFile').hide()");
+ 	    context.execute("jQuery('#pnlContentJar').hide()");
+	    context.execute("jQuery('#pnlContentBulma').show()");
+    }  
 }
