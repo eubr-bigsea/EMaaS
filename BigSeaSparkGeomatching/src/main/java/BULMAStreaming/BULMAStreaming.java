@@ -68,7 +68,7 @@ public class BULMAStreaming {
 		int minPartitions = Integer.valueOf(args[4]);
 		int batchDuration = Integer.valueOf(args[5]);
 
-		SparkConf sparkConf = new SparkConf().setMaster("local[2]").setAppName("BulmaStreaming");
+		SparkConf sparkConf = new SparkConf().setMaster("local[2]").setAppName("BulmaRT");
 		JavaStreamingContext context = new JavaStreamingContext(sparkConf, Durations.seconds(batchDuration));
 
 		Broadcast<Map<String, Map<String, ShapeLine>>> mapShapeLinesBroadcast = context.sparkContext().broadcast(mapShapeLines);
