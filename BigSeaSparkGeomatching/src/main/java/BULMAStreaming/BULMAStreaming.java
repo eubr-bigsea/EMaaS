@@ -50,6 +50,7 @@ public class BULMAStreaming {
 	private static final int THRESHOLD_OUTLIERS_POINTS = 2;
 	private static final int THRESHOLD_DISTANCE_BETWEEN_POINTS = 50;
 	private static final int NUMBER_SHAPES_IN_BASIC_CASE = 2;
+	private static final String FILE_SEPARATOR  = ",";
 		
 	@SuppressWarnings({ "serial", "resource" })
 	public static void main(String[] args) {
@@ -555,9 +556,43 @@ public class BULMAStreaming {
 					}
 		});
 		
+		/**
+		 * Formats the output.
+		 */
+		JavaDStream<String> rddOutput = similarityOutput.map(new Function<Tuple3<GPSPoint,ShapePoint,Float>, String>() {
+
+			@Override
+			public String call(Tuple3<GPSPoint, ShapePoint, Float> t) throws Exception {
+				String stringOutput = "";
+
+				GPSPoint gpsPoint = t._1();
+				ShapePoint shapePoint = t._2();
+
+				if (shapePoint != null) {
+					stringOutput += shapePoint.getRoute() + FILE_SEPARATOR;
+					stringOutput += shapePoint.getLatitude() + FILE_SEPARATOR;
+					stringOutput += shapePoint.getLongitude() + FILE_SEPARATOR;
+					stringOutput += shapePoint.getDistanceTraveled() + FILE_SEPARATOR;
+				} else {
+					stringOutput += "-" + FILE_SEPARATOR;
+					stringOutput += "-" + FILE_SEPARATOR;
+					stringOutput += "-" + FILE_SEPARATOR;
+					stringOutput += "-" + FILE_SEPARATOR;
+				}
+				stringOutput += gpsPoint.getBusCode() + FILE_SEPARATOR;
+				stringOutput += gpsPoint.getGpsId() + FILE_SEPARATOR;
+				stringOutput += gpsPoint.getLatitude() + FILE_SEPARATOR;
+				stringOutput += gpsPoint.getLongitude() + FILE_SEPARATOR;
+				stringOutput += gpsPoint.getProblem() + FILE_SEPARATOR;
+				stringOutput += t._3();
+				
+				return stringOutput;
+			}
+		});
+		
 		//Saves the shape output e gps outputs
 		rddShapeLinePair.saveAsTextFile(pathOutput + "Shape");
-		similarityOutput.dstream().saveAsTextFiles(pathOutput, "GPS");
+		rddOutput.dstream().saveAsTextFiles(pathOutput, "GPS");
 
 		context.start();
 		try {
