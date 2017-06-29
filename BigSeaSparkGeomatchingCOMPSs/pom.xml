@@ -1,0 +1,82 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>BigseaSparkGeomatching</groupId>
+  <artifactId>BigseaSparkGeomatching</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  
+	<name>COMPSs - WordCounts using the HDFS API</name>
+	<description>A wordcount developed using COMPSs with the HDFS's API.</description>
+
+	<properties>
+		<compss.version>2.1</compss.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+	</properties>
+
+	<repositories>
+		<repository>
+			<id>grid-repo</id>
+			<name>BSC Grid computing and Clusters group</name>
+			<url>http://compss.bsc.es/artifactory/grid-devel-repo</url>
+		</repository>
+	</repositories>
+
+	<!-- DISTRIBUTION MANAGEMENT -->
+	<distributionManagement>
+		<repository>
+			<id>grid-repo</id>
+			<name>BSC Grid computing and Clusters group</name>
+			<url>http://compss.bsc.es/artifactory/grid-devel-repo</url>
+		</repository>
+	</distributionManagement>
+
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>3.8.1</version>
+			<scope>test</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>com.googlecode.json-simple</groupId>
+			<artifactId>json-simple</artifactId>
+			<version>1.1.1</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.apache.spark</groupId>
+			<artifactId>spark-core_2.10</artifactId>
+			<version>2.0.1</version>
+		</dependency>
+		
+		<!-- JTS is essentially only used for polygons. -->
+		<dependency>
+			<groupId>com.vividsolutions</groupId>
+			<artifactId>jts-core</artifactId>
+			<!-- It still works with com.vividsolutions:jts:1.12 -->
+			<version>1.14.0</version>
+			<optional>true</optional>
+			<exclusions>
+				<exclusion>
+					<groupId>xerces</groupId>
+					<artifactId>xercesImpl</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.locationtech.spatial4j</groupId>
+			<artifactId>spatial4j</artifactId>
+			<version>0.6</version>
+		</dependency>
+		
+		<!-- Import COMPSs -->
+		<dependency>
+			<groupId>es.bsc.compss</groupId>
+			<artifactId>compss-api</artifactId>
+			<version>${compss.version}</version>
+		</dependency>
+	
+	</dependencies>
+</project>
