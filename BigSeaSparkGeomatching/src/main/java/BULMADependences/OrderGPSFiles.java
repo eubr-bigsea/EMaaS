@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class PreProcessing {
+public class OrderGPSFiles {
 
 	public static void main(String[] args) throws Exception {
 
