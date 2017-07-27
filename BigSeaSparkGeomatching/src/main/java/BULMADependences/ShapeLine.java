@@ -50,9 +50,14 @@ public class ShapeLine extends GeoLine {
 		this.thresholdDistance = thresholdDistance;
 	}
 
+//	@Override
+//	public String toString() {
+//		return "ShapeLine [distanceTraveled=" + distanceTraveled + ", route=" + route + ", thresholdDistance="
+//				+ thresholdDistance + "]";
+//	}
+	
 	@Override
 	public String toString() {
-		return "ShapeLine [distanceTraveled=" + distanceTraveled + ", route=" + route + ", thresholdDistance="
-				+ thresholdDistance + "]";
+		return getListGeoPoints().toString();
 	}
 }

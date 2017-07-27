@@ -1,5 +1,7 @@
 package PointDependencies;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.StringTokenizer;
 
 import genericEntity.util.data.GenericObject;
@@ -13,12 +15,14 @@ public class ShapePoint extends GeoPoint {
 	private String pointSequence;
 	private String distanceTraveled;
 	private String route;
+	private List<String> listStopTimestamp;
 
 	public ShapePoint(String id, String latitude, String longitude, String pointSequence, String distanceTraveled) {
 		super(latitude, longitude);
 		this.id = id;
 		this.pointSequence = pointSequence;
 		this.distanceTraveled = distanceTraveled;
+		this.listStopTimestamp = new ArrayList<String>();
 	}
 
 	public ShapePoint(String route, String id, String latitude, String longitude, String pointSequence,
@@ -72,6 +76,10 @@ public class ShapePoint extends GeoPoint {
 				line.getData().get("shape_pt_sequence").toString(),
 				line.getData().get("shape_dist_traveled").toString());
 	}
+	
+	public void addTimestampStop(String timestamp) {
+		this.listStopTimestamp.add(timestamp);
+	}
 
 	public String getId() {
 		return id;
@@ -105,14 +113,27 @@ public class ShapePoint extends GeoPoint {
 		this.route = route;
 	}
 
+	public List<String> getListStopTimestamp() {
+		return listStopTimestamp;
+	}
+
+	public void setListStopTimestamp(List<String> listStopTimestamp) {
+		this.listStopTimestamp = listStopTimestamp;
+	}
+
 //	@Override
 //	public String toString() {
 //		return "ShapePoint [id=" + id + ", route=" + route + "]";
 //	}
 
+//	@Override
+//	public String toString() {
+//		return "[id=" + id + "]";
+//	}
+	
 	@Override
 	public String toString() {
-		return "[id=" + id + "]";
+		return this.listStopTimestamp.toString();
 	}
 	
 	@Override
