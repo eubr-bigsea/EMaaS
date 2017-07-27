@@ -3,6 +3,7 @@ package BULMAStreaming;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -15,6 +16,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -45,14 +50,8 @@ import scala.Tuple3;
 
 public class BULMAStreaming {
 
-	private static Map<String, Map<String, ShapeLine>> mapShapeLines = new HashMap<>(); // key
-																						// =
-																						// route
-	private static Map<String, Trip> mapCurrentTrip = new HashMap<>(); // key =
-																		// bus
-																		// code
-																		// +
-																		// route
+	private static Map<String, Map<String, ShapeLine>> mapShapeLines = new HashMap<>(); // key =  route
+	private static Map<String, Trip> mapCurrentTrip = new HashMap<>(); // key = bus code + route
 	private static Map<String, List<ShapeLine>> mapTrueShapes = new HashMap<>();
 	private static Map<String, Tuple2<Float, Float>> mapPreviousDistances = new HashMap<>();
 	private static Map<String, List<GPSPoint>> mapRetrocessingPoints = new HashMap<>();
@@ -67,7 +66,7 @@ public class BULMAStreaming {
 	private static final int NUMBER_SHAPES_IN_BASIC_CASE = 2;
 	private static final String FILE_SEPARATOR = ",";
 
-	@SuppressWarnings({ "serial", "resource" })
+	@SuppressWarnings({ "serial"})
 	public static void main(String[] args) {
 
 		if (args.length < 7) {
@@ -104,7 +103,7 @@ public class BULMAStreaming {
 		Broadcast<Map<String, List<String>>> mapStopTimesBroadcast = context.sparkContext().broadcast(mapStopTimes);
 
 		// =======================================================================
-
+		
 		BufferedReader br = null;
 		try {
 
@@ -773,11 +772,16 @@ public class BULMAStreaming {
 							stringOutput += shapePoint.getLatitude() + FILE_SEPARATOR;
 							stringOutput += shapePoint.getLongitude() + FILE_SEPARATOR;
 							stringOutput += shapePoint.getDistanceTraveled() + FILE_SEPARATOR;
+							stringOutput += shapePoint.getPointSequence() + FILE_SEPARATOR;
+							stringOutput += shapePoint.getId() + FILE_SEPARATOR;
 						} else {
 							stringOutput += "-" + FILE_SEPARATOR;
 							stringOutput += "-" + FILE_SEPARATOR;
 							stringOutput += "-" + FILE_SEPARATOR;
 							stringOutput += "-" + FILE_SEPARATOR;
+							stringOutput += "-" + FILE_SEPARATOR;
+							stringOutput += "-" + FILE_SEPARATOR;
+							
 						}
 						stringOutput += gpsPoint.getBusCode() + FILE_SEPARATOR;
 						stringOutput += gpsPoint.getGpsId() + FILE_SEPARATOR;
