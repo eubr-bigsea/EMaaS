@@ -27,25 +27,28 @@ public class MergeGTFSFiles {
 
 	private static Map<String, String> mapTripRoute = new HashMap<>();
 	private static Map<String, String> mapStopLatLng = new HashMap<>();
-	private static Map<String, String> mapShapeRoute = new HashMap<>();
+	private static Map<String, String> mapShapeRouteId = new HashMap<>();
+	private static Map<String, String> mapRouteIdRouteCode = new HashMap<>();
 	private static Map<String, ShapeLine> mapShapeLines = new HashMap<>();
 
 	public static void main(String[] args) {
 		String stopTimes = args[0]; // trip_id,arrival_time,departure_time,stop_id,stop_sequence
 		String trips = args[1]; // route_id
 		String stops = args[2]; // lat_stop, lng_stop
-		String shapes = args[3];
-		String newFile = args[4];
+		String routes = args[3];
+		String shapes = args[4];
+		String newFile = args[5];
 		
 //		Uncomment the lines below to generate Shape File
-//		readTripFileGetRoute(trips);
-//		updateShapeFile(shapes, newFile);
+		readRoutesFile(routes);
+		readTripFileGetRoute(trips);
+		updateShapeFile(shapes, newFile);
 		
 //	    Uncomment the lines below to generate stops times file
-		readTripFile(trips);
-		readStopsFile(stops);
-		createShapePoints(shapes);
-		createNewFile(newFile, stopTimes);
+//		readTripFile(trips);
+//		readStopsFile(stops);
+//		createShapePoints(shapes);
+//		createNewFile(newFile, stopTimes);
 		
 		System.out.println("Done!");
 		
@@ -65,7 +68,7 @@ public class MergeGTFSFiles {
 
 				String[] data = lineShapes.split(FILE_SEPARATOR);
 				String shapeId = data[0];
-				String route = mapShapeRoute.get(shapeId);
+				String route = mapShapeRouteId.get(shapeId);
 				if (route == null) {
 					route = "-";
 				}
@@ -158,12 +161,18 @@ public class MergeGTFSFiles {
 
 				String[] data = lineShapes.split(FILE_SEPARATOR);
 				String shapeId = data[0];
-				String route = mapShapeRoute.get(shapeId);
-				if (route == null) {
-					route = "-";
+				String routeId = mapShapeRouteId.get(shapeId);
+				String routeCode = null;
+				if (routeId == null) {
+					routeCode = "-";
+				} else {
+					routeCode = mapRouteIdRouteCode.get(routeId);
+					if (routeCode == null) {
+						routeCode = "-";
+					}
 				}
 				
-				printWriter.println(route + FILE_SEPARATOR + lineShapes);
+				printWriter.println(routeCode + FILE_SEPARATOR + lineShapes);
 			}
 			output.close();
 			
@@ -178,6 +187,8 @@ public class MergeGTFSFiles {
 	
 	
 	private static void readTripFileGetRoute(String trips) {
+		
+		
 		BufferedReader brTrips = null;
 		String lineTrips = "";
 		
@@ -190,8 +201,35 @@ public class MergeGTFSFiles {
 				String route = data[0];
 				String shapeId = data[7];
 
-				if (!mapShapeRoute.containsKey(shapeId)) {
-					mapShapeRoute.put(shapeId, route);
+				if (!mapShapeRouteId.containsKey(shapeId)) {
+					mapShapeRouteId.put(shapeId, route);
+				}
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private static void readRoutesFile(String routes) {
+		
+		BufferedReader brRoute = null;
+		String lineRoute = "";
+		
+		try {
+			brRoute = new BufferedReader(new FileReader(routes));
+			brRoute.readLine();
+			while ((lineRoute = brRoute.readLine()) != null) {
+
+				String[] data = lineRoute.split(FILE_SEPARATOR);
+				String routeId = data[0];
+				String routeCode = data[2];
+				
+				if (!mapRouteIdRouteCode.containsKey(routeId)) {
+					mapRouteIdRouteCode.put(routeId, routeCode);
 				}
 			}
 		} catch (FileNotFoundException e) {

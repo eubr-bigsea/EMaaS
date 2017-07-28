@@ -757,7 +757,7 @@ public class BULMAStreaming {
 		JavaDStream<String> rddOutput = similarityOutput
 				.map(new Function<Tuple3<GPSPoint, ShapePoint, Float>, String>() {
 
-					private final String[] SITUATIONS = { "NO DATA", "LATE", "IN TIME", "IN ADVANCE" };
+					private final String[] SITUATIONS = { "NO SHAPE", "NO TIME", "LATE", "IN TIME", "IN ADVANCE" };
 					private final long DELAY_TOLERANCE_TIME = 300000L; // 5minutes
 					
 					@Override
@@ -811,19 +811,24 @@ public class BULMAStreaming {
 							
 							if (Math.abs(smallerDifference)  > DELAY_TOLERANCE_TIME) { // if the abs value of the difference is within the threshold
 								if (smallerDifference > 0) { // the bus is in advance
-									stringOutput +=  SITUATIONS[3];
+									stringOutput +=  SITUATIONS[4];
 								} else { // the bus is late
-									stringOutput += SITUATIONS[1];
+									stringOutput += SITUATIONS[2];
 								}
 								
 							} else {// the bus is in time
-								stringOutput += SITUATIONS[2]; 
+								stringOutput += SITUATIONS[3]; 
 							}
 													
 						} else { // There is no data to compare with current gps time
 							stringOutput += "-" + FILE_SEPARATOR;
 							stringOutput += gpsPoint.getTimeStamp() + FILE_SEPARATOR;
-							stringOutput += SITUATIONS[0];
+							
+							if (shapePoint == null) { // NO SHAPE
+								stringOutput += SITUATIONS[0];
+							} else { // NO TIME ON POINT MATCHED
+								stringOutput += SITUATIONS[1];
+							}						
 						}
 						
 						return stringOutput;
