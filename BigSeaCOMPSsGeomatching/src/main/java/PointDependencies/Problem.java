@@ -7,11 +7,18 @@ public enum Problem {
 	TRIP_PROBLEM(-2),
 	OUTLIER_POINT(-3);
 	
-	private int code;
-	private Problem(int code) {
+	private Integer code;
+	private Problem(Integer code) {
 		this.code = code;
 	}
-	public int getCode() {
+	public Integer getCode() {
 		return code;
 	}
+	
+	public static String getById(Integer code) {
+	    for(Problem e : values()) {
+	        if(e.code == code) return e.toString();
+	    }
+	    return null;
+	 }
 }
