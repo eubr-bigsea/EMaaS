@@ -20,6 +20,10 @@ public class BulmaOutput implements Serializable {
 	private String thresholdProblem;
 	private String tripProblem;
 	
+	public BulmaOutput() {
+		super();
+	}
+	
 	public BulmaOutput(String tripNum, String route, String shapeId, String shapeSequence, String latShape,
 			String lonShape, String gpsPointId, String busCode, String timestamp, String latGPS, String lonGPS,
 			String dinstance, String thresholdProblem, String tripProblem) {

@@ -1,6 +1,7 @@
 package recordLinkage.dependencies;
 
 import java.io.Serializable;
+import java.util.LinkedList;
 import java.util.List;
 
 import PointDependencies.ShapePoint;
@@ -9,10 +10,14 @@ public class ShapeLine implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
 	private String shapeId;
-	private List<ShapePoint> listGeoPoint;
+	private LinkedList<ShapePoint> listGeoPoint;
 	private String route;
 	
-	public ShapeLine(String shapeId, List<ShapePoint> listGeoPoint, String route) {
+	public ShapeLine() {
+		super();
+	}
+	
+	public ShapeLine(String shapeId, LinkedList<ShapePoint> listGeoPoint, String route) {
 		this.shapeId = shapeId;
 		this.listGeoPoint = listGeoPoint;
 		this.route = route;
@@ -26,11 +31,11 @@ public class ShapeLine implements Serializable {
 		this.shapeId = shapeId;
 	}
 	
-	public List<ShapePoint> getListGeoPoint() {
+	public LinkedList<ShapePoint> getListGeoPoint() {
 		return listGeoPoint;
 	}
 	
-	public void setListGeoPoint(List<ShapePoint> listGeoPoint) {
+	public void setListGeoPoint(LinkedList<ShapePoint> listGeoPoint) {
 		this.listGeoPoint = listGeoPoint;
 	}
 	

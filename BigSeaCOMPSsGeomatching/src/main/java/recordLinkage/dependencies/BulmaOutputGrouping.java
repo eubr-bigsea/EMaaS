@@ -4,10 +4,14 @@ import java.io.Serializable;
 import java.util.Map;
 
 public class BulmaOutputGrouping implements Serializable {
-
+	
 	private static final long serialVersionUID = 1L;
 	private Map<String, BulmaOutput> mapOutputGrouping;
 
+	public BulmaOutputGrouping() {
+		super();
+	}
+	
 	public BulmaOutputGrouping(Map<String, BulmaOutput> mapOutputGrouping) {
 		this.mapOutputGrouping = mapOutputGrouping;
 	}
