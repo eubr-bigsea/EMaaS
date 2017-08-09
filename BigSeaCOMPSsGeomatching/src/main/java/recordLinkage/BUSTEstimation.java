@@ -124,7 +124,12 @@ public class BUSTEstimation {
 
 					public Tuple2<String, Object> call(Tuple2<String, Iterable<ShapePoint>> pair) throws Exception {
 
-						List<ShapePoint> listShapePoints = Lists.newArrayList(pair._2);
+						LinkedList<ShapePoint> listShapePoints = new LinkedList<ShapePoint>();
+						Iterator<ShapePoint> it = pair._2.iterator();
+						while (it.hasNext()) {
+							listShapePoints.add(it.next());
+						}
+						
 						String route = listShapePoints.get(listShapePoints.size() - 1).getRoute();
 						ShapeLine shapeLine = new ShapeLine(pair._1, listShapePoints, route);
 
