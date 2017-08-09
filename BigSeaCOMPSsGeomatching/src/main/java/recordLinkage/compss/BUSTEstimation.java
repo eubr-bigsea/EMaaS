@@ -305,6 +305,7 @@ public class BUSTEstimation {
 				for (int i = 0; i < currentShapeLine.getListGeoPoint().size(); i++) {
 					ShapePoint currentShapePoint = currentShapeLine.getListGeoPoint().get(i);
 					String currentShapeSequence = currentShapePoint.getPointSequence();
+					String currentDistanceTraveledString = currentShapePoint.getDistanceTraveled().toString();
 
 					String currentTimestamp;
 					if (previousGPSPoint == null) {
@@ -318,11 +319,11 @@ public class BUSTEstimation {
 									.getBusCode();
 							String problemCode = bulmaOutputGrouping.getMapOutputGrouping().get(currentShapeSequence)
 									.getTripProblem();
-							addOutput(currentShapeLine.getShapeId(), currentShapeSequence, buCode, currentTimestamp,
+							addOutput(currentShapeLine.getShapeId(), currentShapeSequence, currentDistanceTraveledString, buCode, currentTimestamp,
 									problemCode, results, mapStopPoints);
 
 						} else {
-							addOutput(currentShapeLine.getShapeId(), "-", currentShapeSequence, "-", "-", results,
+							addOutput(currentShapeLine.getShapeId(), currentShapeSequence, currentDistanceTraveledString, "-", "-", "-", results,
 									mapStopPoints);
 						}
 					} else {
@@ -341,7 +342,7 @@ public class BUSTEstimation {
 									pointsBetweenGPS, nextGPSPoint, currentShapeLine.getListGeoPoint(), busCode,
 									results, mapStopPoints);
 
-							addOutput(currentShapeLine.getShapeId(), currentShapeSequence, busCode, currentTimestamp,
+							addOutput(currentShapeLine.getShapeId(), currentShapeSequence, currentDistanceTraveledString, busCode, currentTimestamp,
 									problemCode, results, mapStopPoints);
 
 							previousGPSPoint = nextGPSPoint;
@@ -358,7 +359,8 @@ public class BUSTEstimation {
 					for (Integer indexPointsInBetween : pointsBetweenGPS) {
 						String currentShapeSequence = currentShapeLine.getListGeoPoint().get(indexPointsInBetween)
 								.getPointSequence();
-						addOutput(currentShapeLine.getShapeId(), "-", currentShapeSequence, "-", "-", results,
+						String distanceTraveled = currentShapeLine.getListGeoPoint().get(indexPointsInBetween).getDistanceTraveled().toString();
+						addOutput(currentShapeLine.getShapeId(), currentShapeSequence, distanceTraveled, "-" , "-", "-", results,
 								mapStopPoints);
 
 					}
@@ -369,7 +371,7 @@ public class BUSTEstimation {
 		return results;
 	}
 
-	public static void addOutput(String shapeId, String currentShapeSequence, String busCode, String currentTimestamp,
+	public static void addOutput(String shapeId, String currentShapeSequence, String distanceTraveled, String busCode, String currentTimestamp,
 			String problemCode, LinkedList<String> listOutput, HashMap<String, String> mapStopPoints) {
 		
 		String stopPointId;
@@ -391,7 +393,7 @@ public class BUSTEstimation {
 			problem = "BETWEEN";
 		}
 
-		listOutput.add(shapeId + "," + currentShapeSequence + "," + busCode + "," + currentTimestamp + "," + stopPointId
+		listOutput.add(shapeId + ","  + currentShapeSequence + "," + distanceTraveled +  "," + busCode + "," + currentTimestamp + "," + stopPointId
 				+ "," + problem);
 	}
 
@@ -412,6 +414,7 @@ public class BUSTEstimation {
 		long generatedTime;
 		String generatedTimeString;
 		String sequence;
+		String distance;
 		for (Integer indexPointsInBetween : pointsBetweenGPS) {
 
 			currentDistanceTraveled = listGeoPointsShape.get(indexPointsInBetween).getDistanceTraveled()
@@ -420,8 +423,9 @@ public class BUSTEstimation {
 			generatedTime = previousTime + generatedTimeDifference;
 			generatedTimeString = getTimeString(generatedTime);
 			sequence = listGeoPointsShape.get(indexPointsInBetween).getPointSequence();
+			distance = listGeoPointsShape.get(indexPointsInBetween).getDistanceTraveled().toString();
 
-			addOutput(shapeId, sequence, busCode, generatedTimeString, "-", listOutput, mapStopPoints);
+			addOutput(shapeId, sequence, distance, busCode, generatedTimeString, "-", listOutput, mapStopPoints);
 
 		}
 
