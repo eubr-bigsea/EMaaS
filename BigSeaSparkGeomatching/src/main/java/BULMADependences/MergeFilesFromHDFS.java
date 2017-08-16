@@ -9,7 +9,7 @@ import java.io.PrintWriter;
 
 public class MergeFilesFromHDFS {
 
-	private static String header = "shapeId,shapeSequence,distanceTraveled,busCode,timestamp,busStopId,problem";
+	private static String header = "route,tripNum,shapeId,shapeSequence,shapeLat,shapeLon,distanceTraveledShape,busCode,gpsPointId,gpsLat,gpsLon,distanceToShapePoint,timestamp,busStopId,problem";
 	
 	
 	public static void main(String[] args) {

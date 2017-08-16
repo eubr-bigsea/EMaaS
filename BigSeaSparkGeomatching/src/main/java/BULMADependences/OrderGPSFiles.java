@@ -26,7 +26,8 @@ public class OrderGPSFiles {
 		File[] directoryListing = dir.listFiles();
 		if (directoryListing != null) {
 			for (File child : directoryListing) {
-				String nameCSV = child.getName().substring(0, 20) + "csv";
+				String nameCSV = child.getName();
+				nameCSV = nameCSV.substring(0, nameCSV.lastIndexOf(".")) + ".csv";
 				generateNewOrderedFile(child.getAbsolutePath(), outputDir + nameCSV);
 			}
 		} else {
@@ -47,12 +48,10 @@ public class OrderGPSFiles {
 		String line = reader.readLine();// read header
 		while ((line = reader.readLine()) != null) {
 			String key = getField(line);
-			List<String> l = map.get(key);
-			if (l == null) {
-				l = new LinkedList<String>();
-				map.put(key, l);
+			if (!map.containsKey(key)) {
+				map.put(key, new LinkedList<String>());
 			}
-			l.add(line);
+			map.get(key).add(line);
 
 		}
 		reader.close();
