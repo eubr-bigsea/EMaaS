@@ -1,10 +1,6 @@
 package recordLinkage;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -19,17 +15,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.broadcast.Broadcast;
 
 import com.clearspring.analytics.util.Lists;
 
@@ -37,7 +31,9 @@ import PointDependencies.Problem;
 import PointDependencies.ShapePoint;
 import recordLinkage.dependencies.BulmaOutput;
 import recordLinkage.dependencies.BulmaOutputGrouping;
+import recordLinkage.dependencies.Comparator;
 import recordLinkage.dependencies.ShapeLine;
+import recordLinkage.dependencies.TicketInformation;
 import scala.Tuple2;
 
 /**
@@ -45,20 +41,22 @@ import scala.Tuple2;
  * 
  * This class does the post-processing of Bulma, get its output and
  * interpolates the shape file. Besides, this class add the stop points file to
- * the output
+ * the output. In this version (V2), this class includes the bus tickets file to
+ * the output.
  * 
  * @author Andreza
  *
  */
-public class BUSTEstimation {
+public class BUSTEstimationV2 {
 
 	private static final String SEPARATOR = ",";
 
+	@SuppressWarnings("serial")
 	public static void main(String[] args) throws IOException, URISyntaxException {
 
-		if (args.length < 5) {
+		if (args.length < 6) {
 			System.err.println(
-					"Usage: <Output Bulma directory> <shape file>  <Bus stops file> <outputPath> <number of partitions>");
+					"Usage: <Output Bulma> <shape file>  <Bus stops file> <Bus tickets file> <outputPath> <number of partitions>");
 			System.exit(1);
 		}
 		Long initialTime = System.currentTimeMillis();
@@ -66,56 +64,16 @@ public class BUSTEstimation {
 		String pathBulmaOutput = args[0];
 		String pathFileShapes = args[1];
 		String busStopsFile = args[2];
-		String outputPath = args[3];
-		final Integer minPartitions = Integer.valueOf(args[4]);
+		String busTicketFile = args[3];
+		String outputPath = args[4];
+		final Integer minPartitions = Integer.valueOf(args[5]);
 
-//		 SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimation").setMaster("local");
-		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimation");
+		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimation").setMaster("local");
+		// SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimation");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
-		generateOutputFilesHDFS(context, pathBulmaOutput, pathFileShapes, busStopsFile, outputPath, minPartitions);
+		Map<String, List<String>> mapTickets = new HashMap<String, List<String>>();
 
-		context.stop();
-		context.close();
-		System.out.println("Execution time: " + (System.currentTimeMillis() - initialTime));
-	}
-
-	private static void saveOutputFile(JavaRDD<String> result, String outputPath) {
-		FileWriter output;
-		try {
-			output = new FileWriter(outputPath);
-
-			PrintWriter printWriter = new PrintWriter(output);
-
-			printWriter.print("route" + SEPARATOR);
-			printWriter.print("tripNum" + SEPARATOR);
-			printWriter.print("shapeId" + SEPARATOR);
-			printWriter.print("shapeSequence" + SEPARATOR);
-			printWriter.print("shapeLat" + SEPARATOR);
-			printWriter.print("shapeLon" + SEPARATOR);			
-			printWriter.print("distanceTraveledShape" + SEPARATOR);
-			printWriter.print("busCode" + SEPARATOR);
-			printWriter.print("gpsPointId" + SEPARATOR);
-			printWriter.print("gpsLat" + SEPARATOR);
-			printWriter.print("gpsLon" + SEPARATOR);
-			printWriter.print("distanceToShapePoint" + SEPARATOR);
-			printWriter.print("timestamp" + SEPARATOR);
-			printWriter.print("busStopId" + SEPARATOR);			
-			printWriter.println("problem");
-
-			for (String stringResult : result.collect()) {
-				printWriter.println(stringResult);
-			}
-
-			output.close();
-		} catch (Exception e) {
-			System.err.println(e.getMessage());
-		}
-	}
-
-	@SuppressWarnings("serial")
-	private static JavaRDD<String> execute(JavaSparkContext context, String pathBulmaOutputFile, String pathFileShapes,
-			String busStopsFile, int minPartitions) {
 		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
 
 			public Iterator<String> call(Integer index, Iterator<String> iterator) throws Exception {
@@ -128,7 +86,36 @@ public class BUSTEstimation {
 			}
 		};
 
-		JavaRDD<String> bulmaOutputString = context.textFile(pathBulmaOutputFile, minPartitions)
+		JavaRDD<String> busTicketsString = context.textFile(busTicketFile, minPartitions)
+				.mapPartitionsWithIndex(removeHeader, false);
+
+		JavaPairRDD<String, Iterable<String>> rddTicketsMapped = busTicketsString
+				.mapToPair(new PairFunction<String, String, String>() {
+
+					public Tuple2<String, String> call(String entry) throws Exception {
+
+						entry += " ";
+						String[] splittedEntry = entry.split("(?<=" + SEPARATOR + ")");
+
+						TicketInformation ticket = new TicketInformation(splittedEntry[0].replace(SEPARATOR, ""),
+								splittedEntry[1].replace(SEPARATOR, ""),
+								splittedEntry[2].replace(SEPARATOR, ""),
+								splittedEntry[3].replace(SEPARATOR, ""),
+								splittedEntry[4].replace(SEPARATOR, ""),
+								splittedEntry[5].replace(SEPARATOR, ""),
+								splittedEntry[6].replace(SEPARATOR, ""),
+								splittedEntry[7].replace(SEPARATOR, ""));
+
+						return new Tuple2<String, String>(ticket.getBusCode(), ticket.getTimeOfUse());
+					}
+				}).groupByKey();
+
+		for (Tuple2<String, Iterable<String>> entry : rddTicketsMapped.collect()) {
+			mapTickets.put(entry._1, Lists.newArrayList(entry._2));
+		}
+		final Broadcast<Map<String, List<String>>> mapTicketsBroadcast = context.broadcast(mapTickets);
+
+		JavaRDD<String> bulmaOutputString = context.textFile(pathBulmaOutput, minPartitions)
 				.mapPartitionsWithIndex(removeHeader, false);
 
 		JavaRDD<String> shapeString = context.textFile(pathFileShapes, minPartitions)
@@ -137,7 +124,7 @@ public class BUSTEstimation {
 		JavaRDD<String> busStopsString = context.textFile(busStopsFile, minPartitions)
 				.mapPartitionsWithIndex(removeHeader, false);
 
-		JavaPairRDD<String, Iterable<BulmaOutput>> rddBulmaOuptupGrouped = bulmaOutputString
+		JavaPairRDD<String, Iterable<BulmaOutput>> rddBulmaOutpupGrouped = bulmaOutputString
 				.mapToPair(new PairFunction<String, String, BulmaOutput>() {
 
 					public Tuple2<String, BulmaOutput> call(String t) throws Exception {
@@ -147,13 +134,13 @@ public class BUSTEstimation {
 								st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
 								st.nextToken());
 
-						String key = bulmaOutput.getShapeId() + ":" + bulmaOutput.getBusCode() + ":"
-								+ bulmaOutput.getTripNum();
+						String key = bulmaOutput.getBusCode()  + ":" + bulmaOutput.getTripNum() + ":"
+								+ bulmaOutput.getShapeId();
 
 						return new Tuple2<String, BulmaOutput>(key, bulmaOutput);
 					}
 				}).groupByKey(minPartitions);
-
+		
 		JavaPairRDD<String, Iterable<ShapePoint>> rddShapePointsGrouped = shapeString
 				.mapToPair(new PairFunction<String, String, ShapePoint>() {
 
@@ -172,11 +159,11 @@ public class BUSTEstimation {
 			}
 		});
 
-		JavaPairRDD<String, Object> rddBulmaOutputGrouping = rddBulmaOuptupGrouped
+		JavaPairRDD<String, Object> rddBulmaOutputGrouping = rddBulmaOutpupGrouped
 				.mapToPair(new PairFunction<Tuple2<String, Iterable<BulmaOutput>>, String, Object>() {
 
 					public Tuple2<String, Object> call(Tuple2<String, Iterable<BulmaOutput>> t) throws Exception {
-						String key = t._1.split("\\:")[0];
+						String key = t._1.split("\\:")[2]; // [2] = shapeId
 						Map<String, BulmaOutput> mapOutputGrouping = new HashMap<String, BulmaOutput>();
 
 						for (BulmaOutput bulmaOutput : t._2) {
@@ -206,13 +193,15 @@ public class BUSTEstimation {
 
 		JavaPairRDD<String, Iterable<Object>> rddUnion = rddBulmaOutputGrouping.union(rddShapeLinePair)
 				.union(rddBusStops).groupByKey(minPartitions);
-
+		
+		
 		JavaRDD<String> rddInterpolation = rddUnion
 				.flatMap(new FlatMapFunction<Tuple2<String, Iterable<Object>>, String>() {
 
 					private ShapeLine shapeLine;
 					private List<BulmaOutputGrouping> listBulmaOutputGrouping;
-					private Map<String, String> mapStopPoints;
+					private Map<String, String> mapStopPoints; // Map<ShapeSequence,
+																// StopPointId>
 					private Map<String, String> mapAux;
 
 					public Iterator<String> call(Tuple2<String, Iterable<Object>> t) throws Exception {
@@ -228,6 +217,9 @@ public class BUSTEstimation {
 							if (obj instanceof BulmaOutputGrouping) {
 								listBulmaOutputGrouping.add((BulmaOutputGrouping) obj);
 							} else if (obj instanceof ShapeLine) {
+								if (shapeLine  != null) {
+									System.out.println("Error");
+								}
 								shapeLine = (ShapeLine) obj;
 							} else {
 								String shapeSequenceStopid = (String) obj;
@@ -242,12 +234,14 @@ public class BUSTEstimation {
 							return listOutput.iterator();
 						}
 
+						
 						for (BulmaOutputGrouping bulmaOutputGrouping : listBulmaOutputGrouping) {
 							Tuple2<Float, String> previousGPSPoint = null;
 							Tuple2<Float, String> nextGPSPoint = null;
 							List<Integer> pointsBetweenGPS = new LinkedList<Integer>();
-
+							
 							String tripNum = "-";
+
 							for (int i = 0; i < shapeLine.getListGeoPoint().size(); i++) {
 								ShapePoint currentShapePoint = shapeLine.getListGeoPoint().get(i);
 								String currentShapeSequence = currentShapePoint.getPointSequence();
@@ -256,52 +250,52 @@ public class BUSTEstimation {
 								String currentLatShape = currentShapePoint.getLatitude();
 								String currentLonShape = currentShapePoint.getLongitude();
 								String currentRoute = shapeLine.getRoute();
-								
+
 								String currentTimestamp;
-								
+
 								if (previousGPSPoint == null) {
 									if (bulmaOutputGrouping.containsShapeSequence(currentShapeSequence)) {
 
-										currentTimestamp = bulmaOutputGrouping.getMapOutputGrouping()
-												.get(currentShapeSequence).getTimestamp();
+										BulmaOutput currentOutput = bulmaOutputGrouping.getMapOutputGrouping()
+												.get(currentShapeSequence);
+
+										currentTimestamp = currentOutput.getTimestamp();
 										previousGPSPoint = new Tuple2<Float, String>(
 												currentShapePoint.getDistanceTraveled(), currentTimestamp);
-										
-										BulmaOutput currentOutput = bulmaOutputGrouping.getMapOutputGrouping()
-												.get(currentShapeSequence);										
+
 										String busCode = currentOutput.getBusCode();
 										String gpsPointId = currentOutput.getGpsPointId();
 										String problemCode = currentOutput.getTripProblem();
-										tripNum = currentOutput.getTripNum();										
+										tripNum = currentOutput.getTripNum();
 										String latGPS = currentOutput.getLatGPS();
 										String lonGPS = currentOutput.getLonGPS();
 										String distanceToShape = currentOutput.getDinstance();
 
 										addOutput(currentRoute, tripNum, currentShapeId, currentShapeSequence,
-												currentLatShape, currentLonShape, currentDistanceTraveled, busCode, gpsPointId,
-												latGPS, lonGPS, distanceToShape, currentTimestamp, problemCode,
-												listOutput);
+												currentLatShape, currentLonShape, currentDistanceTraveled, busCode,
+												gpsPointId, latGPS, lonGPS, distanceToShape, currentTimestamp,
+												problemCode, listOutput);
 
 									} else {
 										addOutput(currentRoute, tripNum, currentShapeId, currentShapeSequence,
-												currentLatShape, currentLonShape, currentDistanceTraveled,  "-",  "-",
-												 "-",  "-",  "-",  "-",  "-", listOutput);
+												currentLatShape, currentLonShape, currentDistanceTraveled, "-", "-",
+												"-", "-", "-", "-", "-", listOutput);
 									}
 								} else {
 
 									if (bulmaOutputGrouping.containsShapeSequence(currentShapeSequence)) {
 										BulmaOutput currentOutput = bulmaOutputGrouping.getMapOutputGrouping()
-												.get(currentShapeSequence);	
-										
+												.get(currentShapeSequence);
+
 										String busCode = currentOutput.getBusCode();
 										String gpsPointId = currentOutput.getGpsPointId();
 										String problemCode = currentOutput.getTripProblem();
-										tripNum = currentOutput.getTripNum();										
+										tripNum = currentOutput.getTripNum();
 										String latGPS = currentOutput.getLatGPS();
 										String lonGPS = currentOutput.getLonGPS();
-										String distanceToShape = currentOutput.getDinstance();										
+										String distanceToShape = currentOutput.getDinstance();
 										currentTimestamp = currentOutput.getTimestamp();
-										
+
 										nextGPSPoint = new Tuple2<Float, String>(
 												currentShapePoint.getDistanceTraveled(), currentTimestamp);
 
@@ -310,10 +304,10 @@ public class BUSTEstimation {
 												listOutput);
 
 										addOutput(currentRoute, tripNum, currentShapeId, currentShapeSequence,
-												currentLatShape, currentLonShape, currentDistanceTraveled, busCode, gpsPointId,
-												latGPS, lonGPS, distanceToShape, currentTimestamp, problemCode,
-												listOutput);
-										
+												currentLatShape, currentLonShape, currentDistanceTraveled, busCode,
+												gpsPointId, latGPS, lonGPS, distanceToShape, currentTimestamp,
+												problemCode, listOutput);
+
 										previousGPSPoint = nextGPSPoint;
 										nextGPSPoint = null;
 										pointsBetweenGPS = new LinkedList<Integer>();
@@ -326,21 +320,20 @@ public class BUSTEstimation {
 
 							if (!pointsBetweenGPS.isEmpty()) {
 								for (Integer indexPointsInBetween : pointsBetweenGPS) {
-									
-									ShapePoint currentShapePoint = shapeLine.getListGeoPoint().get(indexPointsInBetween);
+
+									ShapePoint currentShapePoint = shapeLine.getListGeoPoint()
+											.get(indexPointsInBetween);
 									String currentShapeSequence = currentShapePoint.getPointSequence();
 									String currentDistanceTraveled = currentShapePoint.getDistanceTraveled().toString();
 									String currentShapeId = shapeLine.getShapeId();
-									
+
 									String currentLatShape = currentShapePoint.getLatitude();
 									String currentLonShape = currentShapePoint.getLongitude();
 									String currentRoute = shapeLine.getRoute();
-									
-									
+
 									addOutput(currentRoute, tripNum, currentShapeId, currentShapeSequence,
-											currentLatShape, currentLonShape, currentDistanceTraveled, "-", "-",
-											"-", "-", "-", "-", "-",
-											listOutput);
+											currentLatShape, currentLonShape, currentDistanceTraveled, "-", "-", "-",
+											"-", "-", "-", "-", listOutput);
 
 								}
 							}
@@ -357,16 +350,18 @@ public class BUSTEstimation {
 
 						return listOutput.iterator();
 					}
-
-
+					
 					private void addOutput(String route, String tripNum, String shapeId, String shapeSequence,
 							String shapeLat, String shapeLon, String distanceTraveledShape, String busCode,
 							String gpsPointId, String gpsLat, String gpsLon, String distanceToShapePoint,
-							String timestamp, String problemCode, List<String> listOutput) {
+							String timestamp, String problemCode,  List<String> listOutput) {
+						
 						String stopPointId = mapStopPoints.get(shapeSequence);
 						mapAux.remove(shapeSequence);
 						if (stopPointId == null) {
 							stopPointId = "-";
+						} else {
+							
 						}
 
 						String problem;
@@ -382,7 +377,7 @@ public class BUSTEstimation {
 								+ SEPARATOR + distanceTraveledShape + SEPARATOR + busCode + SEPARATOR
 								+ gpsPointId + SEPARATOR + gpsLat + SEPARATOR + gpsLon + SEPARATOR
 								+ distanceToShapePoint + SEPARATOR + timestamp + SEPARATOR + stopPointId
-								+ SEPARATOR + problem;
+								+ SEPARATOR + problem ;
 
 						listOutput.add(outputString);
 					}
@@ -396,8 +391,8 @@ public class BUSTEstimation {
 						long previousTime = getTimeLong(previousGPSPoint._2);
 						Float nextDistanceTraveled = nextGPSPoint._1;
 						long nextTime = getTimeLong(nextGPSPoint._2);
-						Float distanceTraveled = nextDistanceTraveled - previousDistanceTraveled;
-						long time = nextTime - previousTime;
+						Float distanceTraveled = nextDistanceTraveled - previousDistanceTraveled; 
+						long time = nextTime - previousTime; 
 
 						Float currentDistanceTraveled;
 						long generatedTimeDifference;
@@ -421,11 +416,8 @@ public class BUSTEstimation {
 							route = listGeoPointsShape.get(indexPointsInBetween).getRoute();
 							distance = listGeoPointsShape.get(indexPointsInBetween).getDistanceTraveled().toString();
 
-							addOutput(route, tripNum, shapeId, sequence,
-									latShape, lonShape, distance, busCode, "-",
-									"-", "-", "-", generatedTimeString, "-",
-									listOutput);
-
+							addOutput(route, tripNum, shapeId, sequence, latShape, lonShape, distance, busCode, "-",
+									"-", "-", "-", generatedTimeString, "-", listOutput);
 						}
 
 					}
@@ -441,37 +433,85 @@ public class BUSTEstimation {
 						return parser.parse(timestamp).getTime();
 					}
 				});
+	
+		JavaPairRDD<String, Iterable<Tuple2<String, String>>> rddMapInterpolation = rddInterpolation.mapToPair(new PairFunction<String, String, String>() {
 
-		return rddInterpolation;
+			public Tuple2<String, String> call(String t) throws Exception {
+				String[] splittedEntry = t.split(SEPARATOR);
+				return new Tuple2<String, String>(splittedEntry[7]+SEPARATOR+splittedEntry[12], t);
+			}
+		}).sortByKey(new Comparator()).groupBy(new Function<Tuple2<String,String>, String>() {
 
-	}
+			public String call(Tuple2<String, String> v1) throws Exception {
+				String key = v1._1.split(SEPARATOR)[0];
+				return key;
+			}
+		}, minPartitions);
+		
+		JavaRDD<String> rddOutput = rddMapInterpolation.flatMap(new FlatMapFunction<Tuple2<String,Iterable<Tuple2<String,String>>>, String>() {
 
-	private static void generateLocalOutputFiles(JavaSparkContext context, String pathBulmaOutput,
-			String pathFileShapes, String busStopsFile, String output, int minPartitions) {
-		File dir = new File(pathBulmaOutput);
+			
+			public Iterator<String> call(Tuple2<String, Iterable<Tuple2<String, String>>> t) throws Exception {
 
-		for (File file : dir.listFiles()) {
-			JavaRDD<String> result = execute(context, pathBulmaOutput + file.getName(), pathFileShapes, busStopsFile,
-					minPartitions);
+				List<String> listOutput = new LinkedList<String>();
+				List<Tuple2<String, String>> list = Lists.newArrayList(t._2);
+				String currentBusCode = t._1;
+				String nextTimeString = null; 
+				for (int i = list.size()-1; i >= 0; i--) {
+					String currentString = list.get(i)._2;
+					String currentBusStop = currentString.split(SEPARATOR)[13];
+					
+					if (!currentBusStop.equals("-")) {
+						String currentTimeString = currentString.split(SEPARATOR)[12];
+						if (!currentTimeString.equals("-")) {
+							if (nextTimeString == null) {
+								nextTimeString = currentTimeString;
+								listOutput.add(0, currentString + SEPARATOR + 0);
+								
+							} else {
+								int number = getNumberTicketsOfBusStop(currentBusCode, currentTimeString, nextTimeString);
+								nextTimeString = currentTimeString;
+								listOutput.add(0, currentString + SEPARATOR + number);
+							}
+						} else {
+							listOutput.add(0, currentString + SEPARATOR + "-");
+						}
+						
+					} else {
+						listOutput.add(0, currentString + SEPARATOR + "-");
+					}
+				}
 
-			saveOutputFile(result, output + file.getName());
-		}
-	}
+				return listOutput.iterator();
+			}
+			
+			private int getNumberTicketsOfBusStop(String currentBusCode, String currentTimeString, String nextTimeString) throws ParseException {
+				
+				 SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss");
+				 Date currentTime = sdf.parse(currentTimeString);
+			     Date nextTime = sdf.parse(nextTimeString);
+			     int count = 0;
+			     List<String> times = mapTicketsBroadcast.getValue().get(currentBusCode);
+			     if (times != null) {
+					for (String time : times) {
+						 Date date = sdf.parse(time);
+						 if (date.after(currentTime) && (date.before(nextTime) || date.equals(nextTime))) {
+							count++;
+						 }
+					}
+			     }
+				
+				return count;
+				
+			}
 
-	private static void generateOutputFilesHDFS(JavaSparkContext context, String pathBulmaOutput, String pathFileShapes,
-			String busStopsFile, String output, int minPartitions) throws IOException, URISyntaxException {
+		});
 
-		Configuration conf = new Configuration();
-		FileSystem fs = FileSystem.get(new URI(pathBulmaOutput), conf);
-		FileStatus[] fileStatus = fs.listStatus(new Path(pathBulmaOutput));
-
-		for (FileStatus file : fileStatus) {
-			JavaRDD<String> result = execute(context, pathBulmaOutput + file.getPath().getName(), pathFileShapes,
-					busStopsFile, minPartitions);
-			result.saveAsTextFile(output + file.getPath().getName());
-			// saveOutputFile(result, output+file.getPath().getName());
-		}
-
+		rddOutput.saveAsTextFile(outputPath);
+		
+		context.stop();
+		context.close();
+		System.out.println("Execution time: " + (System.currentTimeMillis() - initialTime));
 	}
 
 }
