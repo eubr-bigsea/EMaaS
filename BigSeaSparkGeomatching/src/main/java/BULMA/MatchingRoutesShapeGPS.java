@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
@@ -29,7 +30,6 @@ import com.clearspring.analytics.util.Lists;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.Point;
 
 import BULMADependences.GPSLine;
 import BULMADependences.GeoLine;
@@ -85,10 +85,10 @@ public class MatchingRoutesShapeGPS {
 
 //			JavaRDD<String> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getName(),
 //					minPartitions, context);
-			JavaRDD<List<GPSLine>> rddClosestPoint = executeBULMA(pathFileShapes, pathGPSFiles + file.getName(),
+			JavaRDD<String> rddClosestPoint = executeBULMA(pathFileShapes, pathGPSFiles + file.getName(),
 					minPartitions, context);
-//			rddOutputBuLMA.saveAsTextFile(pathOutput + file.getName());
-			saveOutputFile(rddClosestPoint, pathOutput + file.getName());
+			rddClosestPoint.saveAsTextFile(pathOutput + file.getName());
+//			saveOutputFile(rddClosestPoint, pathOutput + file.getName());
 		}
 	}
 	
@@ -99,7 +99,7 @@ public class MatchingRoutesShapeGPS {
 	    FileStatus[] fileStatus = fs.listStatus(new Path(pathGPSFiles));
 
 		for (FileStatus file : fileStatus) {
-			JavaRDD<List<GPSLine>> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getPath().getName(),
+			JavaRDD<String> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getPath().getName(),
 					minPartitions, context);
 			
 			rddOutputBuLMA.saveAsTextFile(pathOutput + file.getPath().getName());
@@ -109,7 +109,7 @@ public class MatchingRoutesShapeGPS {
 	}
 
 	@SuppressWarnings("serial")
-	private static JavaRDD<List<GPSLine>> executeBULMA(String pathFileShapes, String pathGPSFile, int minPartitions, JavaSparkContext ctx) {
+	private static JavaRDD<String> executeBULMA(String pathFileShapes, String pathGPSFile, int minPartitions, JavaSparkContext ctx) {
 		
 		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
 			@Override
@@ -354,8 +354,8 @@ public class MatchingRoutesShapeGPS {
 						return gpsLineList;
 					}
 				});
-				
-		JavaRDD<List<GPSLine>> rddFirtAndLastPoints = rddPossibleShapes
+		
+		JavaRDD<List<GPSLine>> rddTrueShapes = rddPossibleShapes
 				.map(new Function<List<GPSLine>, List<GPSLine>>() {
 
 					@Override
@@ -365,11 +365,15 @@ public class MatchingRoutesShapeGPS {
 						Queue<Tuple2<String, Integer>> lastGPSPoints;
 
 						for (GPSLine gpsLine : entry) {
+							boolean hasRoundShape = false;
 
 							if (gpsLine.getListPossibleShapeLines() == null) {
 								return entry;
 							}
 							for (PossibleShape possibleShape : gpsLine.getListPossibleShapeLines()) {
+								if (possibleShape.isRoundShape()) {
+									hasRoundShape = true;
+								}
 
 								firstGPSPoints = possibleShape.getFirstGPSPoints();
 								lastGPSPoints = possibleShape.getLastGPSPoints();
@@ -440,75 +444,21 @@ public class MatchingRoutesShapeGPS {
 										isFirstTrip = false;
 									}
 								}
+								
 							}
+							Collections.sort(gpsLine.getListPossibleShapeLines());
+							if (!hasRoundShape && gpsLine.getListPossibleShapeLines().size() > 2) {
+								gpsLine.findBestShapes();
+							} else if (hasRoundShape && gpsLine.getListPossibleShapeLines().size() > 1) {
+								gpsLine.findBestShape();
+							}
+							gpsLine.setUpTrips();
 						}
-
 						return entry;
 					}
 				});
 
-		JavaRDD<List<GPSLine>> rddSetUpTrips = rddFirtAndLastPoints.map(new Function<List<GPSLine>, List<GPSLine>>() {
-
-			@Override
-			public List<GPSLine> call(List<GPSLine> entry) throws Exception {
-
-				for (GPSLine gpsLine : entry) {
-
-					if (gpsLine != null && gpsLine.getListPossibleShapeLines() != null) {
-						List<PossibleShape> listPossibleShapeLines = gpsLine.getListPossibleShapeLines();
-
-						if (listPossibleShapeLines.size() >= 2) {
-
-							PossibleShape bestShape = null;
-							Long timeFirstPoint = null;
-							float sumGreaterDistancePoints = 0;
-							float thresholdShapesSequence;
-							for (PossibleShape possibleShape : listPossibleShapeLines) {
-
-								sumGreaterDistancePoints += possibleShape.getShapeLine().getGreaterDistancePoints();
-								if (possibleShape.getListIndexFirstAndLastGPSPoints().size() >= 1) {
-									GPSPoint firstPointCurrentPossibleShape = ((GPSPoint) possibleShape
-											.getListGPSPoints()
-											.get(Math.abs(possibleShape.getListIndexFirstAndLastGPSPoints().get(0))));
-									if (timeFirstPoint == null
-											|| firstPointCurrentPossibleShape.getTime() < timeFirstPoint) {
-										timeFirstPoint = firstPointCurrentPossibleShape.getTime();
-										bestShape = possibleShape;
-									}
-								}
-							}
-
-							thresholdShapesSequence = sumGreaterDistancePoints / listPossibleShapeLines.size();
-
-							Point firstPointFirstShape = listPossibleShapeLines.get(0).getShapeLine().getLine()
-									.getStartPoint();
-							Point endPointFirstShape = listPossibleShapeLines.get(0).getShapeLine().getLine()
-									.getEndPoint();
-							Point firstPointSecondShape = listPossibleShapeLines.get(1).getShapeLine().getLine()
-									.getStartPoint();
-							Point endPointSecondShape = listPossibleShapeLines.get(1).getShapeLine().getLine()
-									.getEndPoint();
-
-							if (GPSPoint.getDistanceInMeters(endPointFirstShape,
-									firstPointSecondShape) >= thresholdShapesSequence
-									&& GPSPoint.getDistanceInMeters(firstPointFirstShape,
-											endPointSecondShape) >= thresholdShapesSequence) {
-
-								List<PossibleShape> possibleShapeCurrentGPS = new ArrayList<>();
-								possibleShapeCurrentGPS.add(bestShape);
-								gpsLine.setListPossibleShapeLines(possibleShapeCurrentGPS);
-
-							}
-						}
-
-						gpsLine.setUpTrips();
-					}
-				}
-				return entry;
-			}
-		});
-
-		JavaRDD<List<GPSLine>> rddClosestPoint = rddSetUpTrips.map(new Function< List<GPSLine>, List<GPSLine>>() {
+		JavaRDD<List<GPSLine>> rddClosestPoint = rddTrueShapes.map(new Function< List<GPSLine>, List<GPSLine>>() {
 
 			@Override
 			public List<GPSLine> call(List<GPSLine> entry) throws Exception {
@@ -547,98 +497,99 @@ public class MatchingRoutesShapeGPS {
 			}
 		});
 		
-		return rddClosestPoint;
+		JavaRDD<String> rddOutput = rddClosestPoint.flatMap(new FlatMapFunction<List<GPSLine>, String>() {
 
-//		JavaRDD<String> rddOutput = rddClosestPoint.flatMap(new FlatMapFunction<List<GPSLine>, String>() {
-//
-//			@Override
-//			public Iterator<String> call(List<GPSLine> listGPS) throws Exception {
-//				List<String> listOutput = new ArrayList<>();
-//				for (GPSLine gpsLine : listGPS) {
-//					String stringOutput = "";
-//					if (gpsLine != null) {
-//
-//						if (gpsLine.getMapTrips().isEmpty()) {
-//							GPSPoint gpsPoint;
-//							for (GeoPoint geoPoint: gpsLine.getListGeoPoints()) {
-//								gpsPoint = (GPSPoint) geoPoint;
-//								stringOutput += Problem.NO_SHAPE.getCode() + FILE_SEPARATOR;
-//								stringOutput +=gpsPoint.getLineCode() + FILE_SEPARATOR;
-//								
-//								stringOutput +="-" + FILE_SEPARATOR;
-//								stringOutput +="-"  + FILE_SEPARATOR;
-//								stringOutput +="-"  + FILE_SEPARATOR;
-//								stringOutput +="-" + FILE_SEPARATOR;
-//								
-//
-//								stringOutput +=gpsPoint.getGpsId() + FILE_SEPARATOR;
-//								stringOutput +=gpsPoint.getBusCode() + FILE_SEPARATOR;
-//								stringOutput +=gpsPoint.getTimeStamp() + FILE_SEPARATOR;
-//								stringOutput +=gpsPoint.getLatitude() + FILE_SEPARATOR;
-//								stringOutput +=gpsPoint.getLongitude() + FILE_SEPARATOR;
-//								
-//								stringOutput +="-" + FILE_SEPARATOR;
-//								stringOutput +="-" + FILE_SEPARATOR;
-//								
-//								stringOutput +=Problem.NO_SHAPE.getCode() + "/n";
-//								
-//							}
-//						}
-//
-//						for (Integer key : gpsLine.getMapTrips().keySet()) {
-//							for (Trip trip : gpsLine.getTrip(key)) {
-//
-//								for (GeoPoint geoPoint : trip.getGPSPoints()) {
-//
-//									GPSPoint gpsPoint = (GPSPoint) geoPoint;
-//
-//									stringOutput +=key  + FILE_SEPARATOR;
-//									stringOutput +=gpsPoint.getLineCode()  + FILE_SEPARATOR;
-//									if (trip.getShapeLine() == null) {
-//										stringOutput +="-" + FILE_SEPARATOR;
-//										stringOutput +="-" + FILE_SEPARATOR;
-//										stringOutput +="-" + FILE_SEPARATOR;
-//										stringOutput +="-" + FILE_SEPARATOR;
-//									} else {
-//										stringOutput +=gpsPoint.getClosestPoint().getId() + FILE_SEPARATOR;
-//										stringOutput +=gpsPoint.getClosestPoint().getPointSequence() + FILE_SEPARATOR;
-//										stringOutput +=gpsPoint.getClosestPoint().getLatitude() + FILE_SEPARATOR;
-//										stringOutput +=gpsPoint.getClosestPoint().getLongitude() + FILE_SEPARATOR;
-//									}
-//
-//									stringOutput +=gpsPoint.getGpsId() + FILE_SEPARATOR;
-//									stringOutput +=gpsPoint.getBusCode() + FILE_SEPARATOR;
-//									stringOutput +=gpsPoint.getTimeStamp() + FILE_SEPARATOR;
-//									stringOutput +=gpsPoint.getLatitude() + FILE_SEPARATOR;
-//									stringOutput +=gpsPoint.getLongitude() + FILE_SEPARATOR;
-//
-//									if (trip.getShapeLine() == null) {
-//										stringOutput +="-" + FILE_SEPARATOR;
-//										stringOutput +="-" + FILE_SEPARATOR;
-//									} else {
-//										stringOutput +=gpsPoint.getDistanceClosestShapePoint() + FILE_SEPARATOR;
-//										stringOutput +=gpsPoint.getThresholdShape() + FILE_SEPARATOR;
-//									}
-//
-//									if (trip.getProblem().equals(Problem.TRIP_PROBLEM)) {
-//										stringOutput +=trip.getProblem().getCode() + "/n";
-//									} else if (gpsPoint.getDistanceClosestShapePoint() > gpsPoint.getThresholdShape()) {
-//										stringOutput +=Problem.OUTLIER_POINT.getCode() + "/n";
-//									} else {
-//										stringOutput +=trip.getProblem().getCode() + "/n";
-//									}
-//								}
-//							}
-//						}
-//					}
-//					
-//					listOutput.add(stringOutput);
-//				}
-//				return listOutput.iterator();
-//			}
-//		});
+			@Override
+			public Iterator<String> call(List<GPSLine> listGPS) throws Exception {
+				List<String> listOutput = new ArrayList<>();
+				for (GPSLine gpsLine : listGPS) {
+					String stringOutput = "";
+					if (gpsLine != null) {
+
+						if (gpsLine.getMapTrips().isEmpty()) {
+							GPSPoint gpsPoint;
+							for (GeoPoint geoPoint: gpsLine.getListGeoPoints()) {
+								gpsPoint = (GPSPoint) geoPoint;
+								stringOutput += Problem.NO_SHAPE.getCode() + FILE_SEPARATOR;
+								stringOutput +=gpsPoint.getLineCode() + FILE_SEPARATOR;
+								
+								stringOutput +="-" + FILE_SEPARATOR;
+								stringOutput +="-"  + FILE_SEPARATOR;
+								stringOutput +="-"  + FILE_SEPARATOR;
+								stringOutput +="-" + FILE_SEPARATOR;
+								
+
+								stringOutput +=gpsPoint.getGpsId() + FILE_SEPARATOR;
+								stringOutput +=gpsPoint.getBusCode() + FILE_SEPARATOR;
+								stringOutput +=gpsPoint.getTimeStamp() + FILE_SEPARATOR;
+								stringOutput +=gpsPoint.getLatitude() + FILE_SEPARATOR;
+								stringOutput +=gpsPoint.getLongitude() + FILE_SEPARATOR;
+								
+								stringOutput +="-" + FILE_SEPARATOR;
+								stringOutput +="-" + FILE_SEPARATOR;
+								
+								stringOutput +=Problem.NO_SHAPE.getCode() + "\n";
+								
+							}
+						}
+
+						for (Integer key : gpsLine.getMapTrips().keySet()) {
+							for (Trip trip : gpsLine.getTrip(key)) {
+
+								for (GeoPoint geoPoint : trip.getGPSPoints()) {
+
+									GPSPoint gpsPoint = (GPSPoint) geoPoint;
+
+									stringOutput +=key  + FILE_SEPARATOR;
+									stringOutput +=gpsPoint.getLineCode()  + FILE_SEPARATOR;
+									if (trip.getShapeLine() == null) {
+										stringOutput +="-" + FILE_SEPARATOR;
+										stringOutput +="-" + FILE_SEPARATOR;
+										stringOutput +="-" + FILE_SEPARATOR;
+										stringOutput +="-" + FILE_SEPARATOR;
+									} else {
+										stringOutput +=gpsPoint.getClosestPoint().getId() + FILE_SEPARATOR;
+										stringOutput +=gpsPoint.getClosestPoint().getPointSequence() + FILE_SEPARATOR;
+										stringOutput +=gpsPoint.getClosestPoint().getLatitude() + FILE_SEPARATOR;
+										stringOutput +=gpsPoint.getClosestPoint().getLongitude() + FILE_SEPARATOR;
+									}
+
+									stringOutput +=gpsPoint.getGpsId() + FILE_SEPARATOR;
+									stringOutput +=gpsPoint.getBusCode() + FILE_SEPARATOR;
+									stringOutput +=gpsPoint.getTimeStamp() + FILE_SEPARATOR;
+									stringOutput +=gpsPoint.getLatitude() + FILE_SEPARATOR;
+									stringOutput +=gpsPoint.getLongitude() + FILE_SEPARATOR;
+
+									if (trip.getShapeLine() == null) {
+										stringOutput +="-" + FILE_SEPARATOR;
+										stringOutput +="-" + FILE_SEPARATOR;
+									} else {
+										stringOutput +=gpsPoint.getDistanceClosestShapePoint() + FILE_SEPARATOR;
+										stringOutput +=gpsPoint.getThresholdShape() + FILE_SEPARATOR;
+									}
+
+									if (trip.getProblem().equals(Problem.TRIP_PROBLEM)) {
+										stringOutput +=trip.getProblem().getCode() + "\n";
+									} else if (gpsPoint.getDistanceClosestShapePoint() > gpsPoint.getThresholdShape()) {
+										stringOutput +=Problem.OUTLIER_POINT.getCode() + "\n";
+									} else {
+										stringOutput +=trip.getProblem().getCode() + "\n";
+									}
+								}
+							}
+						}
+					}
+					
+					if (!stringOutput.isEmpty()) {
+						listOutput.add(stringOutput);
+					}
+					
+				}
+				return listOutput.iterator();
+			}
+		});
 		
-//		return rddOutput;		
+		return rddOutput;		
 	}
 
 	

@@ -1,13 +1,15 @@
 package BULMADependences;
 
+import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.Point;
 
+import PointDependencies.GPSPoint;
 import PointDependencies.GeoPoint;
 
 public class GPSLine extends GeoLine {
@@ -57,8 +59,6 @@ public class GPSLine extends GeoLine {
 
 	public void setUpTrips() {
 
-		Collections.sort(getListPossibleShapeLines());
-
 		for (PossibleShape possibleShape : getListPossibleShapeLines()) {
 			if (possibleShape != null) {
 				int numberTrip = 1;
@@ -86,6 +86,77 @@ public class GPSLine extends GeoLine {
 		}
 
 		setUpOutliers();
+	}
+
+	public void findBestShapes() {
+
+		Integer indexSmaller = null;
+		Integer indexSmaller2 = null;
+		Integer numberPoints1 = null;
+		Integer numberPoints2 = null;
+		PossibleShape possibleShape1 = null;
+		PossibleShape possibleShape2 = null;
+
+		if (this.getId().equals("BC939")) {
+			System.out.println();
+		}
+		for (PossibleShape possibleShape : getListPossibleShapeLines()) {
+			if (possibleShape.getListIndexFirstAndLastGPSPoints().size() > 2) {
+				int value = Math.abs(possibleShape.getListIndexFirstAndLastGPSPoints().get(0));
+				int value2 = Math.abs(possibleShape.getListIndexFirstAndLastGPSPoints().get(1));
+
+				int difference = value2 - value;
+
+				if (indexSmaller == null || value < indexSmaller) {
+
+					indexSmaller2 = indexSmaller;
+					possibleShape2 = possibleShape1;
+					numberPoints2 = numberPoints1;
+					indexSmaller = value;
+					possibleShape1 = possibleShape;
+					numberPoints1 = difference;
+
+				} else if (indexSmaller2 == null || value < indexSmaller2) {
+					indexSmaller2 = value;
+					possibleShape2 = possibleShape;
+					numberPoints2 = difference;
+				}
+			}
+
+		}
+
+		if (numberPoints1 != null && numberPoints2 != null && numberPoints1 > numberPoints2) {
+			findComplementaryShape(possibleShape1);
+		} else if (numberPoints1 != null && numberPoints2 != null) {
+			findComplementaryShape(possibleShape2);
+		}
+
+	}
+
+	private void findComplementaryShape(PossibleShape entryShape) {
+		PossibleShape complementaryShape = null;
+		Point firstPointEntryShape = entryShape.getShapeLine().getLine().getStartPoint();
+		Point endPointEntryShape = entryShape.getShapeLine().getLine().getEndPoint();
+
+		for (PossibleShape possibleShape : getListPossibleShapeLines()) {
+			Point currentStartPoint = possibleShape.getShapeLine().getLine().getStartPoint();
+			Point currentEndPoint = possibleShape.getShapeLine().getLine().getEndPoint();
+
+			if (GeoPoint.getDistanceInMeters(firstPointEntryShape, currentEndPoint) < possibleShape.getShapeLine()
+					.getGreaterDistancePoints()
+					&& GeoPoint.getDistanceInMeters(endPointEntryShape, currentStartPoint) < possibleShape
+							.getShapeLine().getGreaterDistancePoints()) {
+				complementaryShape = possibleShape;
+				break;
+			}
+
+		}
+
+		List<PossibleShape> newList = new ArrayList<>();
+		newList.add(entryShape);
+		newList.add(complementaryShape);
+
+		setListPossibleShapeLines(newList);
 	}
 
 	private void setUpOutliers() {
@@ -149,8 +220,8 @@ public class GPSLine extends GeoLine {
 
 	private void addTrip(Integer numberTrip, Integer firstIndex, Integer lastIndex, ShapeLine shapeLine,
 			Problem problem) {
-		
-		if (numberTrip > 1) {		
+
+		if (numberTrip > 1) {
 			List<Trip> previousTrip = getMapTrips().get(numberTrip - 1);
 			if (!previousTrip.isEmpty()) {
 				int lastIndexPreviousTrip = previousTrip.get(previousTrip.size() - 1).getLastIndex() + 1;
@@ -159,7 +230,7 @@ public class GPSLine extends GeoLine {
 				}
 			}
 		}
-		
+
 		if (numberTrip < getMapTrips().keySet().size()) {
 			List<Trip> nextTrip = getMapTrips().get(numberTrip + 1);
 			if (!nextTrip.isEmpty()) {
@@ -216,5 +287,43 @@ public class GPSLine extends GeoLine {
 	@Override
 	public String toString() {
 		return "GPS[ BlockingKey: " + getId() + getListPossibleShapeLines() + "]";
+	}
+
+	public void findBestShape() throws ParseException {
+		
+		PossibleShape bestShape = null;
+		Long timeFirstPoint = null;
+		Integer numberPoints = null;
+		
+		if (this.getId().equals("BC939")) {
+			System.out.println();
+			
+		}
+
+		for (PossibleShape possibleShape : getListPossibleShapeLines()) {
+
+			if (possibleShape.getListIndexFirstAndLastGPSPoints().size() >= 1) {
+				GPSPoint firstPointCurrentPossibleShape = ((GPSPoint) possibleShape.getListGPSPoints()
+						.get(Math.abs(possibleShape.getListIndexFirstAndLastGPSPoints().get(0))));
+
+				if (timeFirstPoint == null || firstPointCurrentPossibleShape.getTime() < timeFirstPoint) {
+					timeFirstPoint = firstPointCurrentPossibleShape.getTime();
+					bestShape = possibleShape;
+					numberPoints = possibleShape.getListIndexFirstAndLastGPSPoints().get(1) - possibleShape.getListIndexFirstAndLastGPSPoints().get(0);
+				
+				} else if (firstPointCurrentPossibleShape.getTime() == timeFirstPoint &&
+						(possibleShape.getListIndexFirstAndLastGPSPoints().get(1) - possibleShape.getListIndexFirstAndLastGPSPoints().get(0)) > numberPoints){
+					bestShape = possibleShape;
+					numberPoints = possibleShape.getListIndexFirstAndLastGPSPoints().get(1) - possibleShape.getListIndexFirstAndLastGPSPoints().get(0);
+				}
+			}
+		}
+
+		List<PossibleShape> possibleShapeCurrentGPS = new ArrayList<>();
+		possibleShapeCurrentGPS.add(bestShape);
+		setListPossibleShapeLines(possibleShapeCurrentGPS);
+
+
+		
 	}
 }

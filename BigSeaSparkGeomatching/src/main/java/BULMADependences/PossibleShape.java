@@ -239,4 +239,8 @@ public class PossibleShape implements Serializable, Comparable<PossibleShape> {
 		}
 		return 0;
 	}
+
+	public boolean isRoundShape() {
+		return GeoPoint.getDistanceInMeters(getShapeLine().getFirstPoint(), getShapeLine().getLastPoint()) <= getShapeLine().getGreaterDistancePoints();
+	}
 }
