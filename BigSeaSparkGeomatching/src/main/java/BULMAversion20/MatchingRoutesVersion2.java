@@ -82,7 +82,11 @@ public class MatchingRoutesVersion2 {
 					public Tuple2<String, GeoPoint> call(Row s) throws Exception {
 						GPSPoint gpsPoint = GPSPoint.createGPSPointWithId(s.getString(0), arrayIndexFieldsInputGPS,
 								FILE_SEPARATOR);
-						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode(), gpsPoint);
+						
+						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode() + gpsPoint.getLineCode(), gpsPoint);
+						
+//						Uncomment the line below to execute with CURITIBA data
+//						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode(), gpsPoint);
 
 					}
 				}).groupByKey(minPartitions);

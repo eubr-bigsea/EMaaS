@@ -85,10 +85,10 @@ public class MatchingRoutesShapeGPS {
 
 //			JavaRDD<String> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getName(),
 //					minPartitions, context);
-			JavaRDD<String> rddClosestPoint = executeBULMA(pathFileShapes, pathGPSFiles + file.getName(),
+			JavaRDD<List<GPSLine>> rddClosestPoint = executeBULMA(pathFileShapes, pathGPSFiles + file.getName(),
 					minPartitions, context);
-			rddClosestPoint.saveAsTextFile(pathOutput + file.getName());
-//			saveOutputFile(rddClosestPoint, pathOutput + file.getName());
+//			rddClosestPoint.saveAsTextFile(pathOutput + file.getName());
+			saveOutputFile(rddClosestPoint, pathOutput + file.getName());
 		}
 	}
 	
@@ -99,17 +99,15 @@ public class MatchingRoutesShapeGPS {
 	    FileStatus[] fileStatus = fs.listStatus(new Path(pathGPSFiles));
 
 		for (FileStatus file : fileStatus) {
-			JavaRDD<String> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getPath().getName(),
+			JavaRDD<List<GPSLine>> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getPath().getName(),
 					minPartitions, context);
 			
 			rddOutputBuLMA.saveAsTextFile(pathOutput + file.getPath().getName());
 		}
-		
-		
 	}
 
 	@SuppressWarnings("serial")
-	private static JavaRDD<String> executeBULMA(String pathFileShapes, String pathGPSFile, int minPartitions, JavaSparkContext ctx) {
+	private static JavaRDD<List<GPSLine>> executeBULMA(String pathFileShapes, String pathGPSFile, int minPartitions, JavaSparkContext ctx) {
 		
 		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
 			@Override
@@ -134,9 +132,13 @@ public class MatchingRoutesShapeGPS {
 					@Override
 					public Tuple2<String, GeoPoint> call(String s) throws Exception {
 						GPSPoint gpsPoint = GPSPoint.createGPSPointWithId(s);
-						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode(), gpsPoint);
-
+						
+						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode() + gpsPoint.getLineCode(), gpsPoint);
+						
+//						Uncomment the line below to execute with CURITIBA data
+//						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode(), gpsPoint);
 					}
+					
 				}).groupByKey(minPartitions);
 
 		JavaPairRDD<String, Iterable<GeoPoint>> rddShapePointsPair = shapeString
@@ -194,7 +196,7 @@ public class MatchingRoutesShapeGPS {
 										greaterDistance);
 							} else if (array.length >= 1) {
 								 geoLine = new GPSLine(pair._1, null, "REC", listGeoPoint, greaterDistance);
-							 }
+						}
 
 						} catch (Exception e) {
 							throw new Exception("LineString cannot be created. " + e);
@@ -589,7 +591,9 @@ public class MatchingRoutesShapeGPS {
 			}
 		});
 		
-		return rddOutput;		
+//		return rddOutput;
+		
+		return rddClosestPoint;		
 	}
 
 	
@@ -627,8 +631,8 @@ public class MatchingRoutesShapeGPS {
 								printWriter.print(gpsPoint.getLineCode() + FILE_SEPARATOR);
 								
 								printWriter.print("-" + FILE_SEPARATOR);
-								printWriter.print("-"  + FILE_SEPARATOR);
-								printWriter.print("-"  + FILE_SEPARATOR);
+								printWriter.print("-" + FILE_SEPARATOR);
+								printWriter.print("-" + FILE_SEPARATOR);
 								printWriter.print("-" + FILE_SEPARATOR);
 								
 
@@ -642,7 +646,6 @@ public class MatchingRoutesShapeGPS {
 								printWriter.print("-" + FILE_SEPARATOR);
 								
 								printWriter.println(Problem.NO_SHAPE.getCode());
-								
 							}
 						}
 
