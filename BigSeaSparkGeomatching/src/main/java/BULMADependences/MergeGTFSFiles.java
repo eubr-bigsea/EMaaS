@@ -32,6 +32,12 @@ public class MergeGTFSFiles {
 	private static Map<String, ShapeLine> mapShapeLines = new HashMap<>();
 
 	public static void main(String[] args) {
+		
+		if (args.length != 6) {
+			System.err.println("Usage: <stopTimes file> <trips file> <stops file> <routes file> <shapes file> <output  path>");
+			System.exit(1);
+		}
+		
 		String stopTimes = args[0]; // trip_id,arrival_time,departure_time,stop_id,stop_sequence
 		String trips = args[1]; // route_id
 		String stops = args[2]; // lat_stop, lng_stop
@@ -40,16 +46,16 @@ public class MergeGTFSFiles {
 		String newFile = args[5];
 		
 //		Uncomment the lines below to generate Shape File
-//		readRoutesFile(routes);
-//		readTripFileGetRoute(trips);
-//		updateShapeFile(shapes, newFile);
+		readRoutesFile(routes);
+		readTripFileGetRoute(trips);
+		updateShapeFile(shapes, newFile);
 		
 //	    Uncomment the lines below to generate stops times file
-		readRoutesFile(routes);
-		readTripFile(trips);
-		readStopsFile(stops);
-		createShapePoints(shapes);
-		createNewFile(newFile, stopTimes);
+//		readRoutesFile(routes);
+//		readTripFile(trips);
+//		readStopsFile(stops);
+//		createShapePoints(shapes);
+//		createNewFile(newFile, stopTimes);
 		
 		System.out.println("Done!");
 		

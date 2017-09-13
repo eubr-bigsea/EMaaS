@@ -121,21 +121,12 @@ public class ShapePoint extends GeoPoint {
 		this.listStopTimestamp = listStopTimestamp;
 	}
 
-//	@Override
-//	public String toString() {
-//		return "ShapePoint [id=" + id + ", route=" + route + "]";
-//	}
-
-//	@Override
-//	public String toString() {
-//		return "[id=" + id + "]";
-//	}
-	
 	@Override
 	public String toString() {
-		return this.listStopTimestamp.toString();
+		return "ShapePoint [id=" + id + ", pointSequence=" + pointSequence + ", distanceTraveled=" + distanceTraveled
+				+ ", route=" + route + "]";
 	}
-	
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
