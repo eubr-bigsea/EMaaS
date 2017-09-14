@@ -1,6 +1,5 @@
 package recordLinkage;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -58,7 +57,7 @@ public class BUSTEstimation {
 
 		if (args.length < 5) {
 			System.err.println(
-					"Usage: <Output Bulma directory> <shape file>  <Bus stops file> <outputPath> <number of partitions>");
+					"Usage: <Output Bulma directory> <shape file> <Bus stops file> <outputPath> <number of partitions>");
 			System.exit(1);
 		}
 		Long initialTime = System.currentTimeMillis();
@@ -69,8 +68,8 @@ public class BUSTEstimation {
 		String outputPath = args[3];
 		final Integer minPartitions = Integer.valueOf(args[4]);
 
-//		 SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimation").setMaster("local");
-		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimation");
+		 SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimation").setMaster("local");
+//		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimation");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
 		generateOutputFilesHDFS(context, pathBulmaOutput, pathFileShapes, busStopsFile, outputPath, minPartitions);
@@ -142,13 +141,18 @@ public class BUSTEstimation {
 
 					public Tuple2<String, BulmaOutput> call(String t) throws Exception {
 						StringTokenizer st = new StringTokenizer(t, SEPARATOR);
-						BulmaOutput bulmaOutput = new BulmaOutput(st.nextToken(), st.nextToken(), st.nextToken(),
-								st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
-								st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
-								st.nextToken());
+						BulmaOutput bulmaOutput  = null;
+						String key = "";
+						if (st.hasMoreElements()) {
+							bulmaOutput = new BulmaOutput(st.nextToken(), st.nextToken(), st.nextToken(),
+									st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
+									st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
+									st.nextToken());
 
-						String key = bulmaOutput.getShapeId() + ":" + bulmaOutput.getBusCode() + ":"
-								+ bulmaOutput.getTripNum();
+							key = bulmaOutput.getShapeId() + ":" + bulmaOutput.getBusCode() + ":"
+									+ bulmaOutput.getTripNum();
+						}
+						
 
 						return new Tuple2<String, BulmaOutput>(key, bulmaOutput);
 					}
@@ -180,7 +184,10 @@ public class BUSTEstimation {
 						Map<String, BulmaOutput> mapOutputGrouping = new HashMap<String, BulmaOutput>();
 
 						for (BulmaOutput bulmaOutput : t._2) {
-							mapOutputGrouping.put(bulmaOutput.getShapeSequence(), bulmaOutput);
+							if (bulmaOutput != null) {
+								mapOutputGrouping.put(bulmaOutput.getShapeSequence(), bulmaOutput);
+							}
+							
 						}
 						return new Tuple2<String, Object>(key, new BulmaOutputGrouping(mapOutputGrouping));
 					}
@@ -444,18 +451,6 @@ public class BUSTEstimation {
 
 		return rddInterpolation;
 
-	}
-
-	private static void generateLocalOutputFiles(JavaSparkContext context, String pathBulmaOutput,
-			String pathFileShapes, String busStopsFile, String output, int minPartitions) {
-		File dir = new File(pathBulmaOutput);
-
-		for (File file : dir.listFiles()) {
-			JavaRDD<String> result = execute(context, pathBulmaOutput + file.getName(), pathFileShapes, busStopsFile,
-					minPartitions);
-
-			saveOutputFile(result, output + file.getName());
-		}
 	}
 
 	private static void generateOutputFilesHDFS(JavaSparkContext context, String pathBulmaOutput, String pathFileShapes,
