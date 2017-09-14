@@ -66,32 +66,14 @@ public class MatchingRoutesShapeGPS {
 //		SparkConf sparkConf = new SparkConf().setAppName("BULMA");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
-//		Uncomment the line below to execute on HDFS cluster
-//		generateOutputFiles(pathFileShapes, pathGPSFile, pathOutput, minPartitions, context);
-		
-//		Uncomment the line below to execute locally
-		generateLocalOutputFiles(pathFileShapes, pathGPSFile, pathOutput, minPartitions, context);
+		generateOutputFiles(pathFileShapes, pathGPSFile, pathOutput, minPartitions, context);
 		
 		context.stop();
 		context.close();
 		System.out.println("Execution time: " + (System.currentTimeMillis() - tempoInicial));
 	}
 	
-	private static void generateLocalOutputFiles(String pathFileShapes, String pathGPSFiles, String pathOutput, int minPartitions, JavaSparkContext context){
-		File dir = new File(pathGPSFiles);
 		
-
-		for (File file : dir.listFiles()) {
-
-//			JavaRDD<String> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getName(),
-//					minPartitions, context);
-			JavaRDD<List<GPSLine>> rddClosestPoint = executeBULMA(pathFileShapes, pathGPSFiles + file.getName(),
-					minPartitions, context);
-//			rddClosestPoint.saveAsTextFile(pathOutput + file.getName());
-			saveOutputFile(rddClosestPoint, pathOutput + file.getName());
-		}
-	}
-	
 	private static void generateOutputFiles(String pathFileShapes, String pathGPSFiles, String pathOutput, int minPartitions, JavaSparkContext context) throws IOException, URISyntaxException{
 		
 		Configuration conf = new Configuration();
@@ -102,7 +84,16 @@ public class MatchingRoutesShapeGPS {
 			JavaRDD<List<GPSLine>> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getPath().getName(),
 					minPartitions, context);
 			
+//			Save as text file
 			rddOutputBuLMA.saveAsTextFile(pathOutput + file.getPath().getName());
+			
+//			Save as parquet
+//			SQLContext sqlContext = new org.apache.spark.sql.SQLContext(context);
+//			Dataset<String> output = sqlContext.createDataset(rddOutputBuLMA.rdd(), Encoders.STRING());			
+//			output.write().save(pathOutput + file.getPath().getName());
+			
+			
+//			saveOutputFile(rddOutputBuLMA, pathOutput + file.getPath().getName());
 		}
 	}
 
