@@ -93,5 +93,12 @@ public class TicketInformation implements Serializable {
 		this.gender = gender;
 	}
 	
+	@Override
+	public String toString() {
+		return codLine + "," + nameLine + "," + busCode
+				+ "," + ticketNumber + "," + timeOfUse + "," + dateOfUse
+				+ "," + birthDate + "," + gender;
+	}
+	
 }
 

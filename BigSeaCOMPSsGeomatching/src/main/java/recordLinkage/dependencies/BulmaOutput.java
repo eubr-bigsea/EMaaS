@@ -155,4 +155,12 @@ public class BulmaOutput implements Serializable {
 		this.tripProblem = tripProblem;
 	}
 	
+	@Override
+	public String toString() {
+		return tripNum + "," + route + "," + shapeId + ","
+				+ shapeSequence + "," + latShape + "," + lonShape + "," + gpsPointId
+				+ "," + busCode + "," + timestamp + "," + latGPS + "," + lonGPS
+				+ "," + dinstance + "," + thresholdProblem + "," + tripProblem;
+	}
+	
 }
