@@ -1,6 +1,7 @@
 package recordLinkage;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -15,6 +16,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -51,12 +56,11 @@ public class BUSTEstimationV2 {
 
 	private static final String SEPARATOR = ",";
 
-	@SuppressWarnings("serial")
 	public static void main(String[] args) throws IOException, URISyntaxException {
 
 		if (args.length < 6) {
 			System.err.println(
-					"Usage: <Output Bulma> <shape file>  <Bus stops file> <Bus tickets file> <outputPath> <number of partitions>");
+					"Usage: <Output Bulma directory> <shape file>  <Bus stops file> <Bus tickets directory> <outputPath> <number of partitions>");
 			System.exit(1);
 		}
 		Long initialTime = System.currentTimeMillis();
@@ -64,7 +68,7 @@ public class BUSTEstimationV2 {
 		String pathBulmaOutput = args[0];
 		String pathFileShapes = args[1];
 		String busStopsFile = args[2];
-		String busTicketFile = args[3];
+		String busTicketPath = args[3];
 		String outputPath = args[4];
 		final Integer minPartitions = Integer.valueOf(args[5]);
 
@@ -72,6 +76,33 @@ public class BUSTEstimationV2 {
 		// SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimation");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
+		generateOutputFilesHDFS(context, pathBulmaOutput, pathFileShapes, busStopsFile, busTicketPath, outputPath, minPartitions);
+		
+		context.stop();
+		context.close();
+		System.out.println("Execution time: " + (System.currentTimeMillis() - initialTime));
+	}
+
+	private static void generateOutputFilesHDFS(JavaSparkContext context, String pathBulmaOutput, String pathFileShapes,
+			String busStopsFile, String busTicketPath, String output, int minPartitions) throws IOException, URISyntaxException {
+
+		Configuration conf = new Configuration();
+		FileSystem fs = FileSystem.get(new URI(pathBulmaOutput), conf);
+		FileStatus[] fileStatus = fs.listStatus(new Path(pathBulmaOutput));
+
+		for (FileStatus file : fileStatus) {
+			JavaRDD<String> result = execute(context, pathBulmaOutput + file.getPath().getName(), pathFileShapes, busTicketPath + file.getPath().getName(),
+					busStopsFile, minPartitions);
+			result.saveAsTextFile(output + file.getPath().getName());
+			// saveOutputFile(result, output+file.getPath().getName());
+		}
+
+	}
+	
+	@SuppressWarnings("serial")
+	private static JavaRDD<String> execute(JavaSparkContext context, String pathBulmaOutput, String pathFileShapes, String busTicketFile,
+			String busStopsFile, int minPartitions) {
+		
 		Map<String, List<String>> mapTickets = new HashMap<String, List<String>>();
 
 		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
@@ -86,7 +117,8 @@ public class BUSTEstimationV2 {
 			}
 		};
 
-		JavaRDD<String> busTicketsString = context.textFile(busTicketFile, minPartitions)
+		JavaRDD<String> busTicketsString = context.textFile(
+				busTicketFile, minPartitions)
 				.mapPartitionsWithIndex(removeHeader, false);
 
 		JavaPairRDD<String, Iterable<String>> rddTicketsMapped = busTicketsString
@@ -200,8 +232,7 @@ public class BUSTEstimationV2 {
 
 					private ShapeLine shapeLine;
 					private List<BulmaOutputGrouping> listBulmaOutputGrouping;
-					private Map<String, String> mapStopPoints; // Map<ShapeSequence,
-																// StopPointId>
+					private Map<String, String> mapStopPoints; // Map<ShapeSequence,StopPointId>
 					private Map<String, String> mapAux;
 
 					public Iterator<String> call(Tuple2<String, Iterable<Object>> t) throws Exception {
@@ -507,11 +538,8 @@ public class BUSTEstimationV2 {
 
 		});
 
-		rddOutput.saveAsTextFile(outputPath);
+		return rddOutput;
 		
-		context.stop();
-		context.close();
-		System.out.println("Execution time: " + (System.currentTimeMillis() - initialTime));
 	}
-
+	
 }
