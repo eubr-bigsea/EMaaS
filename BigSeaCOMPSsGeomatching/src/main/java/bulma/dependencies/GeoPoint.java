@@ -13,6 +13,10 @@ public abstract class GeoPoint implements Serializable{
 	private String longitude;
 	private LinkedList<ClosestPoints> acumulator;
 	
+	public GeoPoint() {
+		super();
+	}
+	
 	public GeoPoint(String latitude, String longitude) {
 		super();
 		this.latitude = latitude;

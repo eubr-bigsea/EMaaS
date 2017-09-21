@@ -9,6 +9,10 @@ public class ClosestPoints implements Serializable{
 	private GeoPoint point2;
 	private double closestDistance;
 	
+	public ClosestPoints() {
+		super();
+	}
+	
 	public ClosestPoints(GeoPoint point1, GeoPoint point2, double closestDistance) {
 		super();
 		this.point1 = point1;

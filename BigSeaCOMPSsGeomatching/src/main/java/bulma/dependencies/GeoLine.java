@@ -16,6 +16,10 @@ public class GeoLine implements Serializable {
 	private LinkedList<GeoPoint> listGeoPoints;
 	private float greaterDistancePoints;
 
+	public GeoLine() {
+		super();
+	}
+	
 	public GeoLine(String id, LineString line, String blockingKey) {
 		this.id = id;
 		this.line = line;

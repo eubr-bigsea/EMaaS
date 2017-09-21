@@ -8,7 +8,11 @@ public enum Problem {
 	OUTLIER_POINT(-3);
 	
 	private int code;
-	private Problem(int code) {
+	
+	Problem() {
+	}
+	
+	Problem(int code) {
 		this.code = code;
 	}
 	public int getCode() {

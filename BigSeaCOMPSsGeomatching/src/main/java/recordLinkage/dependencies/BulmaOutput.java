@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 public class BulmaOutput implements Serializable {
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3518929651995019131L;
 	private String tripNum;
 	private String route;
 	private String shapeId;

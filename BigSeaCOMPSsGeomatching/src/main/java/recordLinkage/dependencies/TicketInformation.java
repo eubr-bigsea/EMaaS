@@ -17,6 +17,10 @@ public class TicketInformation implements Serializable {
 	private String birthDate;
 	private String gender;
 	
+	public TicketInformation() {
+		super();
+	}
+	
 	public TicketInformation(String codLine, String nameLine, String busCode, String ticketNumber, String timeOfUse,
 			String dateOfUse, String birthDate, String gender) {
 		this.codLine = codLine;

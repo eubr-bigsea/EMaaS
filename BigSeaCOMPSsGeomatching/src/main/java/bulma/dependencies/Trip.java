@@ -13,6 +13,10 @@ public class Trip implements Serializable {
 	private Integer lastIndex;
 	private Problem problem;
 	
+	public Trip() {
+		super();
+	}
+	
 	public Trip(ShapeLine shapeLine, LinkedList<GeoPoint> pointsTripGPS, Problem problem) throws Exception {
 		if(pointsTripGPS == null || pointsTripGPS.isEmpty()) {
 			throw new Exception("Parameter value invalid!");

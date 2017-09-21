@@ -13,6 +13,9 @@ public class ShapeLine extends GeoLine {
 	private String route;
 	private int thresholdDistance;
 		
+	public ShapeLine() {
+		super();
+	}
 		
 	public ShapeLine(String id, LineString lineString, Float distanceTraveled, String blockingKey,
 			LinkedList<GeoPoint> listGeoPoints, String route, float greaterDistancePoints) {

@@ -12,6 +12,10 @@ public class Comparator implements java.util.Comparator<String>, Serializable {
 	 */
 	private static final long serialVersionUID = 1L;
 	private static final String SEPARATOR = ",";
+	
+	public Comparator() {
+		super();
+	}
 
 	public int compare(String key1, String key2) {
 			

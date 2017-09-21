@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class BulmaOutputGrouping implements Serializable {
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = -7855076809125995429L;
 	private Map<String, BulmaOutput> mapOutputGrouping;
 
 	public BulmaOutputGrouping() {

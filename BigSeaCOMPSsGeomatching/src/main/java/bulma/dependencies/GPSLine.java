@@ -14,6 +14,10 @@ public class GPSLine extends GeoLine {
 	private LinkedList<PossibleShape> listPossibleShapeLines;
 	private HashMap<Integer, LinkedList<Trip>> mapTrips;
 
+	public GPSLine() {
+		super();
+	}
+	
 	public GPSLine(String id, LineString line, String blockingKey) {
 		super(id, line, blockingKey);
 		this.listPossibleShapeLines = new LinkedList<PossibleShape>();

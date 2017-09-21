@@ -2,13 +2,12 @@ package recordLinkage.dependencies;
 
 import java.io.Serializable;
 import java.util.LinkedList;
-import java.util.List;
 
 import PointDependencies.ShapePoint;
 
 public class ShapeLine implements Serializable {
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 5256612106350542510L;
 	private String shapeId;
 	private LinkedList<ShapePoint> listGeoPoint;
 	private String route;

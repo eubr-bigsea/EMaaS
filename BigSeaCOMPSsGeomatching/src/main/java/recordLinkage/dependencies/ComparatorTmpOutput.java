@@ -12,6 +12,10 @@ public class ComparatorTmpOutput implements java.util.Comparator<String>, Serial
 	 */
 	private static final long serialVersionUID = 1L;
 	private static final String SEPARATOR = ",";
+	
+	public ComparatorTmpOutput() {
+		super();
+	}
 
 	public int compare(String key1, String key2) {
 		

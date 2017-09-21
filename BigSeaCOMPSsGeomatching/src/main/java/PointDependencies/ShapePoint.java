@@ -6,7 +6,7 @@ import genericEntity.util.data.GenericObject;
 
 public class ShapePoint extends GeoPoint {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = -3653266126955061889L;
 	// "shape_id","shape_pt_lat","shape_pt_lon","shape_pt_sequence","shape_dist_traveled"
 	// shape: 3217,-25.4757686477818,-49.2923877163312,3281146,24.441
 	private String id;

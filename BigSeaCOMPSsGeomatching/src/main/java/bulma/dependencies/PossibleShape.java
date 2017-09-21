@@ -24,6 +24,10 @@ public class PossibleShape implements Serializable, Comparable<PossibleShape> {
 	private List<Integer> listIndexFirstAndLastGPSPoints;
 	private List<GeoPoint> listGPSPoints;
 	
+	public PossibleShape() {
+		super();
+	}
+	
 	public PossibleShape(List<GeoPoint> listGPSPoints, ShapeLine shapeLine) {
 		this.listGPSPoints = listGPSPoints;
 		this.shapeLine = shapeLine;

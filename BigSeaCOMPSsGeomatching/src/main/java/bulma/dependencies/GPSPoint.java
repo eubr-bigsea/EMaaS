@@ -22,6 +22,10 @@ public class GPSPoint  extends GeoPoint{
 	private int thresholdShape;
 	private int problem;
 
+	public GPSPoint() {
+		super();
+	}
+	
 	public GPSPoint(String busCode, String latitude, String longitude, String timeStamp, String lineCode) {
 		super(latitude, longitude);
 		this.busCode = busCode;
@@ -164,8 +168,7 @@ public class GPSPoint  extends GeoPoint{
 	
 	@Override
 	public String toString() {
-		return "GPSPoint [gpsId=" + gpsId + ", busCode=" + busCode + ", timeStamp=" + timeStamp + ", lineCode="
-				+ lineCode + ", problem=" + problem + super.toString() + "]";
+		return busCode + "," + getLatitude() + "," + getLongitude() + "," + timeStamp + "," + lineCode + "," + gpsId;
 	}
 
 	@Override
