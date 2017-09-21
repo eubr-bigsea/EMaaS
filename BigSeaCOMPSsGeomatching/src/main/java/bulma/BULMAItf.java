@@ -13,16 +13,17 @@ import integratedtoolkit.types.annotations.task.Method;
 
 public interface BULMAItf {
 
-	@Method(declaringClass = "bulma.BULMA")
-	public HashMap<String, LinkedList<GeoPoint>> mapShape(
-			@Parameter(type = Type.FILE, direction = Direction.IN) String filePath);
+	
+//	@Method(declaringClass = "bulma.BULMA")
+//	public HashMap<String, LinkedList<GeoPoint>> mapShape(
+//			@Parameter(type = Type.FILE, direction = Direction.IN) String filePath);
+//
+//	@Method(declaringClass = "bulma.BULMA")
+//	public HashMap<String, LinkedList<ShapeLine>> groupShape(
+//			@Parameter HashMap<String, LinkedList<GeoPoint>> shapePair);
 
 	@Method(declaringClass = "bulma.BULMA")
-	public HashMap<String, LinkedList<ShapeLine>> groupShape(
-			@Parameter HashMap<String, LinkedList<GeoPoint>> shapePair);
-
-	@Method(declaringClass = "bulma.BULMA")
-	public HashMap<String, LinkedList<GeoPoint>> mapGPSFile(
+	public HashMap<String, LinkedList<GeoPoint>> mapGPSFileSplitted(
 			@Parameter(type = Type.FILE, direction = Direction.IN) String filePath);
 
 	@Method(declaringClass = "bulma.BULMA")
