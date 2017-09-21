@@ -1,21 +1,17 @@
 package recordLinkage.compss;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map.Entry;
-
-import com.clearspring.analytics.util.Lists;
 
 import PointDependencies.Problem;
 import PointDependencies.ShapePoint;
@@ -26,7 +22,6 @@ import genericEntity.util.data.json.JsonRecord;
 import genericEntity.util.data.storage.StorageManager;
 import recordLinkage.dependencies.BulmaOutput;
 import recordLinkage.dependencies.BulmaOutputGrouping;
-import recordLinkage.dependencies.Comparator;
 import recordLinkage.dependencies.ComparatorTmpOutput;
 import recordLinkage.dependencies.ShapeLine;
 import recordLinkage.dependencies.TicketInformation;
@@ -46,22 +41,17 @@ import scala.Tuple3;
  */
 public class BUSTEstimationV2 {
 
-//	                      <busCode, <"shapeId : tripNum" , linkedList<BulmaOutput>>>
-	private static HashMap<String, HashMap<String, LinkedList<BulmaOutput>>> mapBulmaOut = new HashMap<String, HashMap<String, LinkedList<BulmaOutput>>>();
-	
-	private static HashMap<String, List<TicketInformation>> mapTickets = new HashMap<String, List<TicketInformation>>();
-	
 	private static final String SEPARATOR = ",";
 	
 	public static void main(String[] args) throws ParseException, FileNotFoundException, UnsupportedEncodingException {
 
-		Integer numPartitions = 4;
+		Integer numPartitions = 2;
 		String shapeSource = "bus_data/gtfsFiles/shapesGTFS.csv";
 		String stopsSource = "bus_data/gtfsFiles/stopTime.csv";
-		String gpsFile= "bus_data/outputBulma/00.csv";
-		String gpsTmp = gpsFile.substring(0, gpsFile.lastIndexOf("/")+1);
+		String bulmaOutput= "bus_data/outputBulma/00.csv";
+		String bulmaOutputTmp = bulmaOutput.substring(0, bulmaOutput.lastIndexOf("/")+1) + "_bo";
 		String ticketsFile = "bus_data/gtfsFiles/tickets-2017071815.csv";
-		String ticketsTmp = ticketsFile.substring(0, ticketsFile.lastIndexOf("/")+1);
+		String ticketsTmp = ticketsFile.substring(0, ticketsFile.lastIndexOf("/")+1) + "_tickets"  ;
 		boolean list = true;
 		
 		int argIndex = 0;
@@ -76,11 +66,11 @@ public class BUSTEstimationV2 {
 
 			} else if (arg.equals("-tickets")) {
 				ticketsFile = args[argIndex++];
-				ticketsTmp = ticketsFile.substring(0, ticketsFile.lastIndexOf("/")+1);
+				ticketsTmp = ticketsFile.substring(0, ticketsFile.lastIndexOf("/")+1) + "_tickets" ;
 				
-			} else if (arg.equals("-gps")) {
-				gpsFile = args[argIndex++];
-				gpsTmp = gpsFile.substring(0, gpsFile.lastIndexOf("/")+1);
+			} else if (arg.equals("-bo")) {
+				bulmaOutput = args[argIndex++];
+				bulmaOutputTmp = bulmaOutput.substring(0, bulmaOutput.lastIndexOf("/")+1) + "_bo";
 				
 				// f = number of partitions
 			} else if (arg.equals("-f")) {
@@ -91,38 +81,7 @@ public class BUSTEstimationV2 {
 			}
 		}
 		
-		mapBulmaOutput(gpsFile);		
-		mapTickets(ticketsFile);
-		for (int i = 0; i < numPartitions; i++) {
-			PrintWriter writerBO = new PrintWriter(gpsTmp + "_bo" + String.format("%02d", i) + ".csv", "UTF-8");
-			writerBO.write("TRIP_NUM,ROUTE,SHAPE_ID,SHAPE_SEQ,LAT_SHAPE,LON_SHAPE,GPS_POINT_ID,BUS_CODE,TIMESTAMP,LAT_GPS,LON_GPS,DISTANCE,THRESHOLD_PROBLEM,TRIP_PROBLEM\n");
-			PrintWriter writerTickets = new PrintWriter(ticketsTmp + "_tickets" + String.format("%02d", i) + ".csv", "UTF-8");
-			writerTickets.write("CODLINHA,NOMELINHA,CODVEICULO,NUMEROCARTAO,HORAUTILIZACAO,DATAUTILIZACAO,DATANASCIMENTO,SEXO\n");
-			int nextIndex = i;
-			int j = 0; 
-			for (Entry<String, List<TicketInformation>> entrySet: mapTickets.entrySet()) {
-				
-				if (j == nextIndex ) {
-					nextIndex += numPartitions;
-					for (TicketInformation ticketInfo : entrySet.getValue()) {
-						
-						HashMap<String, LinkedList<BulmaOutput>> bulmaOut = mapBulmaOut.get(ticketInfo.getBusCode());
-						if (bulmaOut != null) {
-							writerTickets.write(ticketInfo.toString()+"\n");
-							for (Entry<String, LinkedList<BulmaOutput>> entryBulma : bulmaOut.entrySet()) {
-								for (BulmaOutput bulmaOutput : entryBulma.getValue()) {
-									writerBO.write(bulmaOutput.toString()+"\n");
-								}
-							}
-						}
-						
-					}
-				}
-				j++;
-			}
-			writerBO.close();
-			writerTickets.close();
-		}
+		createFiles(numPartitions, bulmaOutputTmp, ticketsTmp, bulmaOutput, ticketsFile);
 		
 		HashMap<String, LinkedList<ShapePoint>> shapePair = mapShape(shapeSource);
 		HashMap<String, ShapeLine> groupedShape = groupShape(shapePair);
@@ -130,16 +89,17 @@ public class BUSTEstimationV2 {
 		LinkedList<String> results = new LinkedList<String>();
 		
 		for (int i = 0; i < numPartitions; i++) {
-			String filePath = gpsTmp + "_bo" + String.format("%02d", i) + ".csv";
-			mapTickets = new LinkedHashMap<String, List<TicketInformation>>();
-			mapTickets(ticketsTmp + "_tickets" + String.format("%02d", i) + ".csv");
+			System.out.println(i);
+			String filePath = bulmaOutputTmp + String.format("%02d", i) + ".csv";
+			HashMap<String, LinkedList<TicketInformation>> tickets = mapTicketsSplitted(ticketsTmp + String.format("%02d", i) + ".csv");
 			HashMap<String, LinkedList<BulmaOutput>> partialBulmaOutput = mapBulmaOutputSplitted(filePath);
 			LinkedList<Tuple3<BulmaOutputGrouping, ShapeLine, HashMap<String, String>>> mergedOutput = mergeInputs(
 					partialBulmaOutput, groupedShape, mapStopPoints);
 			HashMap<String, LinkedList<String>> tmpOutput = generateTmpOutput(mergedOutput);
-			results = insertTicketsInformation(tmpOutput, results);
+			results = insertTicketsInformation(tmpOutput, tickets, results);
 
 		}
+		removeTmpFiles(numPartitions, bulmaOutputTmp, ticketsTmp);
 		System.out.println("[LOG] Result size = " + results.size());
 
 		if (list) {
@@ -150,8 +110,63 @@ public class BUSTEstimationV2 {
 	}
 	
 	
-	public static LinkedList<String> insertTicketsInformation (HashMap<String, LinkedList<String>> listOutput, LinkedList<String> results) throws ParseException {
+	private static void removeTmpFiles(Integer numPartitions, String bulmaOutputTmp, String ticketsTmp) {
+
+		File file;
+		for (int i = 0; i < numPartitions; i++) {
+			String bulmaOutPath = bulmaOutputTmp + String.format("%02d", i) + ".csv";
+			file = new File(bulmaOutPath);
+			if (!file.delete()) {
+				System.err.println("Error deleting file: " + bulmaOutPath);
+			}
+			String ticketsPath = ticketsTmp + String.format("%02d", i) + ".csv";
+			file = new File(ticketsPath);
+			if (!file.delete()) {
+				System.err.println("Error deleting file: " + ticketsPath);
+			}
+		}		
+	}
+
+
+	public static void createFiles(int numPartitions, String gpsTmp, String ticketsTmp, String gpsFile, String ticketsFile) throws FileNotFoundException, UnsupportedEncodingException {
+
+		HashMap<String, HashMap<String, LinkedList<BulmaOutput>>> mapBulmaOut = mapBulmaOutput(gpsFile);			
+		HashMap<String, LinkedList<TicketInformation>> mapTickets = mapTickets(ticketsFile);
 		
+		for (int i = 0; i < numPartitions; i++) {
+			PrintWriter writerBO = new PrintWriter(gpsTmp + String.format("%02d", i) + ".csv", "UTF-8");
+			writerBO.println("TRIP_NUM,ROUTE,SHAPE_ID,SHAPE_SEQ,LAT_SHAPE,LON_SHAPE,GPS_POINT_ID,BUS_CODE,TIMESTAMP,LAT_GPS,LON_GPS,DISTANCE,THRESHOLD_PROBLEM,TRIP_PROBLEM");
+			PrintWriter writerTickets = new PrintWriter(ticketsTmp + String.format("%02d", i) + ".csv", "UTF-8");
+			writerTickets.println("CODLINHA,NOMELINHA,CODVEICULO,NUMEROCARTAO,HORAUTILIZACAO,DATAUTILIZACAO,DATANASCIMENTO,SEXO");
+			int nextIndex = i;
+			int j = 0; 
+			for (Entry<String, LinkedList<TicketInformation>> entrySet: mapTickets.entrySet()) {
+				
+				if (j == nextIndex ) {
+					nextIndex += numPartitions;
+					for (TicketInformation ticketInfo : entrySet.getValue()) {
+						
+						HashMap<String, LinkedList<BulmaOutput>> bulmaOut = mapBulmaOut.get(ticketInfo.getBusCode());
+						if (bulmaOut != null) {
+							writerTickets.println(ticketInfo.toString());
+							for (Entry<String, LinkedList<BulmaOutput>> entryBulma : bulmaOut.entrySet()) {
+								for (BulmaOutput bulmaOutput : entryBulma.getValue()) {
+									writerBO.println(bulmaOutput.toString());
+								}
+							}
+						}
+					}
+				}
+				j++;
+			}
+			writerBO.close();
+			writerTickets.close();
+		}
+		// TODO insert Bulma Output info into files even if there is no ticket for the bus
+		
+	}
+
+	public static LinkedList<String> insertTicketsInformation (HashMap<String, LinkedList<String>> listOutput, HashMap<String, LinkedList<TicketInformation>> tickets, LinkedList<String> results) throws ParseException {
 		
 		for (Entry<String, LinkedList<String>> entrySet: listOutput.entrySet()) {
 			String currentBusCode = entrySet.getKey();
@@ -172,7 +187,7 @@ public class BUSTEstimationV2 {
 							results.add(0, currentString + SEPARATOR + 0);
 							
 						} else {
-							int number = getNumberTicketsOfBusStop(currentBusCode, currentTimeString, nextTimeString);
+							int number = getNumberTicketsOfBusStop(currentBusCode, currentTimeString, nextTimeString, tickets);
 							nextTimeString = currentTimeString;
 							results.add(0, currentString + SEPARATOR + number);
 						}
@@ -184,34 +199,16 @@ public class BUSTEstimationV2 {
 					results.add(0, currentString + SEPARATOR + "-");
 				}
 			}
-			
-			
 		}
-		
-		
-		
-		
-		
 
 		return results;
 	}
-	
 
-	/**
-	 * Reads the input shape file and maps it to a HashMap of shapeId and List
-	 * <ShapePoint>
-	 * 
-	 * @param filePath
-	 *            - the path of the input shape file
-	 * 
-	 * @return Returns the HashMap of shapeId and a List that contains all
-	 *         ShapePoints with that shapeId
-	 */
-	public static HashMap<String, LinkedList<ShapePoint>> mapShape(String filePath) {
+	public static HashMap<String, LinkedList<ShapePoint>> mapShape(String shapeSource) {
 
 		HashMap<String, LinkedList<ShapePoint>> output = new HashMap<String, LinkedList<ShapePoint>>();
 
-		DataSource dataSourceOSM = AbstractExec.getDataCSV(filePath, ',');
+		DataSource dataSourceOSM = AbstractExec.getDataCSV(shapeSource, ',');
 
 		StorageManager storageOSM = new StorageManager();
 		storageOSM.enableInMemoryProcessing();
@@ -241,15 +238,6 @@ public class BUSTEstimationV2 {
 		return output;
 	}
 
-	/**
-	 * Transforms all pairs <shapeId, List<ShapePoint> into pairs <shapeId,
-	 * ShapeLine>
-	 * 
-	 * @param shapePair
-	 *            - the output pair from mapShape method
-	 * 
-	 * @return Returns a HashMap in the form <shapeId, ShapeLine>
-	 */
 	public static HashMap<String, ShapeLine> groupShape(HashMap<String, LinkedList<ShapePoint>> shapePair) {
 		HashMap<String, ShapeLine> output = new HashMap<String, ShapeLine>();
 
@@ -263,16 +251,6 @@ public class BUSTEstimationV2 {
 		return output;
 	}
 
-	/**
-	 * Reads the bus stops input file and maps it to a HashMap in the form of
-	 * <shapeId, HashMap<shapeSequence,stopId>>
-	 * 
-	 * @param filePath
-	 *            - the path of the bus stops input file
-	 * 
-	 * @return Returns a HashMap that contains other HashMap
-	 *         <shapeSequence,stopId> for each shapeId
-	 */
 	public static HashMap<String, HashMap<String, String>> mapBusStops(String filePath) {
 
 		HashMap<String, HashMap<String, String>> output = new HashMap<String, HashMap<String, String>>();
@@ -303,18 +281,10 @@ public class BUSTEstimationV2 {
 		return output;
 	}
 
-	/**
-	 * Reads the output file from Bulma and map it to a HashMap where the key is
-	 * shapeId:busCode:tripNum and the value is a LinkedList of BulmaOutput
-	 * 
-	 * @param filePath
-	 *            - the output file from Bulma
-	 * 
-	 * @return Returns a HashMap in the form <shapeId:busCode:tripNum,
-	 *         LinkedList<BulmaOutput>>
-	 */
-	public static void mapBulmaOutput(String filePath) {
+	public static HashMap<String, HashMap<String, LinkedList<BulmaOutput>>> mapBulmaOutput(String filePath) {
 
+		HashMap<String, HashMap<String, LinkedList<BulmaOutput>>> mapBulmaOut =  new HashMap<String, HashMap<String, LinkedList<BulmaOutput>>>();
+		
 		DataSource dataSourceOSM = AbstractExec.getDataCSV(filePath, ',');
 
 		StorageManager storageOSM = new StorageManager();
@@ -358,16 +328,9 @@ public class BUSTEstimationV2 {
 			mapBulmaOut.get(bulmaOutput.getBusCode()).get(key).add(bulmaOutput);
 
 		}
+		return mapBulmaOut;
 	}
-
 	
-	/**
-	 * Reads the output file from Bulma and map it to a HashMap where the key is shapeId:busCode:tripNum and the value is a LinkedList of BulmaOutput
-	 * 
-	 * @param filePath - the output file from Bulma
-	 * 
-	 * @return Returns a HashMap in the form <shapeId:busCode:tripNum,  LinkedList<BulmaOutput>>
-	 */
 	public static HashMap<String, LinkedList<BulmaOutput>> mapBulmaOutputSplitted(String filePath) {
 		HashMap<String, LinkedList<BulmaOutput>> output = new HashMap<String, LinkedList<BulmaOutput>>();
 
@@ -415,9 +378,10 @@ public class BUSTEstimationV2 {
 		return output;
 	}
 	
-	
-	public static void mapTickets(String filePath) {
+	public static HashMap<String, LinkedList<TicketInformation>> mapTickets(String filePath) {
 
+		HashMap<String, LinkedList<TicketInformation>> mapTickets = new HashMap<String, LinkedList<TicketInformation>>();
+		
 		DataSource dataSourceOSM = AbstractExec.getDataCSV(filePath, ',');
 
 		StorageManager storageOSM = new StorageManager();
@@ -452,22 +416,50 @@ public class BUSTEstimationV2 {
 			mapTickets.get(ticket.getBusCode()).add(ticket);
 
 		}
+		return mapTickets;
 	}
 	
-	/**
-	 * Merges all inputs into tuples of BulmaOutputGrouping, ShapeLine and
-	 * HashMap<String, String>
-	 * 
-	 * @param partialBulmaOutput
-	 *            - the output from mapBulmaOutput method
-	 * @param groupedShape
-	 *            - the output from groupShape method
-	 * @param mapStopPoints
-	 *            - the output from mapBusStops method
-	 * 
-	 * @return Returns all inputs grouped into Tuples of related
-	 *         BulmaOutputGrouping, ShapeLine and HashMap<shapeSequence,stopId>
-	 */
+	public static HashMap<String, LinkedList<TicketInformation>> mapTicketsSplitted(String filePath) {
+
+		HashMap<String, LinkedList<TicketInformation>> output = new HashMap<String, LinkedList<TicketInformation>>();
+		
+		DataSource dataSourceOSM = AbstractExec.getDataCSV(filePath, ',');
+
+		StorageManager storageOSM = new StorageManager();
+		storageOSM.enableInMemoryProcessing();
+		storageOSM.addDataSource(dataSourceOSM);
+
+		if (!storageOSM.isDataExtracted()) {
+			storageOSM.extractData();
+		}
+
+		for (GenericObject genericObj : storageOSM.getExtractedData()) {
+
+			JsonRecord data = genericObj.getData();
+
+			String codLine = data.get("CODLINHA").toString();
+			String nameLine = data.get("NOMELINHA").toString();
+			String busCode = data.get("CODVEICULO").toString();
+			String ticketNumber = data.get("NUMEROCARTAO").toString();
+			String timeOfUse = data.get("HORAUTILIZACAO").toString();
+			String dateOfUse = data.get("DATAUTILIZACAO").toString();
+			String birthDate = data.get("DATANASCIMENTO").toString();
+			String gender = data.get("SEXO").toString();
+			
+
+			TicketInformation ticket = new TicketInformation(codLine, nameLine, busCode, ticketNumber, timeOfUse,
+					dateOfUse, birthDate, gender);
+
+
+			if (!output.containsKey(ticket.getBusCode())) {
+				output.put(ticket.getBusCode(), new LinkedList<TicketInformation>());
+			}
+			output.get(ticket.getBusCode()).add(ticket);
+
+		}
+		return output;
+	}
+	
 	public static LinkedList<Tuple3<BulmaOutputGrouping, ShapeLine, HashMap<String, String>>> mergeInputs(
 			HashMap<String, LinkedList<BulmaOutput>> partialBulmaOutput, HashMap<String, ShapeLine> groupedShape,
 			HashMap<String, HashMap<String, String>> mapStopPoints) {
@@ -489,19 +481,6 @@ public class BUSTEstimationV2 {
 		return output;
 	}
 
-	/**
-	 * Interpolates shapes based on Bulma output file, merges this result with
-	 * the bus stops file and formats the output into Strings
-	 * 
-	 * @param mergedOutput
-	 *            - the output from mergeInputs method
-	 * @param results
-	 *            - the list of results to be filled
-	 * 
-	 * @return Returns the final output formatted in Strings
-	 * 
-	 * @throws ParseException
-	 */
 	public static HashMap<String, LinkedList<String>> generateTmpOutput(
 			LinkedList<Tuple3<BulmaOutputGrouping, ShapeLine, HashMap<String, String>>> mergedOutput) throws ParseException {
 
@@ -517,7 +496,7 @@ public class BUSTEstimationV2 {
 
 				Tuple2<Float, String> previousGPSPoint = null;
 				Tuple2<Float, String> nextGPSPoint = null;
-				List<Integer> pointsBetweenGPS = new LinkedList<Integer>();
+				LinkedList<Integer> pointsBetweenGPS = new LinkedList<Integer>();
 				
 				String tripNum = "-";
 
@@ -625,9 +604,8 @@ public class BUSTEstimationV2 {
 
 		return results;
 	}
-
 	
-	private static void addOutput(String route, String tripNum, String shapeId, String shapeSequence,
+	public static void addOutput(String route, String tripNum, String shapeId, String shapeSequence,
 			String shapeLat, String shapeLon, String distanceTraveledShape, String busCode,
 			String gpsPointId, String gpsLat, String gpsLon, String distanceToShapePoint,
 			String timestamp, String problemCode,  HashMap<String, LinkedList<String>> listOutput, HashMap<String, String> mapStopPoints) {
@@ -660,11 +638,10 @@ public class BUSTEstimationV2 {
 		}
 		listOutput.get(busCode).add(outputString);
 	}
-	
 
 	public static void generateOutputFromPointsInBetween(String shapeId, String tripNum,
-			Tuple2<Float, String> previousGPSPoint, List<Integer> pointsBetweenGPS,
-			Tuple2<Float, String> nextGPSPoint, List<ShapePoint> listGeoPointsShape, String busCode,
+			Tuple2<Float, String> previousGPSPoint, LinkedList<Integer> pointsBetweenGPS,
+			Tuple2<Float, String> nextGPSPoint, LinkedList<ShapePoint> listGeoPointsShape, String busCode,
 			HashMap<String, LinkedList<String>> listOutput, HashMap<String, String> mapStopPoints) throws ParseException {
 
 		Float previousDistanceTraveled = previousGPSPoint._1;
@@ -713,13 +690,13 @@ public class BUSTEstimationV2 {
 		return parser.parse(timestamp).getTime();
 	}
 	
-	private static int getNumberTicketsOfBusStop(String currentBusCode, String currentTimeString, String nextTimeString) throws ParseException {
+	public static int getNumberTicketsOfBusStop(String currentBusCode, String currentTimeString, String nextTimeString, HashMap<String, LinkedList<TicketInformation>> tickets) throws ParseException {
 		
 		 SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss");
 		 Date currentTime = sdf.parse(currentTimeString);
 	     Date nextTime = sdf.parse(nextTimeString);
 	     int count = 0;
-	     List<TicketInformation> times = mapTickets.get(currentBusCode);
+	     LinkedList<TicketInformation> times = tickets.get(currentBusCode);
 	     if (times != null) {
 			for (TicketInformation timeinfo : times) {
 				String time = timeinfo.getTimeOfUse();
