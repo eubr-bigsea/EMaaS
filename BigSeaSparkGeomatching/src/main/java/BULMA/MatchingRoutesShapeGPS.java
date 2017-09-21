@@ -1,6 +1,5 @@
 package BULMA;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -81,7 +80,7 @@ public class MatchingRoutesShapeGPS {
 	    FileStatus[] fileStatus = fs.listStatus(new Path(pathGPSFiles));
 
 		for (FileStatus file : fileStatus) {
-			JavaRDD<List<GPSLine>> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getPath().getName(),
+			JavaRDD<String> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getPath().getName(),
 					minPartitions, context);
 			
 //			Save as text file
@@ -98,7 +97,7 @@ public class MatchingRoutesShapeGPS {
 	}
 
 	@SuppressWarnings("serial")
-	private static JavaRDD<List<GPSLine>> executeBULMA(String pathFileShapes, String pathGPSFile, int minPartitions, JavaSparkContext ctx) {
+	private static JavaRDD<String> executeBULMA(String pathFileShapes, String pathGPSFile, int minPartitions, JavaSparkContext ctx) {
 		
 		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
 			@Override
@@ -124,10 +123,10 @@ public class MatchingRoutesShapeGPS {
 					public Tuple2<String, GeoPoint> call(String s) throws Exception {
 						GPSPoint gpsPoint = GPSPoint.createGPSPointWithId(s);
 						
-						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode() + gpsPoint.getLineCode(), gpsPoint);
+//						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode() + gpsPoint.getLineCode(), gpsPoint);
 						
 //						Uncomment the line below to execute with CURITIBA data
-//						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode(), gpsPoint);
+						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode(), gpsPoint);
 					}
 					
 				}).groupByKey(minPartitions);
@@ -496,12 +495,12 @@ public class MatchingRoutesShapeGPS {
 			public Iterator<String> call(List<GPSLine> listGPS) throws Exception {
 				List<String> listOutput = new ArrayList<>();
 				for (GPSLine gpsLine : listGPS) {
-					String stringOutput = "";
 					if (gpsLine != null) {
 
 						if (gpsLine.getMapTrips().isEmpty()) {
 							GPSPoint gpsPoint;
 							for (GeoPoint geoPoint: gpsLine.getListGeoPoints()) {
+								String stringOutput = "";
 								gpsPoint = (GPSPoint) geoPoint;
 								stringOutput += Problem.NO_SHAPE.getCode() + FILE_SEPARATOR;
 								stringOutput +=gpsPoint.getLineCode() + FILE_SEPARATOR;
@@ -521,7 +520,8 @@ public class MatchingRoutesShapeGPS {
 								stringOutput +="-" + FILE_SEPARATOR;
 								stringOutput +="-" + FILE_SEPARATOR;
 								
-								stringOutput +=Problem.NO_SHAPE.getCode() + "\n";
+								stringOutput +=Problem.NO_SHAPE.getCode();
+								listOutput.add(stringOutput);
 								
 							}
 						}
@@ -532,7 +532,7 @@ public class MatchingRoutesShapeGPS {
 								for (GeoPoint geoPoint : trip.getGPSPoints()) {
 
 									GPSPoint gpsPoint = (GPSPoint) geoPoint;
-
+									String stringOutput = "";
 									stringOutput +=key  + FILE_SEPARATOR;
 									stringOutput +=gpsPoint.getLineCode()  + FILE_SEPARATOR;
 									if (trip.getShapeLine() == null) {
@@ -562,19 +562,16 @@ public class MatchingRoutesShapeGPS {
 									}
 
 									if (trip.getProblem().equals(Problem.TRIP_PROBLEM)) {
-										stringOutput +=trip.getProblem().getCode() + "\n";
+										stringOutput += trip.getProblem().getCode();
 									} else if (gpsPoint.getDistanceClosestShapePoint() > gpsPoint.getThresholdShape()) {
-										stringOutput +=Problem.OUTLIER_POINT.getCode() + "\n";
+										stringOutput +=Problem.OUTLIER_POINT.getCode();
 									} else {
-										stringOutput +=trip.getProblem().getCode() + "\n";
+										stringOutput +=trip.getProblem().getCode();
 									}
+									listOutput.add(stringOutput);
 								}
 							}
 						}
-					}
-					
-					if (!stringOutput.isEmpty()) {
-						listOutput.add(stringOutput);
 					}
 					
 				}
@@ -582,11 +579,9 @@ public class MatchingRoutesShapeGPS {
 			}
 		});
 		
-//		return rddOutput;
 		
-		return rddClosestPoint;		
+		return rddOutput;		
 	}
-
 	
 	private static void saveOutputFile(JavaRDD<List<GPSLine>> rddClosestPoint, String pathOutput) {
 		FileWriter output;
