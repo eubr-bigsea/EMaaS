@@ -53,11 +53,10 @@ public class BUSTEstimation {
 			} else if (arg.equals("-stops")) {
 				stopsSource = args[argIndex++];
 
-			} else if (arg.equals("-folder")) {
+			} else if (arg.equals("-bo")) {
 				gpsFolder = args[argIndex++];
 
-				// f = number of partitions
-			} else if (arg.equals("-f")) {
+			} else if (arg.equals("-partitions")) {
 				numPartitions = Integer.parseInt(args[argIndex++]);
 
 			} else if (arg.equals("-list")) {

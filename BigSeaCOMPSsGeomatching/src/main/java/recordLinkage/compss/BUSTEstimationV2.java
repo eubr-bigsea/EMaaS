@@ -72,8 +72,7 @@ public class BUSTEstimationV2 {
 				bulmaOutput = args[argIndex++];
 				bulmaOutputTmp = bulmaOutput.substring(0, bulmaOutput.lastIndexOf("/")+1) + "_bo";
 				
-				// f = number of partitions
-			} else if (arg.equals("-f")) {
+			} else if (arg.equals("-partitions")) {
 				numPartitions = Integer.parseInt(args[argIndex++]);
 
 			} else if (arg.equals("-list")) {
@@ -108,7 +107,6 @@ public class BUSTEstimationV2 {
 			}
 		} 
 	}
-	
 	
 	private static void removeTmpFiles(Integer numPartitions, String bulmaOutputTmp, String ticketsTmp) {
 
