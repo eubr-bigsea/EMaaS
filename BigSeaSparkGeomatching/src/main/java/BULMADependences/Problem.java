@@ -14,4 +14,11 @@ public enum Problem {
 	public int getCode() {
 		return code;
 	}
+	
+	public static String getById(Integer code) {
+	    for(Problem e : values()) {
+	        if(e.code == code) return e.toString();
+	    }
+	    return null;
+	 }
 }

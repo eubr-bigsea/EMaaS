@@ -14,6 +14,7 @@ public class ShapeLine extends GeoLine {
 	private String route;
 	private int thresholdDistance;
 		
+	
 	public ShapeLine(String id, LineString lineString, Float distanceTraveled, String blockingKey) {
 		super(id, lineString, blockingKey);
 		this.distanceTraveled = distanceTraveled;

@@ -46,7 +46,8 @@ public class MatchingRoutesShapeGPS {
 	private static final double THRESHOLD_TIME = 600000; // 20 minutes
 	private static final double PERCENTAGE_DISTANCE = 0.09;
 	private static final String FILE_SEPARATOR = ",";
-
+	private static final String SLASH = "/";
+	
 	public static void main(String[] args) throws IOException, URISyntaxException {
 
 		if (args.length < 4) {
@@ -61,8 +62,8 @@ public class MatchingRoutesShapeGPS {
 		String pathOutput = args[2];
 		int minPartitions = Integer.valueOf(args[3]);
 
-		SparkConf sparkConf = new SparkConf().setAppName("BULMA").setMaster("local");
-//		SparkConf sparkConf = new SparkConf().setAppName("BULMA");
+//		SparkConf sparkConf = new SparkConf().setAppName("BULMA").setMaster("local");
+		SparkConf sparkConf = new SparkConf().setAppName("BULMA");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
 		generateOutputFiles(pathFileShapes, pathGPSFile, pathOutput, minPartitions, context);
@@ -84,7 +85,7 @@ public class MatchingRoutesShapeGPS {
 					minPartitions, context);
 			
 //			Save as text file
-			rddOutputBuLMA.saveAsTextFile(pathOutput + file.getPath().getName());
+			rddOutputBuLMA.saveAsTextFile(pathOutput + SLASH + file.getPath().getName().substring(0, file.getPath().getName().lastIndexOf(".csv")));
 			
 //			Save as parquet
 //			SQLContext sqlContext = new org.apache.spark.sql.SQLContext(context);
