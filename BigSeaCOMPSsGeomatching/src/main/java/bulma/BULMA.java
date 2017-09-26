@@ -46,7 +46,7 @@ public class BULMA {
 		String gpsFile = "bus_data/gtfsFiles/00.csv";
 		String gpsTmp = gpsFile.substring(0, gpsFile.lastIndexOf("/") + 1) + "_";
 		int numPartitions = 2;
-		boolean list = true;
+		boolean list = false;
 
 		int argIndex = 0;
 		while (argIndex < args.length) {
@@ -89,22 +89,12 @@ public class BULMA {
 			for (String result : results) {
 				System.out.println(result);
 			}
-		}
+			
+		} 
 		System.out.println("[LOG] Result size = " + results.size());
 
 	}
 
-	private static void removeTmpFiles(int numPartitions, String gpsTmp) {
-		File file;
-		for (int i = 0; i < numPartitions; i++) {
-			String filePath = gpsTmp + String.format("%02d", i) + ".csv";
-			file = new File(filePath);
-			if (!file.delete()) {
-				System.err.println("Error deleting file: " + filePath);
-			}
-		}
-
-	}
 
 	private static void splitFile(int numPartitions, String gpsFile, String gpsTmp)
 			throws FileNotFoundException, UnsupportedEncodingException {
@@ -127,7 +117,7 @@ public class BULMA {
 				}
 				j++;
 			}
-			writer.close();
+			writer.	close();
 		}
 
 	}
@@ -659,6 +649,18 @@ public class BULMA {
 			}
 		}
 		return results;
+
+	}
+
+	private static void removeTmpFiles(int numPartitions, String gpsTmp) {
+		File file;
+		for (int i = 0; i < numPartitions; i++) {
+			String filePath = gpsTmp + String.format("%02d", i) + ".csv";
+			file = new File(filePath);
+			if (!file.delete()) {
+				System.err.println("Error deleting file: " + filePath);
+			}
+		}
 
 	}
 }

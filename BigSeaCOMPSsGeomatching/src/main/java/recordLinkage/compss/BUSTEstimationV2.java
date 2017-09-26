@@ -52,7 +52,7 @@ public class BUSTEstimationV2 {
 		String bulmaOutputTmp = bulmaOutput.substring(0, bulmaOutput.lastIndexOf("/")+1) + "_bo";
 		String ticketsFile = "bus_data/gtfsFiles/tickets-2017071815.csv";
 		String ticketsTmp = ticketsFile.substring(0, ticketsFile.lastIndexOf("/")+1) + "_tickets"  ;
-		boolean list = true;
+		boolean list = false;
 		
 		int argIndex = 0;
 		while (argIndex < args.length) {

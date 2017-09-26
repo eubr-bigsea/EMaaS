@@ -14,10 +14,16 @@ public abstract class GeoPoint extends GeoObject implements Serializable{
 	//301,"022","INTER 2 (HORÃRIO)",3,"FF0000","EstaÃ§Ã£o Tubo Santa QuitÃ©ria",-25.459129997717,-49.302406792031,3217
 	//gpsLine: "AL300",-25.440416,-49.220878,2015-10-19 06:13:33,"022"
 	
+	
+	
 	private static final long serialVersionUID = 1L;
 	private String latitude;
 	private String longitude;
 	private List<ClosestPoints> acumulator;
+	
+	public GeoPoint() {
+		super();
+	}
 	
 	public GeoPoint(String latitude, String longitude) {
 		super();

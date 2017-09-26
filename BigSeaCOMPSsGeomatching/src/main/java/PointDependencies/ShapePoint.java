@@ -1,10 +1,11 @@
 package PointDependencies;
 
+import java.io.Serializable;
 import java.util.StringTokenizer;
 
 import genericEntity.util.data.GenericObject;
 
-public class ShapePoint extends GeoPoint {
+public class ShapePoint extends GeoPoint implements Serializable {
 
 	private static final long serialVersionUID = -3653266126955061889L;
 	// "shape_id","shape_pt_lat","shape_pt_lon","shape_pt_sequence","shape_dist_traveled"

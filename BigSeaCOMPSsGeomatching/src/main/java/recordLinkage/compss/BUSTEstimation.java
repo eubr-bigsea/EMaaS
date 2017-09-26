@@ -1,12 +1,15 @@
 package recordLinkage.compss;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map.Entry;
 
 import PointDependencies.Problem;
@@ -35,12 +38,13 @@ public class BUSTEstimation {
 
 	private static final String SEPARATOR = ",";
 	
-	public static void main(String[] args) throws ParseException {
+	public static void main(String[] args) throws ParseException, FileNotFoundException, UnsupportedEncodingException {
 
 		Integer numPartitions = 1;
-		String shapeSource = "bus_data/gtfsFiles/shapesGTFS.csv";
-		String stopsSource = "bus_data/gtfsFiles/stopTime.csv";
-		String gpsFolder = "test/";
+		String shapeSource = "shapesGTFS.csv";
+		String stopsSource = "stopTime.csv";
+		String bulmaOutput= "outBULMA00.csv";
+		String bulmaOutputTmp = bulmaOutput.substring(0, bulmaOutput.lastIndexOf("/")+1) + "_bo";
 		boolean list = false;
 
 		int argIndex = 0;
@@ -54,7 +58,8 @@ public class BUSTEstimation {
 				stopsSource = args[argIndex++];
 
 			} else if (arg.equals("-bo")) {
-				gpsFolder = args[argIndex++];
+				bulmaOutput = args[argIndex++];
+				bulmaOutputTmp = bulmaOutput.substring(0, bulmaOutput.lastIndexOf("/")+1) + "_bo";
 
 			} else if (arg.equals("-partitions")) {
 				numPartitions = Integer.parseInt(args[argIndex++]);
@@ -64,6 +69,8 @@ public class BUSTEstimation {
 			}
 		}
 
+		createFiles(numPartitions, bulmaOutputTmp, bulmaOutput);
+		
 		HashMap<String, LinkedList<ShapePoint>> shapePair = mapShape(shapeSource);
 		HashMap<String, ShapeLine> groupedShape = groupShape(shapePair);
 		HashMap<String, HashMap<String, String>> mapStopPoints = mapBusStops(stopsSource);
@@ -71,23 +78,113 @@ public class BUSTEstimation {
 		LinkedList<String> results = new LinkedList<String>();
 
 		for (int i = 0; i < numPartitions; i++) {
-			String filePath = gpsFolder + String.format("%02d", i) + ".csv";
-			HashMap<String, LinkedList<BulmaOutput>> partialBulmaOutput = mapBulmaOutput(filePath);
+			String filePath = bulmaOutputTmp + String.format("%02d", i) + ".csv";
+			HashMap<String, LinkedList<BulmaOutput>> partialBulmaOutput = mapBulmaOutputSplitted(filePath);
 			System.out.println(filePath);
 			LinkedList<Tuple3<BulmaOutputGrouping, ShapeLine, HashMap<String, String>>> mergedOutput = mergeInputs(partialBulmaOutput, groupedShape,
 					mapStopPoints);
 			results = generateOutput(mergedOutput, results);
 
 		}
+		removeTmpFiles(numPartitions, bulmaOutputTmp);
 		System.out.println("[LOG] Result size = " + results.size());
 
 		if (list) {
 			for (String result : results) {
 				System.out.println(result);
 			}
-		} 
+		}
 
 	}
+
+	private static void removeTmpFiles(int numPartitions, String bulmaOutputTmp) {
+		File file;
+		for (int i = 0; i < numPartitions; i++) {
+			String filePath = bulmaOutputTmp + String.format("%02d", i) + ".csv";
+			file = new File(filePath);
+			if (!file.delete()) {
+				System.err.println("Error deleting file: " + filePath);
+			}
+		}
+
+	}
+	
+	private static void createFiles(int numPartitions, String bulmaOutputTmp, String bulmaOutputFile) throws FileNotFoundException, UnsupportedEncodingException {
+
+		HashMap<String, LinkedList<BulmaOutput>> mapBulmaOut = mapBulmaOutput(bulmaOutputFile);			
+		
+		for (int i = 0; i < numPartitions; i++) {
+			PrintWriter writerBO = new PrintWriter(bulmaOutputTmp + String.format("%02d", i) + ".csv", "UTF-8");
+			writerBO.println("TRIP_NUM,ROUTE,SHAPE_ID,SHAPE_SEQ,LAT_SHAPE,LON_SHAPE,GPS_POINT_ID,BUS_CODE,TIMESTAMP,LAT_GPS,LON_GPS,DISTANCE,THRESHOLD_PROBLEM,TRIP_PROBLEM");
+			int nextIndex = i;
+			int j = 0; 
+			for (Entry<String, LinkedList<BulmaOutput>> entrySet: mapBulmaOut.entrySet()) {
+				
+				if (j == nextIndex ) {
+					nextIndex += numPartitions;
+					
+					for (BulmaOutput bulmaOutput : entrySet.getValue()) {
+						writerBO.println(bulmaOutput.toString());
+					}
+				}
+				j++;
+			}
+			writerBO.close();
+		}
+		
+	}
+	
+	public static HashMap<String, LinkedList<BulmaOutput>> mapBulmaOutput(String filePath) {
+		HashMap<String, LinkedList<BulmaOutput>> output = new HashMap<String, LinkedList<BulmaOutput>>();
+
+		DataSource dataSourceOSM = AbstractExec.getDataCSV(filePath, ',');
+
+		StorageManager storageOSM = new StorageManager();
+
+		// enables in-memory execution for faster processing
+		// this can be done since the whole data fits into memory
+		storageOSM.enableInMemoryProcessing();
+		// adds the "data" to the algorithm
+		storageOSM.addDataSource(dataSourceOSM);
+
+		if (!storageOSM.isDataExtracted()) {
+			storageOSM.extractData();
+		}
+
+		for (GenericObject genericObj : storageOSM.getExtractedData()) {
+
+			JsonRecord data = genericObj.getData();
+
+			String tripNum = data.get("TRIP_NUM").toString();
+			String route = data.get("ROUTE").toString();
+			String shapeId = data.get("SHAPE_ID").toString();
+			String shapeSequence = data.get("SHAPE_SEQ").toString();
+			String latShape = data.get("LAT_SHAPE").toString();
+			String lonShape = data.get("LON_SHAPE").toString();
+			String gpsPointId = data.get("GPS_POINT_ID").toString();
+			String busCode = data.get("BUS_CODE").toString();
+			String timestamp = data.get("TIMESTAMP").toString();
+			String latGPS = data.get("LAT_GPS").toString();
+			String lonGPS = data.get("LON_GPS").toString();
+			String dinstance = data.get("DISTANCE").toString();
+			String thresholdProblem = data.get("THRESHOLD_PROBLEM").toString();
+			String tripProblem = data.get("TRIP_PROBLEM").toString();
+
+			BulmaOutput bulmaOutput = new BulmaOutput(tripNum, route, shapeId, shapeSequence, latShape, lonShape,
+					gpsPointId, busCode, timestamp, latGPS, lonGPS, dinstance, thresholdProblem, tripProblem);
+
+			String key = bulmaOutput.getShapeId() + ":" + bulmaOutput.getBusCode() + ":" + bulmaOutput.getTripNum();
+
+			if (!output.containsKey(key)) {
+				output.put(key, new LinkedList<BulmaOutput>());
+			}
+			output.get(key).add(bulmaOutput);
+
+		}
+
+		return output;
+	}
+	
 
 	/**
 	 * Reads the input shape file and maps it to a HashMap of shapeId and List<ShapePoint>
@@ -202,7 +299,7 @@ public class BUSTEstimation {
 	 * 
 	 * @return Returns a HashMap in the form <shapeId:busCode:tripNum,  LinkedList<BulmaOutput>>
 	 */
-	public static HashMap<String, LinkedList<BulmaOutput>> mapBulmaOutput(String filePath) {
+	public static HashMap<String, LinkedList<BulmaOutput>> mapBulmaOutputSplitted(String filePath) {
 		HashMap<String, LinkedList<BulmaOutput>> output = new HashMap<String, LinkedList<BulmaOutput>>();
 
 		DataSource dataSourceOSM = AbstractExec.getDataCSV(filePath, ',');
@@ -311,7 +408,7 @@ public class BUSTEstimation {
 
 				Tuple2<Float, String> previousGPSPoint = null;
 				Tuple2<Float, String> nextGPSPoint = null;
-				List<Integer> pointsBetweenGPS = new LinkedList<Integer>();
+				LinkedList<Integer> pointsBetweenGPS = new LinkedList<Integer>();
 				
 				String tripNum = "-";
 
@@ -424,7 +521,7 @@ public class BUSTEstimation {
 	private static void addOutput(String route, String tripNum, String shapeId, String shapeSequence,
 			String shapeLat, String shapeLon, String distanceTraveledShape, String busCode,
 			String gpsPointId, String gpsLat, String gpsLon, String distanceToShapePoint,
-			String timestamp, String problemCode,  List<String> listOutput, HashMap<String, String> mapStopPoints) {
+			String timestamp, String problemCode,  LinkedList<String> listOutput, HashMap<String, String> mapStopPoints) {
 		
 		String stopPointId = mapStopPoints.get(shapeSequence);
 		
@@ -453,9 +550,9 @@ public class BUSTEstimation {
 	}
 
 	public static void generateOutputFromPointsInBetween(String shapeId, String tripNum,
-			Tuple2<Float, String> previousGPSPoint, List<Integer> pointsBetweenGPS,
-			Tuple2<Float, String> nextGPSPoint, List<ShapePoint> listGeoPointsShape, String busCode,
-			List<String> listOutput, HashMap<String, String> mapStopPoints) throws ParseException {
+			Tuple2<Float, String> previousGPSPoint, LinkedList<Integer> pointsBetweenGPS,
+			Tuple2<Float, String> nextGPSPoint, LinkedList<ShapePoint> listGeoPointsShape, String busCode,
+			LinkedList<String> listOutput, HashMap<String, String> mapStopPoints) throws ParseException {
 
 		Float previousDistanceTraveled = previousGPSPoint._1;
 		long previousTime = getTimeLong(previousGPSPoint._2);

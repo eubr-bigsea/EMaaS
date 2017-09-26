@@ -3,7 +3,6 @@ package recordLinkage.compss;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-import PointDependencies.ShapePoint;
 import integratedtoolkit.types.annotations.Parameter;
 import integratedtoolkit.types.annotations.parameter.Direction;
 import integratedtoolkit.types.annotations.parameter.Type;
