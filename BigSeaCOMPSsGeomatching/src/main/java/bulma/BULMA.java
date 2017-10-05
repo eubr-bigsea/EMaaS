@@ -1,9 +1,9 @@
 package bulma;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,11 +25,6 @@ import bulma.dependencies.Problem;
 import bulma.dependencies.ShapeLine;
 import bulma.dependencies.ShapePoint;
 import bulma.dependencies.Trip;
-import genericEntity.datasource.DataSource;
-import genericEntity.exec.AbstractExec;
-import genericEntity.util.data.GenericObject;
-import genericEntity.util.data.json.JsonRecord;
-import genericEntity.util.data.storage.StorageManager;
 import scala.Tuple2;
 
 public class BULMA {
@@ -42,9 +37,8 @@ public class BULMA {
 
 	public static void main(String[] args) throws Exception {
 
-		String shapeFile = "bus_data/gtfsFiles/shapesGTFS.csv";
-		String gpsFile = "bus_data/gtfsFiles/00.csv";
-		String gpsTmp = gpsFile.substring(0, gpsFile.lastIndexOf("/") + 1) + "_";
+		String shapeFile = "C:/Users/Andreza/Desktop/TESTAR/inputsBULMA/shapes.csv";
+		String gpsFiles = "inputsBULMA/gps/2017_05_03/";
 		int numPartitions = 2;
 		boolean list = false;
 
@@ -56,8 +50,7 @@ public class BULMA {
 				shapeFile = args[argIndex++];
 
 			} else if (arg.equals("-gps")) {
-				gpsFile = args[argIndex++];
-				gpsTmp = gpsFile.substring(0, gpsFile.lastIndexOf("/") + 1) + "_";
+				gpsFiles = args[argIndex++];
 
 			} else if (arg.equals("-partitions")) {
 				numPartitions = Integer.parseInt(args[argIndex++]);
@@ -67,14 +60,14 @@ public class BULMA {
 			}
 		}
 
-		splitFile(numPartitions, gpsFile, gpsTmp);
-
+		Long initialTime = System.currentTimeMillis();
+		
 		LinkedList<String> results = new LinkedList<String>();
 		HashMap<String, LinkedList<GeoPoint>> mapShape = mapShape(shapeFile);
 		HashMap<String, LinkedList<ShapeLine>> groupedShape = groupShape(mapShape);
 
 		for (int i = 0; i < numPartitions; i++) {
-			String gpsPath = gpsTmp + String.format("%02d", i) + ".csv";
+			String gpsPath = gpsFiles + "_"+ String.format("%02d", i) + ".csv";
 			HashMap<String, LinkedList<GeoPoint>> mapGPS = mapGPSFileSplitted(gpsPath);
 			HashMap<String, LinkedList<GPSLine>> groupedGPS = groupGPSFile(mapGPS);
 			LinkedList<GPSLine> possibleShapes = mapPossibleShapes(groupedGPS, groupedShape);
@@ -83,8 +76,6 @@ public class BULMA {
 			results = generateOutput(closestPoints, results);
 		}
 
-		removeTmpFiles(numPartitions, gpsTmp);
-
 		if (list) {
 			for (String result : results) {
 				System.out.println(result);
@@ -92,108 +83,51 @@ public class BULMA {
 			
 		} 
 		System.out.println("[LOG] Result size = " + results.size());
-
-	}
-
-
-	private static void splitFile(int numPartitions, String gpsFile, String gpsTmp)
-			throws FileNotFoundException, UnsupportedEncodingException {
-		HashMap<String, LinkedList<GeoPoint>> map = mapGPSFile(gpsFile);
-
-		for (int i = 0; i < numPartitions; i++) {
-			PrintWriter writer = new PrintWriter(gpsTmp + String.format("%02d", i) + ".csv", "UTF-8");
-			writer.println("bus.code,latitude,longitude,timestamp,line.code,gps.id");
-
-			int nextIndex = i;
-			int j = 0;
-			for (Entry<String, LinkedList<GeoPoint>> entrySet : map.entrySet()) {
-
-				if (j == nextIndex) {
-					nextIndex += numPartitions;
-
-					for (GeoPoint geoPoint : entrySet.getValue()) {
-						writer.println(geoPoint.toString());
-					}
-				}
-				j++;
-			}
-			writer.	close();
-		}
-
-	}
-
-	public static HashMap<String, LinkedList<GeoPoint>> mapGPSFile(String filePath) {
-
-		HashMap<String, LinkedList<GeoPoint>> output = new HashMap<String, LinkedList<GeoPoint>>();
-		DataSource dataSourceOSM = AbstractExec.getDataCSV(filePath, ',');
-
-		StorageManager storageOSM = new StorageManager();
-
-		// enables in-memory execution for faster processing
-		// this can be done since the whole data fits into memory
-		storageOSM.enableInMemoryProcessing();
-		// adds the "data" to the algorithm
-		storageOSM.addDataSource(dataSourceOSM);
-
-		if (!storageOSM.isDataExtracted()) {
-			storageOSM.extractData();
-		}
-
-		for (GenericObject genericObj : storageOSM.getExtractedData()) {
-
-			JsonRecord data = genericObj.getData();
-
-			String route = data.get("line.code").toString();
-			String gpsPointId = data.get("gps.id").toString();
-			String busCode = data.get("bus.code").toString();
-			String timestamp = data.get("timestamp").toString();
-			String latitude = data.get("latitude").toString();
-			String longitude = data.get("longitude").toString();
-
-			GPSPoint gpsPoint = new GPSPoint(busCode, latitude, longitude, timestamp, route, gpsPointId);
-
-			if (!output.containsKey(busCode)) {
-				output.put(busCode, new LinkedList<GeoPoint>());
-			}
-			output.get(busCode).add(gpsPoint);
-		}
-
-		return output;
+		System.out.println("[LOG] Execution time: " + (System.currentTimeMillis() - initialTime));
 	}
 
 	public static HashMap<String, LinkedList<GeoPoint>> mapShape(String filePath) {
 
 		HashMap<String, LinkedList<GeoPoint>> output = new HashMap<String, LinkedList<GeoPoint>>();
 
-		DataSource dataSourceOSM = AbstractExec.getDataCSV(filePath, ',');
+		BufferedReader br = null;
+		FileReader fr = null;
 
-		StorageManager storageOSM = new StorageManager();
+		try {
+			fr = new FileReader(filePath);
+			br = new BufferedReader(fr);
 
-		// enables in-memory execution for faster processing
-		// this can be done since the whole data fits into memory
-		storageOSM.enableInMemoryProcessing();
-		// adds the "data" to the algorithm
-		storageOSM.addDataSource(dataSourceOSM);
+			String sCurrentLine = br.readLine();
+			String[] currentLineSplitted;
+			while ((sCurrentLine = br.readLine()) != null) {
+				if (!sCurrentLine.isEmpty()) {
+					currentLineSplitted = sCurrentLine.split(",");
+					ShapePoint shapePoint = new ShapePoint(currentLineSplitted[0], currentLineSplitted[1], currentLineSplitted[2], currentLineSplitted[3], currentLineSplitted[4], currentLineSplitted[5]);
 
-		if (!storageOSM.isDataExtracted()) {
-			storageOSM.extractData();
-		}
-
-		for (GenericObject genericObj : storageOSM.getExtractedData()) {
-			JsonRecord data = genericObj.getData();
-			String route = data.get("route_id").toString();
-			String shapeId = data.get("shape_id").toString();
-			String latShape = data.get("shape_pt_lat").toString();
-			String lonShape = data.get("shape_pt_lon").toString();
-			String shapeSequence = data.get("shape_pt_sequence").toString();
-			String distTraveled = data.get("shape_dist_traveled").toString();
-
-			GeoPoint shapePoint = new ShapePoint(route, shapeId, latShape, lonShape, shapeSequence, distTraveled);
-
-			if (!output.containsKey(shapeId)) {
-				output.put(shapeId, new LinkedList<GeoPoint>());
+					if (!output.containsKey(shapePoint.getId())) {
+						output.put(shapePoint.getId(), new LinkedList<GeoPoint>());
+					}
+					output.get(shapePoint.getId()).add(shapePoint);
+				}
 			}
-			output.get(shapeId).add(shapePoint);
+
+		} catch (IOException e) {
+			e.printStackTrace();
+
+		} finally {
+			try {
+
+				if (br != null)
+					br.close();
+
+				if (fr != null)
+					fr.close();
+
+			} catch (IOException ex) {
+
+				ex.printStackTrace();
+
+			}
 		}
 
 		return output;
@@ -254,37 +188,43 @@ public class BULMA {
 	public static HashMap<String, LinkedList<GeoPoint>> mapGPSFileSplitted(String filePath) {
 
 		HashMap<String, LinkedList<GeoPoint>> output = new HashMap<String, LinkedList<GeoPoint>>();
-		DataSource dataSourceOSM = AbstractExec.getDataCSV(filePath, ',');
+		BufferedReader br = null;
+		FileReader fr = null;
 
-		StorageManager storageOSM = new StorageManager();
+		try {
+			fr = new FileReader(filePath);
+			br = new BufferedReader(fr);
 
-		// enables in-memory execution for faster processing
-		// this can be done since the whole data fits into memory
-		storageOSM.enableInMemoryProcessing();
-		// adds the "data" to the algorithm
-		storageOSM.addDataSource(dataSourceOSM);
-
-		if (!storageOSM.isDataExtracted()) {
-			storageOSM.extractData();
-		}
-
-		for (GenericObject genericObj : storageOSM.getExtractedData()) {
-
-			JsonRecord data = genericObj.getData();
-
-			String route = data.get("line.code").toString();
-			String gpsPointId = data.get("gps.id").toString();
-			String busCode = data.get("bus.code").toString();
-			String timestamp = data.get("timestamp").toString();
-			String latitude = data.get("latitude").toString();
-			String longitude = data.get("longitude").toString();
-
-			GPSPoint gpsPoint = new GPSPoint(busCode, latitude, longitude, timestamp, route, gpsPointId);
-
-			if (!output.containsKey(busCode)) {
-				output.put(busCode, new LinkedList<GeoPoint>());
+			String sCurrentLine = br.readLine();
+			while ((sCurrentLine = br.readLine()) != null) {
+				if (!sCurrentLine.isEmpty()) {
+					GPSPoint gpsPoint = GPSPoint.createGPSPointWithId(sCurrentLine);
+					if (!output.containsKey(gpsPoint.getBusCode())) {
+						output.put(gpsPoint.getBusCode(), new LinkedList<GeoPoint>());
+					}
+					output.get(gpsPoint.getBusCode()).add(gpsPoint);
+				}
 			}
-			output.get(busCode).add(gpsPoint);
+
+		} catch (IOException e) {
+
+			e.printStackTrace();
+
+		} finally {
+
+			try {
+
+				if (br != null)
+					br.close();
+
+				if (fr != null)
+					fr.close();
+
+			} catch (IOException ex) {
+
+				ex.printStackTrace();
+
+			}
 		}
 
 		return output;
@@ -652,7 +592,7 @@ public class BULMA {
 
 	}
 
-	private static void removeTmpFiles(int numPartitions, String gpsTmp) {
+	public static void removeTmpFiles(int numPartitions, String gpsTmp) {
 		File file;
 		for (int i = 0; i < numPartitions; i++) {
 			String filePath = gpsTmp + String.format("%02d", i) + ".csv";

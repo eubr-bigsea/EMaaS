@@ -1,8 +1,6 @@
 package recordLinkage.compss;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -48,10 +46,8 @@ public class BUSTEstimationV2 {
 		Integer numPartitions = 2;
 		String shapeSource = "bus_data/gtfsFiles/shapesGTFS.csv";
 		String stopsSource = "bus_data/gtfsFiles/stopTime.csv";
-		String bulmaOutput= "bus_data/outputBulma/00.csv";
-		String bulmaOutputTmp = bulmaOutput.substring(0, bulmaOutput.lastIndexOf("/")+1) + "_bo";
-		String ticketsFile = "bus_data/gtfsFiles/tickets-2017071815.csv";
-		String ticketsTmp = ticketsFile.substring(0, ticketsFile.lastIndexOf("/")+1) + "_tickets"  ;
+		String bulmaOutputDirectory = "bus_data/outputBulma/";
+		String ticketsDirectory = "bus_data/gtfsFiles/";
 		boolean list = false;
 		
 		int argIndex = 0;
@@ -65,12 +61,10 @@ public class BUSTEstimationV2 {
 				stopsSource = args[argIndex++];
 
 			} else if (arg.equals("-tickets")) {
-				ticketsFile = args[argIndex++];
-				ticketsTmp = ticketsFile.substring(0, ticketsFile.lastIndexOf("/")+1) + "_tickets" ;
+				ticketsDirectory = args[argIndex++];
 				
 			} else if (arg.equals("-bo")) {
-				bulmaOutput = args[argIndex++];
-				bulmaOutputTmp = bulmaOutput.substring(0, bulmaOutput.lastIndexOf("/")+1) + "_bo";
+				bulmaOutputDirectory = args[argIndex++];
 				
 			} else if (arg.equals("-partitions")) {
 				numPartitions = Integer.parseInt(args[argIndex++]);
@@ -80,8 +74,6 @@ public class BUSTEstimationV2 {
 			}
 		}
 		
-		createFiles(numPartitions, bulmaOutputTmp, ticketsTmp, bulmaOutput, ticketsFile);
-		
 		HashMap<String, LinkedList<ShapePoint>> shapePair = mapShape(shapeSource);
 		HashMap<String, ShapeLine> groupedShape = groupShape(shapePair);
 		HashMap<String, HashMap<String, String>> mapStopPoints = mapBusStops(stopsSource);
@@ -89,8 +81,8 @@ public class BUSTEstimationV2 {
 		
 		for (int i = 0; i < numPartitions; i++) {
 			System.out.println(i);
-			String filePath = bulmaOutputTmp + String.format("%02d", i) + ".csv";
-			HashMap<String, LinkedList<TicketInformation>> tickets = mapTicketsSplitted(ticketsTmp + String.format("%02d", i) + ".csv");
+			String filePath = bulmaOutputDirectory + "/_bo" + String.format("%02d", i) + ".csv";
+			HashMap<String, LinkedList<TicketInformation>> tickets = mapTicketsSplitted(ticketsDirectory + "/_ticket"  + String.format("%02d", i) + ".csv");
 			HashMap<String, LinkedList<BulmaOutput>> partialBulmaOutput = mapBulmaOutputSplitted(filePath);
 			LinkedList<Tuple3<BulmaOutputGrouping, ShapeLine, HashMap<String, String>>> mergedOutput = mergeInputs(
 					partialBulmaOutput, groupedShape, mapStopPoints);
@@ -98,7 +90,6 @@ public class BUSTEstimationV2 {
 			results = insertTicketsInformation(tmpOutput, tickets, results);
 
 		}
-		removeTmpFiles(numPartitions, bulmaOutputTmp, ticketsTmp);
 		System.out.println("[LOG] Result size = " + results.size());
 
 		if (list) {
@@ -108,62 +99,6 @@ public class BUSTEstimationV2 {
 		} 
 	}
 	
-	private static void removeTmpFiles(Integer numPartitions, String bulmaOutputTmp, String ticketsTmp) {
-
-		File file;
-		for (int i = 0; i < numPartitions; i++) {
-			String bulmaOutPath = bulmaOutputTmp + String.format("%02d", i) + ".csv";
-			file = new File(bulmaOutPath);
-			if (!file.delete()) {
-				System.err.println("Error deleting file: " + bulmaOutPath);
-			}
-			String ticketsPath = ticketsTmp + String.format("%02d", i) + ".csv";
-			file = new File(ticketsPath);
-			if (!file.delete()) {
-				System.err.println("Error deleting file: " + ticketsPath);
-			}
-		}		
-	}
-
-
-	public static void createFiles(int numPartitions, String gpsTmp, String ticketsTmp, String gpsFile, String ticketsFile) throws FileNotFoundException, UnsupportedEncodingException {
-
-		HashMap<String, HashMap<String, LinkedList<BulmaOutput>>> mapBulmaOut = mapBulmaOutput(gpsFile);			
-		HashMap<String, LinkedList<TicketInformation>> mapTickets = mapTickets(ticketsFile);
-		
-		for (int i = 0; i < numPartitions; i++) {
-			PrintWriter writerBO = new PrintWriter(gpsTmp + String.format("%02d", i) + ".csv", "UTF-8");
-			writerBO.println("TRIP_NUM,ROUTE,SHAPE_ID,SHAPE_SEQ,LAT_SHAPE,LON_SHAPE,GPS_POINT_ID,BUS_CODE,TIMESTAMP,LAT_GPS,LON_GPS,DISTANCE,THRESHOLD_PROBLEM,TRIP_PROBLEM");
-			PrintWriter writerTickets = new PrintWriter(ticketsTmp + String.format("%02d", i) + ".csv", "UTF-8");
-			writerTickets.println("CODLINHA,NOMELINHA,CODVEICULO,NUMEROCARTAO,HORAUTILIZACAO,DATAUTILIZACAO,DATANASCIMENTO,SEXO");
-			int nextIndex = i;
-			int j = 0; 
-			for (Entry<String, LinkedList<TicketInformation>> entrySet: mapTickets.entrySet()) {
-				
-				if (j == nextIndex ) {
-					nextIndex += numPartitions;
-					for (TicketInformation ticketInfo : entrySet.getValue()) {
-						
-						HashMap<String, LinkedList<BulmaOutput>> bulmaOut = mapBulmaOut.get(ticketInfo.getBusCode());
-						if (bulmaOut != null) {
-							writerTickets.println(ticketInfo.toString());
-							for (Entry<String, LinkedList<BulmaOutput>> entryBulma : bulmaOut.entrySet()) {
-								for (BulmaOutput bulmaOutput : entryBulma.getValue()) {
-									writerBO.println(bulmaOutput.toString());
-								}
-							}
-						}
-					}
-				}
-				j++;
-			}
-			writerBO.close();
-			writerTickets.close();
-		}
-		// TODO insert Bulma Output info into files even if there is no ticket for the bus
-		
-	}
-
 	public static LinkedList<String> insertTicketsInformation (HashMap<String, LinkedList<String>> listOutput, HashMap<String, LinkedList<TicketInformation>> tickets, LinkedList<String> results) throws ParseException {
 		
 		for (Entry<String, LinkedList<String>> entrySet: listOutput.entrySet()) {
@@ -279,55 +214,7 @@ public class BUSTEstimationV2 {
 		return output;
 	}
 
-	public static HashMap<String, HashMap<String, LinkedList<BulmaOutput>>> mapBulmaOutput(String filePath) {
-
-		HashMap<String, HashMap<String, LinkedList<BulmaOutput>>> mapBulmaOut =  new HashMap<String, HashMap<String, LinkedList<BulmaOutput>>>();
-		
-		DataSource dataSourceOSM = AbstractExec.getDataCSV(filePath, ',');
-
-		StorageManager storageOSM = new StorageManager();
-		storageOSM.enableInMemoryProcessing();
-		storageOSM.addDataSource(dataSourceOSM);
-
-		if (!storageOSM.isDataExtracted()) {
-			storageOSM.extractData();
-		}
-
-		for (GenericObject genericObj : storageOSM.getExtractedData()) {
-
-			JsonRecord data = genericObj.getData();
-
-			String tripNum = data.get("TRIP_NUM").toString();
-			String route = data.get("ROUTE").toString();
-			String shapeId = data.get("SHAPE_ID").toString();
-			String shapeSequence = data.get("SHAPE_SEQ").toString();
-			String latShape = data.get("LAT_SHAPE").toString();
-			String lonShape = data.get("LON_SHAPE").toString();
-			String gpsPointId = data.get("GPS_POINT_ID").toString();
-			String busCode = data.get("BUS_CODE").toString();
-			String timestamp = data.get("TIMESTAMP").toString();
-			String latGPS = data.get("LAT_GPS").toString();
-			String lonGPS = data.get("LON_GPS").toString();
-			String dinstance = data.get("DISTANCE").toString();
-			String thresholdProblem = data.get("THRESHOLD_PROBLEM").toString();
-			String tripProblem = data.get("TRIP_PROBLEM").toString();
-
-			BulmaOutput bulmaOutput = new BulmaOutput(tripNum, route, shapeId, shapeSequence, latShape, lonShape,
-					gpsPointId, busCode, timestamp, latGPS, lonGPS, dinstance, thresholdProblem, tripProblem);
-
-			String key = bulmaOutput.getShapeId() + bulmaOutput.getTripNum();
-
-			if (!mapBulmaOut.containsKey(bulmaOutput.getBusCode())) {
-				mapBulmaOut.put(bulmaOutput.getBusCode(), new HashMap<String, LinkedList<BulmaOutput>>());
-			}
-			if (!mapBulmaOut.get(bulmaOutput.getBusCode()).containsKey(key)) {
-				mapBulmaOut.get(bulmaOutput.getBusCode()).put(key, new LinkedList<BulmaOutput>());
-			}
-			mapBulmaOut.get(bulmaOutput.getBusCode()).get(key).add(bulmaOutput);
-
-		}
-		return mapBulmaOut;
-	}
+	
 	
 	public static HashMap<String, LinkedList<BulmaOutput>> mapBulmaOutputSplitted(String filePath) {
 		HashMap<String, LinkedList<BulmaOutput>> output = new HashMap<String, LinkedList<BulmaOutput>>();
@@ -376,46 +263,6 @@ public class BUSTEstimationV2 {
 		return output;
 	}
 	
-	public static HashMap<String, LinkedList<TicketInformation>> mapTickets(String filePath) {
-
-		HashMap<String, LinkedList<TicketInformation>> mapTickets = new HashMap<String, LinkedList<TicketInformation>>();
-		
-		DataSource dataSourceOSM = AbstractExec.getDataCSV(filePath, ',');
-
-		StorageManager storageOSM = new StorageManager();
-		storageOSM.enableInMemoryProcessing();
-		storageOSM.addDataSource(dataSourceOSM);
-
-		if (!storageOSM.isDataExtracted()) {
-			storageOSM.extractData();
-		}
-
-		for (GenericObject genericObj : storageOSM.getExtractedData()) {
-
-			JsonRecord data = genericObj.getData();
-
-			String codLine = data.get("CODLINHA").toString();
-			String nameLine = data.get("NOMELINHA").toString();
-			String busCode = data.get("CODVEICULO").toString();
-			String ticketNumber = data.get("NUMEROCARTAO").toString();
-			String timeOfUse = data.get("HORAUTILIZACAO").toString();
-			String dateOfUse = data.get("DATAUTILIZACAO").toString();
-			String birthDate = data.get("DATANASCIMENTO").toString();
-			String gender = data.get("SEXO").toString();
-			
-
-			TicketInformation ticket = new TicketInformation(codLine, nameLine, busCode, ticketNumber, timeOfUse,
-					dateOfUse, birthDate, gender);
-
-
-			if (!mapTickets.containsKey(ticket.getBusCode())) {
-				mapTickets.put(ticket.getBusCode(), new LinkedList<TicketInformation>());
-			}
-			mapTickets.get(ticket.getBusCode()).add(ticket);
-
-		}
-		return mapTickets;
-	}
 	
 	public static HashMap<String, LinkedList<TicketInformation>> mapTicketsSplitted(String filePath) {
 
