@@ -59,7 +59,8 @@ public final class MatchingGeoPoints {
 		String textFile = "C:/Users/Brasileiro/Google Drive/Bigsea (Pessoal)/GeoMatching/Linhas de Ônibus Curitiba/shape_line_022.csv";
 		String textFile2 = "C:/Users/Brasileiro/Google Drive/Bigsea (Pessoal)/GeoMatching/Linhas de Ônibus Curitiba/gps_line_022.csv";
 
-		SparkConf sparkConf = new SparkConf().setAppName("JavaDeduplication").setMaster("local");
+//		SparkConf sparkConf = new SparkConf().setAppName("JavaDeduplication").setMaster("local");
+		SparkConf sparkConf = new SparkConf().setAppName("JavaDeduplication");
 		JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 		
 		JavaRDD<String> shapePoints = ctx.textFile(textFile, 1);

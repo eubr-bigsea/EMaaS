@@ -133,7 +133,7 @@ public class GPSPoint  extends GeoPoint{
 				st.nextToken().replace("\"", ""));
 	}
 	
-	public static GPSPoint createGPSPointWithId(String line, int[] sequence, String separatorCharacter) {
+	public static GPSPoint createGPSPointWithId(String line, Integer[] sequence, String separatorCharacter) {
         String[] splittedLine = line.split(separatorCharacter);
     
         return new GPSPoint(splittedLine[sequence[0]], 

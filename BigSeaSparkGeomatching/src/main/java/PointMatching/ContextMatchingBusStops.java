@@ -44,7 +44,8 @@ public final class ContextMatchingBusStops {
 	private static final int rangeBlockingKey = 7;
 
 	public static void main(String[] args) throws Exception {
-		SparkConf sparkConf = new SparkConf().setAppName("ContextMatchingBusStops").setMaster("local");
+//		SparkConf sparkConf = new SparkConf().setAppName("ContextMatchingBusStops").setMaster("local");
+		SparkConf sparkConf = new SparkConf().setAppName("ContextMatchingBusStops");
 		JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
 		String dataSource1 = args[0];

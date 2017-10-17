@@ -50,7 +50,8 @@ public final class SingleMatchingGeoPolygonBlocked {
 	private static final int rangeBlockingKey = 7; 
 
 	public static void main(String[] args) throws Exception {
-		SparkConf sparkConf = new SparkConf().setAppName("GeoMatchingSpark").setMaster("local");
+//		SparkConf sparkConf = new SparkConf().setAppName("GeoMatchingSpark").setMaster("local");
+		SparkConf sparkConf = new SparkConf().setAppName("GeoMatchingSpark");
 		JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 		
 		String dataSource = args[0];

@@ -22,7 +22,7 @@ public class RunGeoPolygon {
 //		SparkConf sparkConf = new SparkConf().setAppName("GeoMatchingSpark").setMaster("local");
 		SparkSession spark = SparkSession
 				  .builder()
-				  .master("local")
+//				  .master("local")
 				  .config("spark.some.config.option", "some-value")
 				  .config("spark.sql.warehouse.dir", "file:///tmp/spark-warehouse")
 				  .getOrCreate();

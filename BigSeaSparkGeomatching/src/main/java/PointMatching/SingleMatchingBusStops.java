@@ -32,7 +32,8 @@ public final class SingleMatchingBusStops {
 	private static final int rangeBlockingKey = 7; 
 
 	public static void main(String[] args) throws Exception {
-		SparkConf sparkConf = new SparkConf().setAppName("SingleMatchingBusStops").setMaster("local");
+//		SparkConf sparkConf = new SparkConf().setAppName("SingleMatchingBusStops").setMaster("local");
+		SparkConf sparkConf = new SparkConf().setAppName("SingleMatchingBusStops");
 		JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 		
 		

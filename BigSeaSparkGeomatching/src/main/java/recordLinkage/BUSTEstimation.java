@@ -70,7 +70,9 @@ public class BUSTEstimation {
 
 //		 SparkConf sparkConf = new
 //		 SparkConf().setAppName("BUSTEstimation").setMaster("local");
-		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimation");
+		 SparkConf sparkConf = new
+				 SparkConf().setAppName("BUSTEstimation");
+//		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimation");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
 		generateOutputFilesHDFS(context, pathBulmaOutput, pathFileShapes, busStopsFile, outputPath, minPartitions);

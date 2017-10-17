@@ -106,8 +106,12 @@ public abstract class GeoPoint extends GeoObject implements Serializable{
 	}
 	
 	public static float getDistanceInMeters(GeoPoint point1, GeoPoint point2) {
-		return getDistanceInMeters(Double.valueOf(point1.getLatitude()), Double.valueOf(point1.getLongitude()), 
-				Double.valueOf(point2.getLatitude()), Double.valueOf(point2.getLongitude()));
+		Double p1Lat = Double.valueOf(point1.getLatitude());
+		Double p1Lon = Double.valueOf(point1.getLongitude());
+		Double p2Lat = Double.valueOf(point2.getLatitude());
+		Double p2Lon = Double.valueOf(point2.getLongitude());
+		return getDistanceInMeters(p1Lat, p1Lon, 
+				p2Lat, p2Lon);
 	}
 		
 	@Override
