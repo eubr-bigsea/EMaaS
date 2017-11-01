@@ -52,8 +52,7 @@ public class JSON2CSV {
 
             FileWriter output = new FileWriter(outputPath);
 			PrintWriter gravarArq = new PrintWriter(output);
-
-			gravarArq.println("CODLINHA,NOMELINHA,CODVEICULO,NUMEROCARTAO,HORAUTILIZACAO,DATAUTILIZACAO,DATANASCIMENTO,SEXO");
+			gravarArq.println("bus.code,latitude,longitude,timestamp,line.code,gps.id");
 			
 			while ((sCurrentLine = br.readLine()) != null) {
             
@@ -62,29 +61,23 @@ public class JSON2CSV {
                     obj = parser.parse(sCurrentLine);
                     JSONObject jsonObject = (JSONObject) obj;
 
-                    String veic = (String) jsonObject.get("CODLINHA");   
+                    String veic = (String) jsonObject.get("VEIC");   
                     gravarArq.print(veic+",");
                     
-                    String lat = (String) jsonObject.get("NOMELINHA");
+                    String lat = (String) jsonObject.get("LAT");
                     gravarArq.print(lat+",");
                     
-                    String lon = (String) jsonObject.get("CODVEICULO");
+                    String lon = (String) jsonObject.get("LON");
                     gravarArq.print(lon+",");
                     
-                    String lon2 = (String) jsonObject.get("NUMEROCARTAO");
-                    gravarArq.print(lon2+",");
-                    
-                    String dthr = (String) jsonObject.get("DATAUTILIZACAO");
+                    String dthr = (String) jsonObject.get("DTHR");
                     String time = dthr.split(" ")[1];
-                    time = time.substring(0, time.lastIndexOf(","));
-                    String date = dthr.split(" ")[0];
-                    gravarArq.print(time+","+date +",");
+                    gravarArq.print(time+",");
                     
-                    String cod_linha = (String) jsonObject.get("DATANASCIMENTO");
+                    String cod_linha = (String) jsonObject.get("COD_LINHA");
                     gravarArq.print(cod_linha+",");
-                    
-                    String cod_linha2 = (String) jsonObject.get("SEXO");
-                    gravarArq.println(cod_linha2);
+                                      
+                    gravarArq.println("-");
 
                 } catch (ParseException e) {
                     

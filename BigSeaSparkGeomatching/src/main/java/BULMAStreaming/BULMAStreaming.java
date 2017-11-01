@@ -62,7 +62,7 @@ public class BULMAStreaming {
 	private static final double PERCENTAGE_DISTANCE = 0.09;
 	private static final int THRESHOLD_RETROCESSING_POINTS = 1;
 	private static final int THRESHOLD_OUTLIERS_POINTS = 2;
-	private static final int THRESHOLD_DISTANCE_BETWEEN_POINTS = 50;
+	private static final double THRESHOLD_DISTANCE_BETWEEN_POINTS = 50;
 	private static final int NUMBER_SHAPES_IN_BASIC_CASE = 2;
 	private static final String FILE_SEPARATOR = ",";
 
@@ -84,7 +84,8 @@ public class BULMAStreaming {
 		int minPartitions = Integer.valueOf(args[5]);
 		int batchDuration = Integer.valueOf(args[6]);
 
-		SparkConf sparkConf = new SparkConf().setMaster("local[2]").setAppName("BulmaRT");
+		SparkConf sparkConf = new SparkConf().setMaster("local[2]")
+				.setAppName("BulmaRT");
 		JavaStreamingContext context = new JavaStreamingContext(sparkConf, Durations.seconds(batchDuration));
 
 		Broadcast<Map<String, Map<String, ShapeLine>>> mapShapeLinesBroadcast = context.sparkContext()
@@ -114,7 +115,7 @@ public class BULMAStreaming {
 			while ((sCurrentLine = br.readLine()) != null) {
 				String[] splittedLine = sCurrentLine.split(FILE_SEPARATOR);
 				String timestamp = splittedLine[0];
-				String shapeSequence = splittedLine[8];
+				String shapeSequence = splittedLine[7] + "-" + splittedLine[8];
 				if (!mapStopTimesBroadcast.getValue().containsKey(shapeSequence)) {
 					mapStopTimesBroadcast.getValue().put(shapeSequence, new LinkedList<>());
 				}
@@ -170,12 +171,14 @@ public class BULMAStreaming {
 					@Override
 					public Tuple2<String, GeoPoint> call(String s) throws Exception {
 						ShapePoint shapePoint = ShapePoint.createShapePointRoute(s);
-						String shapeSequence = shapePoint.getPointSequence();
+						String shapeSequence = shapePoint.getId()  + "-" +  shapePoint.getPointSequence();
 
 						List<String> listStopTimes = mapStopTimesBroadcast.getValue().get(shapeSequence);
+						
 						if (listStopTimes != null) {
 							shapePoint.setListStopTimestamp(listStopTimes);
 						}
+						shapePoint.setDistanceTraveled(String.valueOf(shapePoint.getDistanceTraveled()*1000));
 						return new Tuple2<String, GeoPoint>(shapePoint.getId(), shapePoint);
 					}
 				}).groupByKey();

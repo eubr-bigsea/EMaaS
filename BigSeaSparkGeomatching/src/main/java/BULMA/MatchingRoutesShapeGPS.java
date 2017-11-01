@@ -334,8 +334,15 @@ public class MatchingRoutesShapeGPS {
 											}
 
 											timePreviousPointGPS = currentPoint.getTime();
-											possibleShape.addPossibleLastPoint(
-													new Tuple2<String, Integer>(blockingKeyFromTime, i));
+
+											if (possibleShape.isRoundShape()) {
+												possibleShape.addPossibleFirstPoint(
+														new Tuple2<String, Integer>(blockingKeyFromTime, i));
+											} else {
+												possibleShape.addPossibleLastPoint(
+	 													new Tuple2<String, Integer>(blockingKeyFromTime, i));
+											}
+											
 											
 										}
 									}

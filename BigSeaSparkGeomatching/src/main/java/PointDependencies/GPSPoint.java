@@ -7,11 +7,11 @@ import java.util.StringTokenizer;
 import BULMADependences.Problem;
 import genericEntity.util.data.GenericObject;
 
-public class GPSPoint  extends GeoPoint{
-	
+public class GPSPoint extends GeoPoint {
+
 	private static final long serialVersionUID = 1L;
-	//"bus.code","latitude","longitude","timestamp","line.code"
-	//"AL300",-25.439896,-49.222006,2015-10-19 06:13:04,"022"
+	// "bus.code","latitude","longitude","timestamp","line.code"
+	// "AL300",-25.439896,-49.222006,2015-10-19 06:13:04,"022"
 	private String gpsId;
 	private String busCode;
 	private String timeStamp;
@@ -29,14 +29,14 @@ public class GPSPoint  extends GeoPoint{
 		this.lineCode = lineCode;
 		this.problem = Problem.NO_PROBLEM.getCode();
 	}
-	
-	public GPSPoint(String busCode, String latitude, String longitude, String timeStamp, String lineCode, 
+
+	public GPSPoint(String busCode, String latitude, String longitude, String timeStamp, String lineCode,
 			String gpsId) {
-        this(busCode, latitude, longitude, timeStamp, lineCode);
-        this.gpsId = gpsId;
+		this(busCode, latitude, longitude, timeStamp, lineCode);
+		this.gpsId = gpsId;
 		this.problem = Problem.NO_PROBLEM.getCode();
 	}
-	
+
 	public int getProblem() {
 		return problem;
 	}
@@ -46,13 +46,13 @@ public class GPSPoint  extends GeoPoint{
 	}
 
 	public String getGpsId() {
-	    return gpsId;
+		return gpsId;
 	}
-	
+
 	public void setGpsId(String gpsId) {
-	    this.gpsId = gpsId;
+		this.gpsId = gpsId;
 	}
-	
+
 	public Integer getNumberTrip() {
 		return numberTrip;
 	}
@@ -64,7 +64,7 @@ public class GPSPoint  extends GeoPoint{
 	public ShapePoint getClosestPoint() {
 		return closestPoint;
 	}
-	
+
 	public String getBusCode() {
 		return busCode;
 	}
@@ -72,9 +72,9 @@ public class GPSPoint  extends GeoPoint{
 	public void setBusCode(String busCode) {
 		this.busCode = busCode;
 	}
-	
+
 	public long getTime() throws ParseException {
-		SimpleDateFormat parser = new SimpleDateFormat("HH:mm:ss");		
+		SimpleDateFormat parser = new SimpleDateFormat("HH:mm:ss");
 		return parser.parse(this.timeStamp).getTime();
 	}
 
@@ -97,71 +97,60 @@ public class GPSPoint  extends GeoPoint{
 	public String getBlockingKeyFromTime() {
 		return timeStamp.trim().substring(0, 4).replace(":", "");
 	}
-	
+
 	public void setDistanceClosestShapePoint(float distance) {
-		this.distanceClosestShapePoint = distance;		
+		this.distanceClosestShapePoint = distance;
 	}
-	
+
 	public float getDistanceClosestShapePoint() {
 		return this.distanceClosestShapePoint;
 	}
 
-	public int getThresholdShape() {		
+	public int getThresholdShape() {
 		return this.thresholdShape;
 	}
-	
-	public void setThresholdShape(int threshold){
+
+	public void setThresholdShape(int threshold) {
 		this.thresholdShape = threshold;
 	}
 
 	public static GPSPoint createGPSPoint(String line) {
 		StringTokenizer st = new StringTokenizer(line, ",");
-		return new GPSPoint(st.nextToken().replace("\"", ""), 
-				st.nextToken().replace("\"", ""),
-				st.nextToken().replace("\"", ""),
-				st.nextToken().replace("\"", ""),
-				st.nextToken().replace("\"", ""));
-	}	
-	
+		return new GPSPoint(st.nextToken().replace("\"", ""), st.nextToken().replace("\"", ""),
+				st.nextToken().replace("\"", ""), st.nextToken().replace("\"", ""), st.nextToken().replace("\"", ""));
+	}
+
 	public static GPSPoint createGPSPointWithId(String line) {
+
 		StringTokenizer st = new StringTokenizer(line, ",");
-		return new GPSPoint(st.nextToken().replace("\"", ""), 
-				st.nextToken().replace("\"", ""),
-				st.nextToken().replace("\"", ""),
-				st.nextToken().replace("\"", ""),
-				st.nextToken().replace("\"", ""),
+		return new GPSPoint(st.nextToken().replace("\"", ""), st.nextToken().replace("\"", ""),
+				st.nextToken().replace("\"", ""), st.nextToken().replace("\"", ""), st.nextToken().replace("\"", ""),
 				st.nextToken().replace("\"", ""));
+
 	}
-	
+
 	public static GPSPoint createGPSPointWithId(String line, Integer[] sequence, String separatorCharacter) {
-        String[] splittedLine = line.split(separatorCharacter);
-    
-        return new GPSPoint(splittedLine[sequence[0]], 
-                splittedLine[sequence[1]],
-                splittedLine[sequence[2]],
-                splittedLine[sequence[3]],
-                splittedLine[sequence[4]],
-                splittedLine[sequence[5]]);
-    }
-	
-	public static GPSPoint createGPSPoint(GenericObject line) {
-		return new GPSPoint(line.getData().get("bus.code").toString(),
-				line.getData().get("latitude").toString(),
-				line.getData().get("longitude").toString(),
-				line.getData().get("timestamp").toString(),
-				line.getData().get("line.code").toString(),
-				line.getData().get("gps.id").toString());
-				
+		String[] splittedLine = line.split(separatorCharacter);
+
+		return new GPSPoint(splittedLine[sequence[0]], splittedLine[sequence[1]], splittedLine[sequence[2]],
+				splittedLine[sequence[3]], splittedLine[sequence[4]], splittedLine[sequence[5]]);
 	}
-	
+
+	public static GPSPoint createGPSPoint(GenericObject line) {
+		return new GPSPoint(line.getData().get("bus.code").toString(), line.getData().get("latitude").toString(),
+				line.getData().get("longitude").toString(), line.getData().get("timestamp").toString(),
+				line.getData().get("line.code").toString(), line.getData().get("gps.id").toString());
+
+	}
+
 	public void setClosestPoint(GeoPoint closestPoint) throws Exception {
 		if (!(closestPoint instanceof ShapePoint)) {
 			throw new Exception("Closest point must be a type of ShapePoint.");
 		}
-		ShapePoint shapePoint =  (ShapePoint) closestPoint;
+		ShapePoint shapePoint = (ShapePoint) closestPoint;
 		this.closestPoint = shapePoint;
 	}
-	
+
 	@Override
 	public String toString() {
 		return "GPSPoint [gpsId=" + gpsId + ", busCode=" + busCode + ", timeStamp=" + timeStamp + ", lineCode="
@@ -211,6 +200,4 @@ public class GPSPoint  extends GeoPoint{
 		return true;
 	}
 
-	
-	
 }

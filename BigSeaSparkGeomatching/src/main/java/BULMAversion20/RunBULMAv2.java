@@ -1,4 +1,10 @@
 package BULMAversion20;
+import java.net.URI;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.function.FilterFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -15,14 +21,14 @@ public class RunBULMAv2 {
 	
     public static void main(String[] args) throws Exception {
         if (args.length < 4) {
-            System.err.println("Usage: <shape file> <GPS file> <directory of output path> <number of partitions>");
+            System.err.println("Usage: <shape file> <directory of GPS files> <directory of output path> <number of partitions>");
             System.exit(1);
         }
         Long initialTime = System.currentTimeMillis();
         
         String pathFileShapes = args[0];
-        String pathGPSFile = args[1];
-        String pathOutput = args[2];
+        String pathGPSFiles = args[1] + "/";
+        String pathOutput = args[2] + "/";
         int minPartitions = Integer.valueOf(args[3]);
         
         
@@ -38,18 +44,26 @@ public class RunBULMAv2 {
         BULMAFieldsInputGPS headerGPS = new BULMAFieldsInputGPS("bus.code", "latitude", "longitude", "timestamp", "line.code", "gps.id");
         BULMAFieldsInputShape headerShapes = new BULMAFieldsInputShape("route_id","shape_id","shape_pt_lat","shape_pt_lon","shape_pt_sequence","shape_dist_traveled");
         
-        Dataset<Row> datasetGPSFile = spark.read().text(pathGPSFile);
         Dataset<Row> datasetShapesFile = spark.read().text(pathFileShapes);
-        Tuple2<Dataset<Row>, Integer[]> resultGPS = removeHeaderGPS(datasetGPSFile, headerGPS);
-        datasetGPSFile = resultGPS._1;
-        Integer[] arrayIndexFieldsInputGPS = resultGPS._2;
         Tuple2<Dataset<Row>, Integer[]> resultShapes = removeHeaderShape(datasetShapesFile, headerShapes);
-         datasetShapesFile = resultShapes._1;
-         Integer[] arrayIndexFieldsInputShape = resultShapes._2;
+        datasetShapesFile = resultShapes._1;
+        Integer[] arrayIndexFieldsInputShape = resultShapes._2;
+       
+        Configuration conf = new Configuration();
+	    FileSystem fs = FileSystem.get(new URI(pathGPSFiles), conf);
+	    FileStatus[] fileStatus = fs.listStatus(new Path(pathGPSFiles));
+
+		for (FileStatus file : fileStatus) {
+			Dataset<Row> datasetGPSFile = spark.read().text(pathGPSFiles + file.getPath().getName());
+	        Tuple2<Dataset<Row>, Integer[]> resultGPS = removeHeaderGPS(datasetGPSFile, headerGPS);
+	        datasetGPSFile = resultGPS._1;
+	        Integer[] arrayIndexFieldsInputGPS = resultGPS._2;
+	      
+	        Dataset<Tuple2<String, GeoLine>> lines = MatchingRoutesVersion2.generateDataFrames(datasetShapesFile, datasetGPSFile, arrayIndexFieldsInputGPS, arrayIndexFieldsInputShape, minPartitions, spark);
+	        Dataset<String> output = MatchingRoutesVersion2.run(lines,minPartitions, spark);
+	        output.toJavaRDD().saveAsTextFile(pathOutput + file.getPath().getName());
+		}
         
-        Dataset<Tuple2<String, GeoLine>> lines = MatchingRoutesVersion2.generateDataFrames(datasetShapesFile, datasetGPSFile, arrayIndexFieldsInputGPS, arrayIndexFieldsInputShape, minPartitions, spark);
-        Dataset<String> output = MatchingRoutesVersion2.run(lines,minPartitions, spark);
-        output.toJavaRDD().saveAsTextFile(pathOutput);
         
         System.out.println("Execution time with Dataset: " + (System.currentTimeMillis() - initialTime));
         
