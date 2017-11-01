@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
+import org.apache.commons.collections.IteratorUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -29,6 +30,7 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.streaming.util.WriteAheadLog;
 
 import com.clearspring.analytics.util.Lists;
 
@@ -129,8 +131,20 @@ public class BUSTEstimationV3 {
 			String ticketPathFile = busTicketPath + SLASH + "doc1-" + file.getPath().getName().substring(0,  file.getPath().getName().lastIndexOf("_veiculos")) + ".csv";
 			JavaRDD<String> result = execute(context, bulmaOutputString, pathFileShapes, ticketPathFile, busStopsFile,
 					minPartitions);
-			result.saveAsTextFile(output + SLASH + file.getPath().getName());
-			// saveOutputFile(result, output+file.getPath().getName());
+			
+			Function2<Integer, Iterator<String>, Iterator<String>> insertHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
+
+				public Iterator<String> call(Integer index, Iterator<String> iterator) throws Exception {
+					List<String> output = new LinkedList<String>();
+					output.add("route,tripNum,shapeId,shapeSequence,shapeLat,shapeLon,distanceTraveledShape,busCode,gpsPointId,gpsLat,gpsLon,distanceToShapePoint,timestamp,stopPointId,problem,birthdate,cardTimestamp,lineName,cardNum,cardNum");
+					output.addAll(IteratorUtils.toList(iterator));
+					
+					return output.iterator();
+
+				}
+			};
+			
+			result.mapPartitionsWithIndex(insertHeader, false).saveAsTextFile(output + SLASH + file.getPath().getName());
 		}
 
 	}
