@@ -30,7 +30,6 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.broadcast.Broadcast;
-import org.apache.spark.streaming.util.WriteAheadLog;
 
 import com.clearspring.analytics.util.Lists;
 
@@ -74,8 +73,8 @@ public class BUSTEstimationV3 {
 		String outputPath = args[4];
 		final Integer minPartitions = Integer.valueOf(args[5]);
 
-		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimationV3").setMaster("local");
-//		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimationV3");
+//		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimationV3").setMaster("local");
+		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimationV3");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
 		generateOutputFilesHDFS(context, pathBulmaOutput, pathFileShapes, busStopsFile, busTicketPath, outputPath,
@@ -547,6 +546,15 @@ public class BUSTEstimationV3 {
 										List<TicketInformation> selectedTickets = getNumberTicketsOfBusStop(currentBusCode, currentTimeString,
 												nextTimeString);
 										
+										if (selectedTickets.size() == 0) {
+											listOutput.add(0, currentString
+													+ SEPARATOR + "-"
+													+ SEPARATOR + "-"
+													+ SEPARATOR + "-"
+													+ SEPARATOR + "-"
+													+ SEPARATOR + "-");
+										}
+										
 										for (TicketInformation selectedTicket : selectedTickets) {
 											listOutput.add(0, currentString 
 												+ SEPARATOR + selectedTicket.getBirthDate()
@@ -561,12 +569,16 @@ public class BUSTEstimationV3 {
 										
 									}
 								} else {
-									listOutput.add(0, currentString + SEPARATOR + "-");
+									listOutput.add(0, currentString
+											+ SEPARATOR + "-"
+											+ SEPARATOR + "-"
+											+ SEPARATOR + "-"
+											+ SEPARATOR + "-"
+											+ SEPARATOR + "-");
 								}
 
-							} else {
-								listOutput.add(0, currentString + SEPARATOR + "-");
-							}
+							} 
+							
 						}
 
 						return listOutput.iterator();
