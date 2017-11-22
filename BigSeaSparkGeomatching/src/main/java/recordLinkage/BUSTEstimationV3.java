@@ -121,8 +121,10 @@ public class BUSTEstimationV3 {
 			for (FileStatus filePart : fileStatus2) {
 				if (!filePart.getPath().getName().equals("_SUCCESS")
 						&& !filePart.getPath().getName().equals("part-00000")) {
-					bulmaOutputString
-							.union(context.textFile(pathDir + SLASH + filePart.getPath().getName(), minPartitions));
+					bulmaOutputString = bulmaOutputString
+							.union(context.textFile(pathDir + SLASH + filePart.getPath().getName()));
+					
+					System.out.println(pathDir + SLASH + filePart.getPath().getName());
 				}
 			}
 			bulmaOutputString = bulmaOutputString.mapPartitionsWithIndex(removeEmptyLines, false);
@@ -135,7 +137,7 @@ public class BUSTEstimationV3 {
 
 				public Iterator<String> call(Integer index, Iterator<String> iterator) throws Exception {
 					List<String> output = new LinkedList<String>();
-					output.add("route,tripNum,shapeId,shapeSequence,shapeLat,shapeLon,distanceTraveledShape,busCode,gpsPointId,gpsLat,gpsLon,distanceToShapePoint,timestamp,stopPointId,problem,birthdate,cardTimestamp,lineName,cardNum,cardNum");
+					output.add("route,tripNum,shapeId,shapeSequence,shapeLat,shapeLon,distanceTraveledShape,busCode,gpsPointId,gpsLat,gpsLon,distanceToShapePoint,timestamp,stopPointId,problem,birthdate,cardTimestamp,lineName,cardNum,gender");
 					output.addAll(IteratorUtils.toList(iterator));
 					
 					return output.iterator();
@@ -592,7 +594,7 @@ public class BUSTEstimationV3 {
 						Date nextTime = sdf.parse(nextTimeString);
 //						int count = 0;
 						List<TicketInformation> ticketsInformationList = mapTicketsBroadcast.getValue().get(currentBusCode);
-						List<TicketInformation> listOutput = new LinkedList<>();
+						List<TicketInformation> listOutput = new LinkedList<TicketInformation>();
 						
 						if (ticketsInformationList != null) {
 							for (TicketInformation TicketInformation : ticketsInformationList) {

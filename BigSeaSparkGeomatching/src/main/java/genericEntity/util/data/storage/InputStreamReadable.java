@@ -57,7 +57,6 @@ public class InputStreamReadable<T extends Jsonable> implements JsonReadable<T> 
 			}
 		}
 
-		@Override
 		public Iterator<T> iterator() {
 			if (this.jsonParser == null) {
 				throw new IllegalStateException("It is only possible to read the InputStream once.");
@@ -66,7 +65,6 @@ public class InputStreamReadable<T extends Jsonable> implements JsonReadable<T> 
 			return this.jsonParser;
 		}
 
-		@Override
 		public void close() throws IOException {
 			if (this.jsonParser != null) {
 				this.jsonParser.close();
@@ -104,12 +102,10 @@ public class InputStreamReadable<T extends Jsonable> implements JsonReadable<T> 
 		this.internalType = type;
 	}
 
-	@Override
 	public JsonableReader<T> getReader() {
 		return new InputStreamReader();
 	}
 
-	@Override
 	public int size() {
 		throw new UnsupportedOperationException("The size() operation is not supported.");
 	}

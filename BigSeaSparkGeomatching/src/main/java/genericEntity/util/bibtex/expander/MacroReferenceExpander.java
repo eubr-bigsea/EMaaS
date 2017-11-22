@@ -95,7 +95,6 @@ public final class MacroReferenceExpander extends AbstractExpander implements Ex
 	 * 
 	 * @param bibtexFile
 	 */
-	@Override
 	public void expand(BibtexFile bibtexFile) throws ExpansionException {
 		HashMap<String, BibtexAbstractValue> stringKey2StringValue = new HashMap<String, BibtexAbstractValue>();
 		for (Iterator<BibtexAbstractEntry> entryIt = bibtexFile.getEntries().iterator(); entryIt.hasNext();) {

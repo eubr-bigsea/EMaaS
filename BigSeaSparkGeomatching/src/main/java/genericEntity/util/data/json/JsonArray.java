@@ -111,12 +111,10 @@ public class JsonArray extends ArrayList<JsonValue> implements JsonValue {
 	 * 
 	 * @see JsonValue#getType()
 	 */
-	@Override
 	public JsonType getType() {
 		return JsonValue.JsonType.Array;
 	}
 
-	@Override
 	public int compareTo(JsonValue other) {
 		if (other == null) {
 			return 1;
@@ -401,12 +399,10 @@ public class JsonArray extends ArrayList<JsonValue> implements JsonValue {
 		return super.add(new JsonString(str));
 	}
 
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeJsonArray(this);
 	}
 	
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		this.clear();
 		this.addAll(jsonParser.nextJsonArray());

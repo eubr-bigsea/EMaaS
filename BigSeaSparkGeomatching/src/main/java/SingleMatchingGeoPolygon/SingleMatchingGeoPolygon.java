@@ -1,6 +1,7 @@
 package SingleMatchingGeoPolygon;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -55,8 +56,8 @@ public final class SingleMatchingGeoPolygon {
 		JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 		
 		String dataSource = args[0];
-		double thresholdLinguistic = Double.parseDouble(args[1]);
-		double thresholdPolygon = Double.parseDouble(args[2]);
+		final double thresholdLinguistic = Double.parseDouble(args[1]);
+		final double thresholdPolygon = Double.parseDouble(args[2]);
 		String outputPath = args[3];
 		Integer amountPartition = Integer.parseInt(args[4]);
 		String sourceType = args[5];
@@ -89,11 +90,10 @@ public final class SingleMatchingGeoPolygon {
 		
 		JavaRDD<GeoPolygon> polygons = ctx.parallelize(geoentities);
 		
-		Broadcast<Integer> numReplication = ctx.broadcast(amountPartition);
+		final Broadcast<Integer> numReplication = ctx.broadcast(amountPartition);
 		JavaRDD<Tuple2<Integer, GeoPolygon>> polygonLabed = polygons.flatMap(new FlatMapFunction<GeoPolygon, Tuple2<Integer, GeoPolygon>>() {
 
-			@Override
-			public List<Tuple2<Integer, GeoPolygon>> call(GeoPolygon s) throws Exception {
+			public Iterator<Tuple2<Integer, GeoPolygon>> call(GeoPolygon s) throws Exception {
 				List<Tuple2<Integer, GeoPolygon>> listOfPolygonTuple = new ArrayList<Tuple2<Integer, GeoPolygon>>();
 				GeoPolygon tocompare = s.getGeoPolygon();
 				tocompare.setDuplicated(false);
@@ -104,14 +104,13 @@ public final class SingleMatchingGeoPolygon {
 				for (int i = 0; i < numReplication.value(); i++) {//the entities that will be replicated
 					listOfPolygonTuple.add(new Tuple2<Integer, GeoPolygon>(i, duplicated));
 				}
-				return listOfPolygonTuple;
+				return listOfPolygonTuple.iterator();
 			}
 			
 		});
 		
 		JavaPairRDD<Integer, GeoPolygon> polygonsPaired = polygonLabed.mapToPair(new PairFunction<Tuple2<Integer,GeoPolygon>, Integer, GeoPolygon>() {
 
-			@Override
 			public Tuple2<Integer, GeoPolygon> call(Tuple2<Integer, GeoPolygon> tuple) throws Exception {
 				return new Tuple2<Integer, GeoPolygon>(tuple._1(), tuple._2());
 			}
@@ -121,8 +120,7 @@ public final class SingleMatchingGeoPolygon {
 		
 		JavaPairRDD<Integer, PolygonPair> matches = polygonsGrouped.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer,Iterable<GeoPolygon>>, Integer, PolygonPair>() {
 
-			@Override
-			public List<Tuple2<Integer, PolygonPair>> call(Tuple2<Integer, Iterable<GeoPolygon>> tuple) throws Exception {
+			public Iterator<Tuple2<Integer, PolygonPair>> call(Tuple2<Integer, Iterable<GeoPolygon>> tuple) throws Exception {
 				List<GeoPolygon> polygonsPerKey = IteratorUtils.toList(tuple._2().iterator());
 				List<GeoPolygon> polygonsToCompare = new ArrayList<GeoPolygon>();
 				List<GeoPolygon> polygonsDuplicated = new ArrayList<GeoPolygon>();
@@ -176,17 +174,16 @@ public final class SingleMatchingGeoPolygon {
 //							}
 					}
 				}
-				return entityMatches;
+				return entityMatches.iterator();
 			}
 		});
 		
 		matches.flatMap(new FlatMapFunction<Tuple2<Integer, PolygonPair>, String>() {
 
-			@Override
-			public ArrayList<String> call(Tuple2<Integer, PolygonPair> t) throws Exception {
+			public Iterator<String> call(Tuple2<Integer, PolygonPair> t) throws Exception {
 				ArrayList<String> listOutput = new ArrayList<String>();
 				listOutput.add(t._2().toStringCSV());
-				return listOutput;
+				return listOutput.iterator();
 			}
 		
 		}).saveAsTextFile(outputPath);

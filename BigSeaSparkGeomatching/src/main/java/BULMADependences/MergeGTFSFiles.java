@@ -25,11 +25,11 @@ public class MergeGTFSFiles {
 	private static final String FILE_SEPARATOR = ",";
 	private static final String HEADER_STOP_TIME_FILE = "arrival_time,departure_time,stop_id,stop_sequence,lat_stop,lng_stop,route_id,shape_id,closest_shape_point";
 
-	private static Map<String, String> mapTripRoute = new HashMap<>();
-	private static Map<String, String> mapStopLatLng = new HashMap<>();
-	private static Map<String, String> mapShapeRouteId = new HashMap<>();
-	private static Map<String, String> mapRouteIdRouteCode = new HashMap<>();
-	private static Map<String, ShapeLine> mapShapeLines = new HashMap<>();
+	private static Map<String, String> mapTripRoute = new HashMap<String, String>();
+	private static Map<String, String> mapStopLatLng = new HashMap<String, String>();
+	private static Map<String, String> mapShapeRouteId = new HashMap<String, String>();
+	private static Map<String, String> mapRouteIdRouteCode = new HashMap<String, String>();
+	private static Map<String, ShapeLine> mapShapeLines = new HashMap<String, ShapeLine>();
 
 	public static void main(String[] args) {
 		
@@ -70,7 +70,7 @@ public class MergeGTFSFiles {
 			
 			String previousId = null;
 			brShapes.readLine();	
-			List<GeoPoint> listPoints = new ArrayList<>();
+			List<GeoPoint> listPoints = new ArrayList<GeoPoint>();
 			while ((lineShapes = brShapes.readLine()) != null) {
 
 				String[] data = lineShapes.replace("\"", "").split(FILE_SEPARATOR);
@@ -87,7 +87,7 @@ public class MergeGTFSFiles {
 				
 				if (previousId != null && !previousId.equals(shapeId)) {
 					createNewShapeLine(listPoints);
-					listPoints = new ArrayList<>();
+					listPoints = new ArrayList<GeoPoint>();
 				}
 				listPoints.add(currentShapePoint);
 				previousId = shapeId;
@@ -96,10 +96,8 @@ public class MergeGTFSFiles {
 			createNewShapeLine(listPoints);
 			
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -109,7 +107,7 @@ public class MergeGTFSFiles {
 		@SuppressWarnings("deprecation")
 		GeometryFactory geometryFactory = JtsSpatialContext.GEO.getGeometryFactory();
 		
-		List<Coordinate> coordinates = new ArrayList<>();
+		List<Coordinate> coordinates = new ArrayList<Coordinate>();
 		
 		GeoPoint currentGeoPoint = null;
 		for (int i = 0; i < listGeoPoint.size(); i++) {
@@ -184,10 +182,8 @@ public class MergeGTFSFiles {
 			output.close();
 			
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -206,17 +202,15 @@ public class MergeGTFSFiles {
 
 				String[] data = lineTrips.replace("\"", "").split(FILE_SEPARATOR);
 				String route = data[0];
-				String shapeId = data[5];
+				String shapeId = data[7];
 
 				if (!mapShapeRouteId.containsKey(shapeId)) {
 					mapShapeRouteId.put(shapeId, route);
 				}
 			}
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -240,10 +234,8 @@ public class MergeGTFSFiles {
 				}
 			}
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -267,10 +259,8 @@ public class MergeGTFSFiles {
 				}
 			}
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -302,10 +292,8 @@ public class MergeGTFSFiles {
 				}
 			}
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

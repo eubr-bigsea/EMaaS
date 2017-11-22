@@ -2,6 +2,7 @@ package PointMatching;
 
 import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -68,17 +69,15 @@ public final class MatchingGeoPoints {
 
 		@SuppressWarnings("serial")
 		JavaRDD<GeoPoint> shapePointsRDD = shapePoints.flatMap(new FlatMapFunction<String, GeoPoint>() {
-			@Override
-			public  List<GeoPoint> call(String s) {
-				return Arrays.asList((GeoPoint)ShapePoint.createShapePoint(s));
+			public  Iterator<GeoPoint> call(String s) {
+				return Arrays.asList((GeoPoint)ShapePoint.createShapePoint(s)).iterator();
 			}
 		});
 		
 		@SuppressWarnings("serial")
 		JavaRDD<GeoPoint> gpsPointsRDD = gpsPoints.flatMap(new FlatMapFunction<String, GeoPoint>() {
-			@Override
-			public  List<GeoPoint> call(String s) {
-				return Arrays.asList((GeoPoint)GPSPoint.createGPSPoint(s));
+			public  Iterator<GeoPoint> call(String s) {
+				return Arrays.asList((GeoPoint)GPSPoint.createGPSPoint(s)).iterator();
 			}
 		});
 		
@@ -86,7 +85,7 @@ public final class MatchingGeoPoints {
 		
 		@SuppressWarnings("serial")
 		JavaPairRDD<String, GeoPoint> ones = points.mapToPair(new PairFunction<GeoPoint, String, GeoPoint>() {
-			@Override
+			
 			public Tuple2<String, GeoPoint> call(GeoPoint s) {
 				if ((s instanceof GPSPoint) || (s instanceof StopPoint)) {
 					s.addFirst();
@@ -107,7 +106,6 @@ public final class MatchingGeoPoints {
 			private Geometry interestPoint = geometryFactory.createPoint(new Coordinate(0.0, 0.0));
 			private Geometry comparisonPoint = geometryFactory.createPoint(new Coordinate(0.0, 0.0));
 			
-			@Override
 			public GeoPoint call(GeoPoint point1, GeoPoint point2) throws Exception {
 				if (!(point1 instanceof GPSPoint) && !(point1 instanceof StopPoint)) {
 					return point1;

@@ -214,12 +214,10 @@ public abstract class AbstractDataSource<S extends AbstractDataSource<S>> extend
 		this.identifier = id;
 	}
 
-	@Override
 	public String getIdentifier() {
 		return this.identifier;
 	}
 
-	@Override
 	public void addIdAttributes(String... attributes) {
 		for (String attribute : attributes) {
 			if (attribute == null) {
@@ -265,7 +263,6 @@ public abstract class AbstractDataSource<S extends AbstractDataSource<S>> extend
 		return this.idAttributes;
 	}
 
-	@Override
 	public abstract Iterator<GenericObject> iterator();
 
 	/**
@@ -278,7 +275,6 @@ public abstract class AbstractDataSource<S extends AbstractDataSource<S>> extend
 		this.extractedRecordCount = Math.max(this.extractedRecordCount, extractedRecordCnt);
 	}
 
-	@Override
 	public int getExtractedRecordCount() {
 		return this.extractedRecordCount;
 	}
@@ -327,7 +323,6 @@ public abstract class AbstractDataSource<S extends AbstractDataSource<S>> extend
 		return true;
 	}
 
-	@Override
 	public void close() throws IOException {
 		this.cleanUp();
 	}

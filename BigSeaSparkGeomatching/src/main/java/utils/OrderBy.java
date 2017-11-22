@@ -17,10 +17,10 @@ public class OrderBy {
 	public static LinkedHashMap<Tuple2<Long, Long>, Tuple2<Long, Long>> orderByComparisonsDescending(
 			Map<Tuple2<Long, Long>, Tuple2<Long, Long>> passedMap) {
 
-		List<Tuple2<Long, Long>> mapKeys = new ArrayList<>(passedMap.keySet());
-		List<Tuple2<Long, Long>> mapValues = new ArrayList<>(passedMap.values());
+		List<Tuple2<Long, Long>> mapKeys = new ArrayList<Tuple2<Long, Long>>(passedMap.keySet());
+		List<Tuple2<Long, Long>> mapValues = new ArrayList<Tuple2<Long, Long>>(passedMap.values());
 		
-		List<Long> values = new ArrayList<>();
+		List<Long> values = new ArrayList<Long>();
 		
 		for (Tuple2<Long, Long> tuple: mapValues) {
 			values.add(tuple._1);
@@ -28,7 +28,7 @@ public class OrderBy {
 		
 		Collections.sort(values, Collections.reverseOrder());
 
-		LinkedHashMap<Tuple2<Long, Long>, Tuple2<Long, Long>> sortedMap = new LinkedHashMap<>();
+		LinkedHashMap<Tuple2<Long, Long>, Tuple2<Long, Long>> sortedMap = new LinkedHashMap<Tuple2<Long, Long>, Tuple2<Long, Long>>();
 
 		Iterator<Long> valueIt = values.iterator();
 		while (valueIt.hasNext()) {
@@ -53,11 +53,11 @@ public class OrderBy {
 	public static LinkedHashMap<Tuple3<Long, Long, Long>, Long> orderByValueDescending(
 			Map<Tuple3<Long, Long, Long>, Long> passedMap) {
 
-		List<Tuple3<Long, Long, Long>> mapKeys = new ArrayList<>(passedMap.keySet());
-		List<Long> mapValues = new ArrayList<>(passedMap.values());
+		List<Tuple3<Long, Long, Long>> mapKeys = new ArrayList<Tuple3<Long, Long, Long>>(passedMap.keySet());
+		List<Long> mapValues = new ArrayList<Long>(passedMap.values());
 		Collections.sort(mapValues, Collections.reverseOrder());
 
-		LinkedHashMap<Tuple3<Long, Long, Long>, Long> sortedMap = new LinkedHashMap<>();
+		LinkedHashMap<Tuple3<Long, Long, Long>, Long> sortedMap = new LinkedHashMap<Tuple3<Long, Long, Long>, Long>();
 
 		Iterator<Long> valueIt = mapValues.iterator();
 		while (valueIt.hasNext()) {

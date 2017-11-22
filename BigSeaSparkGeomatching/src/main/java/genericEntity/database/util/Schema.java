@@ -195,7 +195,6 @@ public class Schema implements Iterable<ColumnInfo>, AutoJsonable {
 	 * 
 	 * @see Iterable#iterator()
 	 */
-	@Override
 	public Iterator<ColumnInfo> iterator() {
 		return this.columns.iterator();
 	}

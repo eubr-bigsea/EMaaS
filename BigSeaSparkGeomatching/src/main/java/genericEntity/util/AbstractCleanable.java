@@ -42,7 +42,6 @@ public abstract class AbstractCleanable implements Cleanable {
 	private transient Collection<Closeable> closeableResources = new ArrayList<Closeable>();
 	private transient Collection<Cleanable> cleanableResources = new ArrayList<Cleanable>();
 
-	@Override
 	public void registerCloseable(Closeable closeableResource) {
 		if (closeableResource == null) {
 			AbstractCleanable.logger.debug("null was passed, which won't have any influence.");
@@ -52,7 +51,6 @@ public abstract class AbstractCleanable implements Cleanable {
 		this.closeableResources.add(closeableResource);
 	}
 
-	@Override
 	public void registerCleanable(Cleanable cleanableResource) {
 		if (cleanableResource == null) {
 			AbstractCleanable.logger.debug("null was passed, which won't have any influence.");
@@ -62,7 +60,6 @@ public abstract class AbstractCleanable implements Cleanable {
 		this.cleanableResources.add(cleanableResource);
 	}
 
-	@Override
 	public void cleanUp() {
 		for (Closeable closeableResource : this.closeableResources) {
 			try {

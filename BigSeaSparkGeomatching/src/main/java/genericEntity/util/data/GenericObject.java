@@ -396,7 +396,6 @@ public class GenericObject implements Comparable<GenericObject>, Jsonable, Seria
 		return this.data != null;
 	}
 
-	@Override
 	public int compareTo(GenericObject other) {
 		Iterator<GenericObjectId> thisIDIterator = this.identifiers.iterator();
 		Iterator<GenericObjectId> otherIDIterator = other.identifiers.iterator();
@@ -417,7 +416,6 @@ public class GenericObject implements Comparable<GenericObject>, Jsonable, Seria
 		return 0;
 	}
 
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeRecordStart();
 
@@ -433,7 +431,6 @@ public class GenericObject implements Comparable<GenericObject>, Jsonable, Seria
 		jsonGenerator.writeRecordEnd();
 	}
 	
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		jsonParser.skipToken(); // skip '{'
 		

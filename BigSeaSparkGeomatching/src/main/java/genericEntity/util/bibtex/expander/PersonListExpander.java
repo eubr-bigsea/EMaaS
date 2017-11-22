@@ -84,7 +84,6 @@ public class PersonListExpander extends AbstractExpander implements Expander {
 	 * 
 	 * @param file
 	 */
-	@Override
 	public void expand(BibtexFile file) throws ExpansionException {
 		for (Iterator<?> entryIt = file.getEntries().iterator(); entryIt.hasNext();) {
 			Object next = entryIt.next();

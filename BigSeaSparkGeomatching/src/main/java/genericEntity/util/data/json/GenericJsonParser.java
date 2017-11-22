@@ -229,7 +229,6 @@ public class GenericJsonParser<T extends Jsonable> extends AbstractIterator<T> i
 	 * 
 	 * @see Closeable#close()
 	 */
-	@Override
 	public void close() throws IOException {
 		if (!this.parser.isClosed())
 			this.parser.close();

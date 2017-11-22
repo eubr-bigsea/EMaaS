@@ -41,14 +41,12 @@ public abstract class AbstractIterator<ElementType> implements Iterator<ElementT
 
 	private boolean firstElementWasLoaded = false;
 
-	@Override
 	public final boolean hasNext() {
 		this.loadFirstElement(); // loads the first element if needed
 
 		return this.nextElement != null;
 	}
 
-	@Override
 	public final ElementType next() {
 		this.loadFirstElement(); // loads the first element if needed
 
@@ -68,7 +66,6 @@ public abstract class AbstractIterator<ElementType> implements Iterator<ElementT
 	 * 
 	 * @see Iterator#remove()
 	 */
-	@Override
 	public final void remove() {
 		throw new UnsupportedOperationException("AbstractIterator does not implement remove().");
 	}

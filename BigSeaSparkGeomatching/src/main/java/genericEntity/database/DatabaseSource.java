@@ -220,7 +220,7 @@ public class DatabaseSource extends AbstractDataSource<DatabaseSource> {
 			JSONObject jsonObject = (JSONObject) obj;
 
 			this.identifier = (String) jsonObject.get(STR_IDENTIFIER);
-			this.isOMS = (boolean) jsonObject.get(STR_IS_OMS);
+			this.isOMS = (Boolean) jsonObject.get(STR_IS_OMS);
 			this.query = (String) jsonObject.get(STR_QUERY);
 
 		} catch (Exception e) {

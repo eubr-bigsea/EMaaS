@@ -1,6 +1,7 @@
 package PointMatching;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.regex.Pattern;
@@ -51,7 +52,7 @@ public final class ContextMatchingBusStops {
 		String dataSource1 = args[0];
 		String dataSource2 = args[1];
 		String dataSourceContext = args[2];
-		double thresholdPointDistance = Double.parseDouble(args[3]);
+		final double thresholdPointDistance = Double.parseDouble(args[3]);
 		String outputPath = args[4];
 		Integer amountPartition = Integer.parseInt(args[5]);
 		String sourceType = args[6];
@@ -175,22 +176,21 @@ public final class ContextMatchingBusStops {
 
 		JavaRDD<GeoObject> points = pointsDS1.union(pointsDS2).union(contextDS);
 
-		Broadcast<Integer> numReplication = ctx.broadcast(amountPartition);
+		final Broadcast<Integer> numReplication = ctx.broadcast(amountPartition);
 		JavaRDD<Tuple2<Integer, GeoObject>> pointLabed = points
 				.flatMap(new FlatMapFunction<GeoObject, Tuple2<Integer, GeoObject>>() {
 
-					@Override
-					public List<Tuple2<Integer, GeoObject>> call(GeoObject s) throws Exception {
+					public Iterator<Tuple2<Integer, GeoObject>> call(GeoObject s) throws Exception {
 						List<Tuple2<Integer, GeoObject>> listOfPointTuple = new ArrayList<Tuple2<Integer, GeoObject>>();
 						if (s.getType().equals(InputTypes.OSM_POLYGON)) {
 							listOfPointTuple.add(
 									new Tuple2<Integer, GeoObject>(s.getIdGeometry() % numReplication.getValue(), s));
-							return listOfPointTuple;
+							return listOfPointTuple.iterator();
 						} else { // equals to InputTypes.GOV_POLYGON
 							for (int i = 0; i < numReplication.value(); i++) {
 								listOfPointTuple.add(new Tuple2<Integer, GeoObject>(i, s));
 							}
-							return listOfPointTuple;
+							return listOfPointTuple.iterator();
 						}
 					}
 
@@ -199,7 +199,6 @@ public final class ContextMatchingBusStops {
 		JavaPairRDD<Integer, GeoObject> pointsPaired = pointLabed
 				.mapToPair(new PairFunction<Tuple2<Integer, GeoObject>, Integer, GeoObject>() {
 
-					@Override
 					public Tuple2<Integer, GeoObject> call(Tuple2<Integer, GeoObject> tuple) throws Exception {
 						return new Tuple2<Integer, GeoObject>(tuple._1(), tuple._2());
 					}
@@ -214,8 +213,7 @@ public final class ContextMatchingBusStops {
 		JavaPairRDD<Integer, PointPair> matches = pointsGrouped
 				.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, Iterable<GeoObject>>, Integer, PointPair>() {
 
-					@Override
-					public List<Tuple2<Integer, PointPair>> call(Tuple2<Integer, Iterable<GeoObject>> tuple)
+					public Iterator<Tuple2<Integer, PointPair>> call(Tuple2<Integer, Iterable<GeoObject>> tuple)
 							throws Exception {
 						List<GeoPoint2> pointsPerKey = IteratorUtils.toList(tuple._2().iterator());
 						List<GeoPoint2> pointsSource = new ArrayList<GeoPoint2>();
@@ -362,17 +360,16 @@ public final class ContextMatchingBusStops {
 							}
 						}
 
-						return entityMatches;
+						return entityMatches.iterator();
 					}
 				});
 
 		matches.flatMap(new FlatMapFunction<Tuple2<Integer, PointPair>, String>() {
 
-			@Override
-			public ArrayList<String> call(Tuple2<Integer, PointPair> t) throws Exception {
+			public Iterator<String> call(Tuple2<Integer, PointPair> t) throws Exception {
 				ArrayList<String> listOutput = new ArrayList<String>();
 				listOutput.add(t._2().toStringCSV());
-				return listOutput;
+				return listOutput.iterator();
 			}
 
 		}).saveAsTextFile(outputPath);

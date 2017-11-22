@@ -52,8 +52,8 @@ public final class MatchingGeoPolygon20 {
 		
 	public static Dataset<GeoPolygon> generateDataFrames(Dataset<Row> dataSource1, Dataset<Row> dataSource2, FieldsInputsMatchUp fieldsDataset1, FieldsInputsMatchUp fieldsDataset2, SparkSession spark) throws Exception {
 		
-		int[] arrayIndexFieldsInputDS1 = new int[NUMBER_ATTRIBUTES_INPUTS];
-		int[] arrayIndexFieldsInputDS2 = new int[NUMBER_ATTRIBUTES_INPUTS];
+		final int[] arrayIndexFieldsInputDS1 = new int[NUMBER_ATTRIBUTES_INPUTS];
+		final int[] arrayIndexFieldsInputDS2 = new int[NUMBER_ATTRIBUTES_INPUTS];
 		dataSource1 = removeHeader(dataSource1, fieldsDataset1, arrayIndexFieldsInputDS1);
 		dataSource2 = removeHeader(dataSource2, fieldsDataset2, arrayIndexFieldsInputDS2);
 		
@@ -62,7 +62,6 @@ public final class MatchingGeoPolygon20 {
 		
 		JavaRDD<GeoPolygon> rddGeoentitiesDS1 =  rddRowDataSource1.map(new Function<Row, GeoPolygon>() {
 
-			@Override
 			public GeoPolygon call(Row s) throws Exception {
 				return createGeoPolygon(s.getString(0), InputTypes.GOV_POLYGON, arrayIndexFieldsInputDS1);
 			}
@@ -71,7 +70,6 @@ public final class MatchingGeoPolygon20 {
 		
 		JavaRDD<GeoPolygon> rddGeoentitiesDS2 =  rddRowDataSource2.map(new Function<Row, GeoPolygon>() {
 
-			@Override
 			public GeoPolygon call(Row s) throws Exception {
 				return createGeoPolygon(s.getString(0), InputTypes.OSM_POLYGON, arrayIndexFieldsInputDS2);
 			}
@@ -88,16 +86,15 @@ public final class MatchingGeoPolygon20 {
 		return polygons;
 	}
 	
-	public static Dataset<String> run(Dataset<GeoPolygon> polygons, double thresholdLinguistic, double thresholdPolygon, Integer amountPartition, SparkSession spark) throws Exception {
+	public static Dataset<String> run(Dataset<GeoPolygon> polygons, final double thresholdLinguistic, final double thresholdPolygon, Integer amountPartition, SparkSession spark) throws Exception {
 		JavaSparkContext ctx = new JavaSparkContext(spark.sparkContext());
-		Broadcast<Integer> numReplication = ctx.broadcast(amountPartition);
+		final Broadcast<Integer> numReplication = ctx.broadcast(amountPartition);
 		Encoder<GeoPolygon> polygonEncoder = Encoders.javaSerialization(GeoPolygon.class);
 		
 		Encoder<Tuple2<Integer, GeoPolygon>> tupleEncoder = Encoders.tuple(Encoders.INT(), polygonEncoder);
 		
 		Dataset<Tuple2<Integer, GeoPolygon>> polygonLabed = polygons.flatMap(new FlatMapFunction<GeoPolygon, Tuple2<Integer, GeoPolygon>>() {
 
-			@Override
 			public Iterator<Tuple2<Integer, GeoPolygon>> call(GeoPolygon s) throws Exception {
 				List<Tuple2<Integer, GeoPolygon>> listOfPolygonTuple = new ArrayList<Tuple2<Integer, GeoPolygon>>();
 				if (s.getType().equals(InputTypes.OSM_POLYGON)) {
@@ -116,7 +113,6 @@ public final class MatchingGeoPolygon20 {
 		
 		KeyValueGroupedDataset<Integer, Tuple2<Integer, GeoPolygon>> polygonsGrouped = polygonLabed.groupByKey(new MapFunction<Tuple2<Integer, GeoPolygon>, Integer>() {
 
-			@Override
 			public Integer call(Tuple2<Integer, GeoPolygon> value) throws Exception {
 				return value._1();
 			}
@@ -128,7 +124,7 @@ public final class MatchingGeoPolygon20 {
 		Encoder<Tuple2<Integer, PolygonPair>> tuplePairEncoder = Encoders.tuple(Encoders.INT(), pairEncoder);
 		
 		Dataset<Tuple2<Integer, PolygonPair>> matches = polygonsGrouped.flatMapGroups(new FlatMapGroupsFunction<Integer, Tuple2<Integer, GeoPolygon>, Tuple2<Integer, PolygonPair>>() {
-			@Override
+			
 			public Iterator<Tuple2<Integer, PolygonPair>> call(Integer key, Iterator<Tuple2<Integer, GeoPolygon>> values)
 					throws Exception {
 				List<Tuple2<Integer, GeoPolygon>> polygonsPerKey = IteratorUtils.toList(values);
@@ -207,7 +203,6 @@ public final class MatchingGeoPolygon20 {
 		
 		Dataset<String> output = matches.flatMap(new FlatMapFunction<Tuple2<Integer, PolygonPair>, String>() {
 
-			@Override
 			public Iterator<String> call(Tuple2<Integer, PolygonPair> t) throws Exception {
 				ArrayList<String> listOutput = new ArrayList<String>();
 				listOutput.add(t._2().toStringCSV());
@@ -239,13 +234,12 @@ public final class MatchingGeoPolygon20 {
 		return new GeoPolygon(splittedRow[arraySequence[0]], splittedRow[arraySequence[1]], inputType, index, id);
 	}
 	
-	private static Dataset<Row> removeHeader (Dataset<Row> dataset, FieldsInputsMatchUp fieldsInputDS, int[] arraySequence) {
-		Row header = dataset.first();
+	private static Dataset<Row> removeHeader (Dataset<Row> dataset, final FieldsInputsMatchUp fieldsInputDS, final int[] arraySequence) {
+		final Row header = dataset.first();
 		dataset = dataset.filter(new FilterFunction<Row>() {
 
 			private static final long serialVersionUID = 1L;
 
-			@Override
 			public boolean call(Row value) throws Exception {
 				if (value.equals(header)) {
 

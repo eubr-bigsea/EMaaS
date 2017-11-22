@@ -100,6 +100,5 @@ public interface JsonValue extends Jsonable, Comparable<JsonValue> {
 	 * 
 	 * @see java.lang.Comparable#compareTo(Object)
 	 */
-	@Override
 	public int compareTo(JsonValue value);
 }

@@ -45,7 +45,6 @@ public class CountPreprocessor implements Preprocessor {
 		this.clearData();
 	}
 
-	@Override
 	public void analyzeGenericObject(GenericObject data) {
 		++this.objectCount;
 	}
@@ -59,12 +58,10 @@ public class CountPreprocessor implements Preprocessor {
 		return this.objectCount;
 	}
 
-	@Override
 	public void clearData() {
 		this.objectCount = 0;
 	}
 
-	@Override
 	public void finish() {
 		// nothing to do
 	}

@@ -481,7 +481,7 @@ public class BUSTEstimation {
 			for (FileStatus filePart : fileStatus2) {
 				if (!filePart.getPath().getName().equals("_SUCCESS")
 						&& !filePart.getPath().getName().equals("part-00000")) {
-					bulmaOutputString
+					bulmaOutputString = bulmaOutputString
 							.union(context.textFile(pathDir + SLASH + filePart.getPath().getName(), minPartitions));
 				}
 			}

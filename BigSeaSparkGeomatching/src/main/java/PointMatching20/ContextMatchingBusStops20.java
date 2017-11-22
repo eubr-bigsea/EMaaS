@@ -69,9 +69,9 @@ public final class ContextMatchingBusStops20 {
 	
 	public static Dataset<GeoObject> generateDataFrames(Dataset<Row> dataSourceDS1, Dataset<Row> dataSourceDS2, Dataset<Row> dataSourceContext, FieldsInputsMatchUp fieldsDataset1, FieldsInputsMatchUp fieldsDataset2, FieldsInputsMatchUp fieldsDataset3, SparkSession spark) throws Exception {
 		
-		int[] arrayIndexFieldsInputDS1 = new int[NUMBER_ATTRIBUTES_INPUTS];
-		int[] arrayIndexFieldsInputDS2 = new int[NUMBER_ATTRIBUTES_INPUTS];
-		int[] arrayIndexFieldsInputDS3 = new int[NUMBER_ATTRIBUTES_INPUTS];
+		final int[] arrayIndexFieldsInputDS1 = new int[NUMBER_ATTRIBUTES_INPUTS];
+		final int[] arrayIndexFieldsInputDS2 = new int[NUMBER_ATTRIBUTES_INPUTS];
+		final int[] arrayIndexFieldsInputDS3 = new int[NUMBER_ATTRIBUTES_INPUTS];
 		
 		dataSourceDS1 = removeHeaderDS(dataSourceDS1, fieldsDataset1, arrayIndexFieldsInputDS1);
 		dataSourceDS2 = removeHeaderDS(dataSourceDS2, fieldsDataset2, arrayIndexFieldsInputDS2);
@@ -83,7 +83,6 @@ public final class ContextMatchingBusStops20 {
 		
 		JavaRDD<GeoObject> rddGeoPointsDS1 =  rddRowDS1.map(new Function<Row, GeoObject>() {
 
-			@Override
 			public GeoObject call(Row s) throws Exception {
 				return createGeoPoint(s.getString(0), InputTypes.GOV_POLYGON, arrayIndexFieldsInputDS1);
 			}
@@ -92,7 +91,6 @@ public final class ContextMatchingBusStops20 {
 		
 		JavaRDD<GeoObject> rddGeoPointsDS2 =  rddRowDS2.map(new Function<Row, GeoObject>() {
 
-			@Override
 			public GeoObject call(Row s) throws Exception {
 				return createGeoPoint(s.getString(0), InputTypes.OSM_POLYGON, arrayIndexFieldsInputDS2);
 			}
@@ -101,7 +99,6 @@ public final class ContextMatchingBusStops20 {
 		
 		JavaRDD<GeoObject> rddGeoLinesDSContext = rddRowDSContext.map(new Function<Row, GeoObject>() {
 
-			@Override
 			public GeoObject call(Row r) throws Exception {
 				return createGeoLine(r.getString(0), InputTypes.GOV_POLYGON, arrayIndexFieldsInputDS3);
 			}
@@ -119,13 +116,12 @@ public final class ContextMatchingBusStops20 {
 		return points;
 	}
 	
-	private static Dataset<Row> removeHeaderDS (Dataset<Row> dataset, FieldsInputsMatchUp fieldsInputDS, int[] arraySequence) {
-		Row header = dataset.first();
+	private static Dataset<Row> removeHeaderDS (Dataset<Row> dataset, final FieldsInputsMatchUp fieldsInputDS, final int[] arraySequence) {
+		final Row header = dataset.first();
 		dataset = dataset.filter(new FilterFunction<Row>() {
 
 			private static final long serialVersionUID = 1L;
 
-			@Override
 			public boolean call(Row value) throws Exception {
 				if (value.equals(header)) {
 
@@ -159,16 +155,15 @@ public final class ContextMatchingBusStops20 {
 		return dataset;
 	}
 
-	public static Dataset<String> run(Dataset<GeoObject> points, double thresholdLinguistic, double thresholdPointDistance, Integer amountPartition, SparkSession spark) throws Exception {
+	public static Dataset<String> run(Dataset<GeoObject> points, double thresholdLinguistic, final double thresholdPointDistance, Integer amountPartition, SparkSession spark) throws Exception {
 		JavaSparkContext ctx = new JavaSparkContext(spark.sparkContext());
-		Broadcast<Integer> numReplication = ctx.broadcast(amountPartition);
+		final Broadcast<Integer> numReplication = ctx.broadcast(amountPartition);
 		Encoder<GeoObject> geoObjEncoder = Encoders.javaSerialization(GeoObject.class);
 		
 		Encoder<Tuple2<Integer, GeoObject>> tupleEncoder = Encoders.tuple(Encoders.INT(), geoObjEncoder);
 		
 		Dataset<Tuple2<Integer, GeoObject>> pointsPaired = points.flatMap(new FlatMapFunction<GeoObject, Tuple2<Integer, GeoObject>>() {
 
-			@Override
 			public Iterator<Tuple2<Integer, GeoObject>> call(GeoObject s) throws Exception {
 				List<Tuple2<Integer, GeoObject>> listOfPointTuple = new ArrayList<Tuple2<Integer, GeoObject>>();
 				if (s.getType().equals(InputTypes.OSM_POLYGON)) {
@@ -187,7 +182,6 @@ public final class ContextMatchingBusStops20 {
 		
 		KeyValueGroupedDataset<Integer, Tuple2<Integer, GeoObject>> pointsGrouped = pointsPaired.groupByKey(new MapFunction<Tuple2<Integer, GeoObject>, Integer>() {
 
-			@Override
 			public Integer call(Tuple2<Integer, GeoObject> value) throws Exception {
 				return value._1();
 			}
@@ -199,7 +193,6 @@ public final class ContextMatchingBusStops20 {
 		Encoder<Tuple2<Integer, PointPair>> tuplePairEncoder = Encoders.tuple(Encoders.INT(), pairEncoder);
 
 		Dataset<Tuple2<Integer, PointPair>> matches = pointsGrouped.flatMapGroups(new FlatMapGroupsFunction<Integer, Tuple2<Integer, GeoObject>, Tuple2<Integer, PointPair>>() {
-			@Override
 			public Iterator<Tuple2<Integer, PointPair>> call(Integer key, Iterator<Tuple2<Integer, GeoObject>> values)
 					throws Exception {
 						List<Tuple2<Integer, GeoObject>> pointsPerKey = IteratorUtils.toList(values);
@@ -353,7 +346,6 @@ public final class ContextMatchingBusStops20 {
 
 		Dataset<String> output = matches.flatMap(new FlatMapFunction<Tuple2<Integer, PointPair>, String>() {
 
-			@Override
 			public Iterator<String> call(Tuple2<Integer, PointPair> t) throws Exception {
 				ArrayList<String> listOutput = new ArrayList<String>();
 				listOutput.add(t._2().toStringCSV());

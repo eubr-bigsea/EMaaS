@@ -126,7 +126,6 @@ public class GenericObjectId implements Jsonable, Comparable<GenericObjectId>, S
 		return this.getSourceId() + "." + this.getObjectId();
 	}
 
-	@Override
 	public int compareTo(GenericObjectId other) {
 		if (this.sourceId.compareTo(other.sourceId) != 0) {
 			// compares the source identifier
@@ -174,7 +173,6 @@ public class GenericObjectId implements Jsonable, Comparable<GenericObjectId>, S
 		return true;
 	}
 	
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeRecordStart();
 		
@@ -184,7 +182,6 @@ public class GenericObjectId implements Jsonable, Comparable<GenericObjectId>, S
 		jsonGenerator.writeRecordEnd();
 	}
 
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		jsonParser.skipToken(); // skip '{'
 		

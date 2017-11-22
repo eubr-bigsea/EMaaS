@@ -90,7 +90,6 @@ public class MultiColumnCsvSort
     {
         return new Comparator<T>()
         {
-            @Override
             public int compare(T t0, T t1)
             {
                 return t0.compareTo(t1);
@@ -103,7 +102,6 @@ public class MultiColumnCsvSort
     {
         return new Comparator<List<T>>()
         {
-            @Override
             public int compare(List<T> list0, List<T> list1)
             {
                 for (int i = 0; i < indices.length; i++)

@@ -73,7 +73,6 @@ public final class CrossReferenceExpander extends AbstractExpander implements Ex
 	 * 
 	 * @param bibtexFile
 	 */
-	@Override
 	public void expand(BibtexFile bibtexFile) throws ExpansionException {
 		HashMap<String, BibtexAbstractEntry> entryKey2Entry = new HashMap<String, BibtexAbstractEntry>();
 		ArrayList<BibtexEntry> entriesWithCrossReference = new ArrayList<BibtexEntry>();

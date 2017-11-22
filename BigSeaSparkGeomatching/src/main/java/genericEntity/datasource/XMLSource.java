@@ -346,7 +346,6 @@ public class XMLSource extends AbstractDataSource<XMLSource> implements Jsonable
 		}
 	}
 
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeRecordStart();
 		JsonUtil.writeFields(jsonGenerator, this);
@@ -354,7 +353,6 @@ public class XMLSource extends AbstractDataSource<XMLSource> implements Jsonable
 		jsonGenerator.writeRecordEnd();
 	}
 
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		jsonParser.skipToken(JsonToken.START_OBJECT);
 		JsonUtil.readFields(jsonParser, this);

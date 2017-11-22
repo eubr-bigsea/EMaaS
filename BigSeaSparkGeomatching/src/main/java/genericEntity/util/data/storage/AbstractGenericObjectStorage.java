@@ -53,7 +53,6 @@ public abstract class AbstractGenericObjectStorage<T extends Jsonable> implement
 	 */
 	protected abstract static class AbstractJsonableWriter<T extends Jsonable> implements JsonableWriter<T> {
 
-		@Override
 		public boolean addAll(Collection<T> collection) throws JsonGenerationException, IOException {
 			boolean contentChanged = false;
 
@@ -70,17 +69,14 @@ public abstract class AbstractGenericObjectStorage<T extends Jsonable> implement
 
 	private boolean formattedJsonEnabled = GlobalConfig.getInstance().formattedJsonIsEnabled();
 
-	@Override
 	public boolean isFormattedJson() {
 		return this.formattedJsonEnabled;
 	}
 
-	@Override
 	public void enableFormattedJson() {
 		this.formattedJsonEnabled = true;
 	}
 
-	@Override
 	public void disableFormattedJson() {
 		this.formattedJsonEnabled = false;
 	}

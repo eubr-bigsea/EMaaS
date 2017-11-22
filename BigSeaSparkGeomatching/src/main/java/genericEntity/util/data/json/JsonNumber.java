@@ -85,7 +85,6 @@ public class JsonNumber implements JsonAtomic, Serializable {
 	 * 
 	 * @see JsonValue#getType()
 	 */
-	@Override
 	public JsonType getType() {
 		return JsonValue.JsonType.Number;
 	}
@@ -104,7 +103,6 @@ public class JsonNumber implements JsonAtomic, Serializable {
 	 * 
 	 * @see JsonValue#size()
 	 */
-	@Override
 	public int size() {
 		return 1;
 	}
@@ -140,7 +138,6 @@ public class JsonNumber implements JsonAtomic, Serializable {
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public int compareTo(JsonValue other) {
 		if (other == null) {
 			return 1;
@@ -176,17 +173,14 @@ public class JsonNumber implements JsonAtomic, Serializable {
 		return this.value.toString();
 	}
 
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeJsonNumber(this);
 	}
 	
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		this.value = jsonParser.nextJsonNumber().value;
 	}
 
-	@Override
 	public String getStringValue() {
 		return this.value.toString();
 	}

@@ -41,13 +41,13 @@ import scala.Tuple3;
 
 public class BOR {
 
-	private static Map<String, Map<String, ShapeLine>> mapShapeLines = new HashMap<>(); // key =  route
-	private static Map<String, Trip> mapCurrentTrip = new HashMap<>(); // key = bus code + route
-	private static Map<String, List<ShapeLine>> mapTrueShapes = new HashMap<>();
-	private static Map<String, Tuple2<Float, Float>> mapPreviousDistances = new HashMap<>();
-	private static Map<String, List<GPSPoint>> mapRetrocessingPoints = new HashMap<>();
-	private static Map<String, Integer> mapExtraThreshold = new HashMap<>();
-	private static Map<String, List<Trip>> mapPreviousTrips = new HashMap<>();
+	private static Map<String, Map<String, ShapeLine>> mapShapeLines = new HashMap<String, Map<String, ShapeLine>>(); // key =  route
+	private static Map<String, Trip> mapCurrentTrip = new HashMap<String, Trip>(); // key = bus code + route
+	private static Map<String, List<ShapeLine>> mapTrueShapes = new HashMap<String, List<ShapeLine>>();
+	private static Map<String, Tuple2<Float, Float>> mapPreviousDistances = new HashMap<String, Tuple2<Float, Float>>();
+	private static Map<String, List<GPSPoint>> mapRetrocessingPoints = new HashMap<String, List<GPSPoint>>();
+	private static Map<String, Integer> mapExtraThreshold = new HashMap<String, Integer>();
+	private static Map<String, List<Trip>> mapPreviousTrips = new HashMap<String, List<Trip>>();
 
 	private static final double PERCENTAGE_DISTANCE = 0.09;
 	private static final int THRESHOLD_RETROCESSING_POINTS = 1;
@@ -73,22 +73,23 @@ public class BOR {
 		String pathOutput = args[2];
 		int minPartitions = Integer.valueOf(args[3]);
 
-		SparkConf sparkConf = new SparkConf().setMaster("local[2]").setAppName("BulmaRT");
+//		SparkConf sparkConf = new SparkConf().setMaster("local[2]").setAppName("BulmaRT");
+		SparkConf sparkConf = new SparkConf().setAppName("BulmaRT");
 //		JavaStreamingContext context = new JavaStreamingContext(sparkConf, Durations.seconds(batchDuration));
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
-		Broadcast<Map<String, Map<String, ShapeLine>>> mapShapeLinesBroadcast = context
+		final Broadcast<Map<String, Map<String, ShapeLine>>> mapShapeLinesBroadcast = context
 				.broadcast(mapShapeLines);
-		Broadcast<Map<String, Trip>> mapCurrentTripBroadcast = context.broadcast(mapCurrentTrip);
-		Broadcast<Map<String, List<ShapeLine>>> mapTrueShapesBroadcast = context
+		final Broadcast<Map<String, Trip>> mapCurrentTripBroadcast = context.broadcast(mapCurrentTrip);
+		final Broadcast<Map<String, List<ShapeLine>>> mapTrueShapesBroadcast = context
 				.broadcast(mapTrueShapes);
-		Broadcast<Map<String, Tuple2<Float, Float>>> mapPreviousDistancesBroadcast = context
+		final Broadcast<Map<String, Tuple2<Float, Float>>> mapPreviousDistancesBroadcast = context
 				.broadcast(mapPreviousDistances);
-		Broadcast<Map<String, List<GPSPoint>>> mapRetrocessingPointsBroadcast = context
+		final Broadcast<Map<String, List<GPSPoint>>> mapRetrocessingPointsBroadcast = context
 				.broadcast(mapRetrocessingPoints);
-		Broadcast<Map<String, Integer>> mapExtraThresholdBroadcast = context
+		final Broadcast<Map<String, Integer>> mapExtraThresholdBroadcast = context
 				.broadcast(mapExtraThreshold);
-		Broadcast<Map<String, List<Trip>>> mapPreviousTripsBroadcast = context
+		final Broadcast<Map<String, List<Trip>>> mapPreviousTripsBroadcast = context
 				.broadcast(mapPreviousTrips);
 		
 		/**
@@ -97,7 +98,7 @@ public class BOR {
 		 * @return the file without the header
 		 */
 		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
-			@Override
+			
 			public Iterator<String> call(Integer index, Iterator<String> iterator) throws Exception {
 				if (index == 0 && iterator.hasNext()) {
 					iterator.next();
@@ -122,7 +123,6 @@ public class BOR {
 		JavaPairRDD<String, Iterable<GeoPoint>> rddShapePointsPair = shapeString
 				.mapToPair(new PairFunction<String, String, GeoPoint>() {
 
-					@Override
 					public Tuple2<String, GeoPoint> call(String s) throws Exception {
 						ShapePoint shapePoint = ShapePoint.createShapePointRoute(s);
 						String shapeSequence = shapePoint.getPointSequence();
@@ -143,10 +143,9 @@ public class BOR {
 					@SuppressWarnings("deprecation")
 					GeometryFactory geometryFactory = JtsSpatialContext.GEO.getGeometryFactory();
 
-					@Override
 					public Tuple2<String, GeoLine> call(Tuple2<String, Iterable<GeoPoint>> pair) throws Exception {
 
-						List<Coordinate> coordinates = new ArrayList<>();
+						List<Coordinate> coordinates = new ArrayList<Coordinate>();
 						Double latitude;
 						Double longitude;
 						ShapePoint lastPoint = null;
@@ -157,7 +156,7 @@ public class BOR {
 
 						Tuple2<Float, List<String>> previousStopPoint = null;
 						Tuple2<Float, List<String>> nextStopPoint = null;
-						List<Integer> pointsBetweenStops = new LinkedList<>();
+						List<Integer> pointsBetweenStops = new LinkedList<Integer>();
 
 						for (int i = 0; i < listGeoPoint.size(); i++) {
 							GeoPoint currentGeoPoint = listGeoPoint.get(i);
@@ -226,7 +225,7 @@ public class BOR {
 										
 										previousStopPoint = nextStopPoint;
 										nextStopPoint = null;
-										pointsBetweenStops = new LinkedList<>();
+										pointsBetweenStops = new LinkedList<Integer>();
 									}
 								}
 							}
@@ -246,7 +245,7 @@ public class BOR {
 						shapeLine.setThresholdDistance(thresholdDistanceCurrentShape);
 
 						if (!mapShapeLinesBroadcast.getValue().containsKey(route)) {
-							mapShapeLinesBroadcast.getValue().put(route, new HashMap<>());
+							mapShapeLinesBroadcast.getValue().put(route, new HashMap<String, ShapeLine>());
 						}
 
 						mapShapeLinesBroadcast.getValue().get(route).put(pair._1, shapeLine);
@@ -274,7 +273,6 @@ public class BOR {
 		 */
 		JavaRDD<GPSPoint> gpsPointsRDD = gpsStream.map(new Function<String, GPSPoint>() {
 
-			@Override
 			public GPSPoint call(String entry) throws Exception {
 				return GPSPoint.createGPSPointWithId(entry);
 			}
@@ -290,11 +288,10 @@ public class BOR {
 		JavaRDD<Tuple3<GPSPoint, ShapePoint, Float>> similarityOutput = gpsPointsRDD
 				.flatMap(new FlatMapFunction<GPSPoint, Tuple3<GPSPoint, ShapePoint, Float>>() {
 
-					@Override
 					public Iterator<Tuple3<GPSPoint, ShapePoint, Float>> call(GPSPoint currentGPSPoint)
 							throws Exception {
 
-						List<Tuple3<GPSPoint, ShapePoint, Float>> listOutput = new ArrayList<>();
+						List<Tuple3<GPSPoint, ShapePoint, Float>> listOutput = new ArrayList<Tuple3<GPSPoint, ShapePoint, Float>>();
 						String route = currentGPSPoint.getLineCode();
 						String keyMaps = currentGPSPoint.getBusCode() + route;
 						Trip trip = mapCurrentTripBroadcast.getValue().get(keyMaps);
@@ -343,7 +340,7 @@ public class BOR {
 						} else {
 							if (mapTrueShapesBroadcast.getValue().get(currentBusCodeAndRoute) == null) {
 
-								List<ShapeLine> listMatchedShapes = new ArrayList<>();
+								List<ShapeLine> listMatchedShapes = new ArrayList<ShapeLine>();
 								Map<String, ShapeLine> mapPossibleShapeLines = mapShapeLinesBroadcast.getValue()
 										.get(route);
 
@@ -403,7 +400,7 @@ public class BOR {
 
 						Tuple2<ShapePoint, Float> closestPoint;
 						for (ShapeLine currentShapeLine : listTrueShapes) {
-							matchedShapesList = new ArrayList<>();
+							matchedShapesList = new ArrayList<ShapePoint>();
 							for (GPSPoint outlierPoint : trip.getOutliersInSequence()) {
 
 								closestPoint = getClosestShapePoint(outlierPoint, currentShapeLine);
@@ -582,7 +579,7 @@ public class BOR {
 								mapExtraThresholdBroadcast.getValue().put(keyMaps, extraThreshold);
 							}
 							if (listRetrocessingPoints == null) {
-								listRetrocessingPoints = new ArrayList<>();
+								listRetrocessingPoints = new ArrayList<GPSPoint>();
 							}
 
 							if (listRetrocessingPoints.size() < THRESHOLD_RETROCESSING_POINTS + extraThreshold) {
@@ -596,7 +593,7 @@ public class BOR {
 
 								List<Trip> previousTrips = mapPreviousTripsBroadcast.getValue().get(keyMaps);
 								if (previousTrips == null) {
-									previousTrips = new ArrayList<>();
+									previousTrips = new ArrayList<Trip>();
 								}
 								previousTrips.add(trip);
 								mapPreviousTripsBroadcast.getValue().put(keyMaps, previousTrips);
@@ -636,7 +633,7 @@ public class BOR {
 								}
 
 								// clean maps
-								mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<>());
+								mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<GPSPoint>());
 								mapExtraThresholdBroadcast.getValue().put(keyMaps, 0);
 
 								currentClosestShapePoint = getClosestShapePoint(currentGPSPoint,
@@ -685,7 +682,7 @@ public class BOR {
 
 							// clean maps
 							mapExtraThresholdBroadcast.getValue().put(keyMaps, 0);
-							mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<>());
+							mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<GPSPoint>());
 
 							if (currentClosestShapePoint._2 > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
 								currentGPSPoint.setProblem(Problem.OUTLIER_POINT.getCode());
@@ -716,7 +713,6 @@ public class BOR {
 					private final String[] SITUATIONS = { "NO SHAPE", "NO TIME", "LATE", "IN TIME", "IN ADVANCE" };
 					private final long DELAY_TOLERANCE_TIME = 300000L; // 5minutes
 					
-					@Override
 					public String call(Tuple3<GPSPoint, ShapePoint, Float> t) throws Exception {
 						String stringOutput = "";
 

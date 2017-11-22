@@ -42,12 +42,10 @@ public class InMemoryStorage<T extends Jsonable> extends AbstractGenericObjectSt
 
 	private class InMemoryReader implements JsonableReader<T> {
 
-		@Override
 		public Iterator<T> iterator() {
 			return InMemoryStorage.this.data.iterator();
 		}
 		
-		@Override
 		public void close() throws IOException {
 			// nothing to do
 		}
@@ -60,12 +58,10 @@ public class InMemoryStorage<T extends Jsonable> extends AbstractGenericObjectSt
 			InMemoryStorage.this.data.clear();
 		}
 
-		@Override
 		public boolean add(T value) {
 			return InMemoryStorage.this.data.add(value);
 		}
 
-		@Override
 		public void close() throws IOException {
 			// nothing to do
 		}
@@ -105,18 +101,15 @@ public class InMemoryStorage<T extends Jsonable> extends AbstractGenericObjectSt
 		}
 	}
 
-	@Override
 	public JsonableReader<T> getReader() {
 		return new InMemoryReader();
 	}
 
-	@Override
 	public JsonableWriter<T> getWriter() {
 		// TODO: make this a singleton?!
 		return new InMemoryWriter();
 	}
 
-	@Override
 	public int size() {
 		return this.data.size();
 	}

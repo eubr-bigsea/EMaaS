@@ -101,7 +101,7 @@ public class MatchingRoutesShapeGPS {
 	private static JavaRDD<String> executeBULMA(String pathFileShapes, String pathGPSFile, int minPartitions, JavaSparkContext ctx) {
 		
 		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
-			@Override
+		
 			public Iterator<String> call(Integer index, Iterator<String> iterator) throws Exception {
 				if (index == 0 && iterator.hasNext()) {
 					iterator.next();
@@ -120,7 +120,6 @@ public class MatchingRoutesShapeGPS {
 		JavaPairRDD<String, Iterable<GeoPoint>> rddGPSPointsPair = gpsString
 				.mapToPair(new PairFunction<String, String, GeoPoint>() {
 
-					@Override
 					public Tuple2<String, GeoPoint> call(String s) throws Exception {
 						GPSPoint gpsPoint = GPSPoint.createGPSPointWithId(s);
 						
@@ -135,7 +134,6 @@ public class MatchingRoutesShapeGPS {
 		JavaPairRDD<String, Iterable<GeoPoint>> rddShapePointsPair = shapeString
 				.mapToPair(new PairFunction<String, String, GeoPoint>() {
 
-					@Override
 					public Tuple2<String, GeoPoint> call(String s) throws Exception {
 						ShapePoint shapePoint = ShapePoint.createShapePointRoute(s);
 						return new Tuple2<String, GeoPoint>(shapePoint.getId(), shapePoint);
@@ -148,10 +146,9 @@ public class MatchingRoutesShapeGPS {
 					@SuppressWarnings("deprecation")
 					GeometryFactory geometryFactory = JtsSpatialContext.GEO.getGeometryFactory();
 
-					@Override
 					public Tuple2<String, GeoLine> call(Tuple2<String, Iterable<GeoPoint>> pair) throws Exception {
 
-						List<Coordinate> coordinates = new ArrayList<>();
+						List<Coordinate> coordinates = new ArrayList<Coordinate>();
 						Double latitude;
 						Double longitude;
 						String lineBlockingKey = null;
@@ -203,10 +200,9 @@ public class MatchingRoutesShapeGPS {
 					@SuppressWarnings("deprecation")
 					GeometryFactory geometryFactory = JtsSpatialContext.GEO.getGeometryFactory();
 
-					@Override
 					public Tuple2<String, GeoLine> call(Tuple2<String, Iterable<GeoPoint>> pair) throws Exception {
 
-						List<Coordinate> coordinates = new ArrayList<>();
+						List<Coordinate> coordinates = new ArrayList<Coordinate>();
 						Double latitude;
 						Double longitude;
 						ShapePoint lastPoint = null;
@@ -252,11 +248,10 @@ public class MatchingRoutesShapeGPS {
 		JavaRDD<List<GPSLine>> rddPossibleShapes = rddGroupedUnionLines
 				.map(new Function<Tuple2<String, Iterable<GeoLine>>, List<GPSLine>>() {
 
-					@Override
 					public List<GPSLine> call(Tuple2<String, Iterable<GeoLine>> entry) throws Exception {
 
-						List<ShapeLine> shapeLineList = new ArrayList<>();
-						List<GPSLine> gpsLineList = new ArrayList<>();
+						List<ShapeLine> shapeLineList = new ArrayList<ShapeLine>();
+						List<GPSLine> gpsLineList = new ArrayList<GPSLine>();
 
 						Iterator<GeoLine> iteratorGeoLine = entry._2.iterator();
 						GeoLine geoLine;
@@ -358,7 +353,6 @@ public class MatchingRoutesShapeGPS {
 		JavaRDD<List<GPSLine>> rddTrueShapes = rddPossibleShapes
 				.map(new Function<List<GPSLine>, List<GPSLine>>() {
 
-					@Override
 					public List<GPSLine> call(List<GPSLine> entry) throws Exception {
 
 						Queue<Tuple2<String, Integer>> firstGPSPoints;
@@ -460,7 +454,6 @@ public class MatchingRoutesShapeGPS {
 
 		JavaRDD<List<GPSLine>> rddClosestPoint = rddTrueShapes.map(new Function< List<GPSLine>, List<GPSLine>>() {
 
-			@Override
 			public List<GPSLine> call(List<GPSLine> entry) throws Exception {
 
 				for (GPSLine gpsLine : entry) {
@@ -499,9 +492,9 @@ public class MatchingRoutesShapeGPS {
 		
 		JavaRDD<String> rddOutput = rddClosestPoint.flatMap(new FlatMapFunction<List<GPSLine>, String>() {
 
-			@Override
 			public Iterator<String> call(List<GPSLine> listGPS) throws Exception {
-				List<String> listOutput = new ArrayList<>();
+				
+				List<String> listOutput = new ArrayList<String>();
 				for (GPSLine gpsLine : listGPS) {
 					if (gpsLine != null) {
 

@@ -364,7 +364,6 @@ public class CSVSource extends AbstractDataSource<CSVSource> implements Jsonable
 		return this.columnNames;
 	}
 
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeRecordStart();
 		JsonUtil.writeFields(jsonGenerator, this);
@@ -372,7 +371,6 @@ public class CSVSource extends AbstractDataSource<CSVSource> implements Jsonable
 		jsonGenerator.writeRecordEnd();
 	}
 
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		jsonParser.skipToken(JsonToken.START_OBJECT);
 		JsonUtil.readFields(jsonParser, this);

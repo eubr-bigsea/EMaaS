@@ -339,7 +339,6 @@ public class GenericJsonGenerator implements Closeable {
 		this.generator.writeFieldName(fieldname);
 	}
 
-	@Override
 	public void close() throws IOException {
 		this.generator.close();
 	}

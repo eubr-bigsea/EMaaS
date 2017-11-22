@@ -245,7 +245,6 @@ public class GeoPoint2 extends GeoObject implements Serializable, Cloneable, Com
 		return dist;
 	}
 
-	@Override
 	public int compareTo(GeoPoint2 other) {
 		if (distanceToPOI < other.getDistanceToPOI()) {
 			return -1;

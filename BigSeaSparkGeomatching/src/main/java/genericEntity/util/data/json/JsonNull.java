@@ -83,7 +83,6 @@ public class JsonNull implements JsonAtomic {
 	 * 
 	 * @see JsonValue#getType()
 	 */
-	@Override
 	public JsonType getType() {
 		return JsonType.Null;
 	}
@@ -93,12 +92,10 @@ public class JsonNull implements JsonAtomic {
 	 * 
 	 * @see JsonValue#size()
 	 */
-	@Override
 	public int size() {
 		return 0;
 	}
 
-	@Override
 	public int compareTo(JsonValue other) {
 		if (other == null || this == other || other.getClass().equals(JsonNull.class)) {
 			return 0;
@@ -112,18 +109,15 @@ public class JsonNull implements JsonAtomic {
 		return super.hashCode();
 	}
 
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeJsonNull();
 	}
 	
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		// expects Json null value
 		jsonParser.nextJsonNull();
 	}
 
-	@Override
 	public String getStringValue() {
 		return "null";
 	}

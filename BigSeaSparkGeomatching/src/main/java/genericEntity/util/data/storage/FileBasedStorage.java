@@ -66,7 +66,6 @@ public class FileBasedStorage<T extends Jsonable> extends AbstractGenericObjectS
 
 		private Collection<Reader> openedReaders = new ArrayList<Reader>();
 
-		@Override
 		public Iterator<T> iterator() {
 			try {
 				final Reader reader = new BufferedReader(new FileReader(FileBasedStorage.this.file));
@@ -83,7 +82,6 @@ public class FileBasedStorage<T extends Jsonable> extends AbstractGenericObjectS
 			return null;
 		}
 
-		@Override
 		public void close() throws IOException {
 			IOException propagatedException = null;
 			for (Reader reader : this.openedReaders) {
@@ -116,7 +114,6 @@ public class FileBasedStorage<T extends Jsonable> extends AbstractGenericObjectS
 			FileBasedStorage.this.size = 0;
 		}
 
-		@Override
 		public boolean add(T value) throws JsonGenerationException, IOException {
 			if (this.generator == null) {
 				throw new IllegalStateException("The writer was already closed.");
@@ -128,7 +125,6 @@ public class FileBasedStorage<T extends Jsonable> extends AbstractGenericObjectS
 			return true;
 		}
 
-		@Override
 		public void close() throws IOException {
 			if (this.generator != null) {
 				this.generator.writeArrayEnd();
@@ -346,12 +342,10 @@ public class FileBasedStorage<T extends Jsonable> extends AbstractGenericObjectS
 		writer.close();
 	}
 
-	@Override
 	public JsonableReader<T> getReader() {
 		return new FileBasedReader();
 	}
 
-	@Override
 	public JsonableWriter<T> getWriter() throws IOException {
 		return new FileBasedWriter();
 	}
@@ -367,7 +361,6 @@ public class FileBasedStorage<T extends Jsonable> extends AbstractGenericObjectS
 		reader.close();
 	}
 
-	@Override
 	public int size() {
 		if (this.size == -1) {
 			try {

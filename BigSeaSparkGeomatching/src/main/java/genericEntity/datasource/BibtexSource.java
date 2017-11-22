@@ -459,7 +459,6 @@ public class BibtexSource extends AbstractDataSource<BibtexSource> implements Js
 		return new BibtexSourceIterator(this);
 	}
 
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeRecordStart();
 		JsonUtil.writeFields(jsonGenerator, this);
@@ -467,7 +466,6 @@ public class BibtexSource extends AbstractDataSource<BibtexSource> implements Js
 		jsonGenerator.writeRecordEnd();
 	}
 
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		jsonParser.skipToken(JsonToken.START_OBJECT);
 		JsonUtil.readFields(jsonParser, this);

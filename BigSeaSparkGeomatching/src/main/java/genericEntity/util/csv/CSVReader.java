@@ -237,7 +237,6 @@ public class CSVReader implements Closeable {
 	 * @throws IOException
 	 *             If an error occurs during the closing process.
 	 */
-	@Override
 	public void close() throws IOException {
 		if (this.isClosed()) {
 			return;

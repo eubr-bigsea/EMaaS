@@ -116,12 +116,10 @@ public class JsonRecord extends HashMap<String, JsonValue> implements JsonValue 
 	 * 
 	 * @see JsonValue#getType()
 	 */
-	@Override
 	public JsonType getType() {
 		return JsonValue.JsonType.Record;
 	}
 
-	@Override
 	public int compareTo(JsonValue other) {
 		if (other == null) {
 			return 1;
@@ -506,12 +504,10 @@ public class JsonRecord extends HashMap<String, JsonValue> implements JsonValue 
 		return super.put(key, new JsonString(str));
 	}
 
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeJsonRecord(this);
 	}
 
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		this.clear();
 		this.putAll(jsonParser.nextJsonRecord());

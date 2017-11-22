@@ -138,7 +138,6 @@ public class JSONSource extends AbstractDataSource<JSONSource> implements Jsonab
 		}
 	}
 
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeRecordStart();
 		JsonUtil.writeFields(jsonGenerator, this);
@@ -146,7 +145,6 @@ public class JSONSource extends AbstractDataSource<JSONSource> implements Jsonab
 		jsonGenerator.writeRecordEnd();
 	}
 
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		jsonParser.skipToken(JsonToken.START_OBJECT);
 		JsonUtil.readFields(jsonParser, this);

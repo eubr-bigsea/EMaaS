@@ -84,7 +84,6 @@ public class JsonString implements JsonAtomic, Serializable {
 	 * 
 	 * @see JsonValue#getType()
 	 */
-	@Override
 	public JsonType getType() {
 		return JsonValue.JsonType.String;
 	}
@@ -139,7 +138,6 @@ public class JsonString implements JsonAtomic, Serializable {
 		return strBuilder.toString();
 	}
 
-	@Override
 	public String getStringValue() {
 		return this.strValue;
 	}
@@ -189,12 +187,10 @@ public class JsonString implements JsonAtomic, Serializable {
 	 * 
 	 * @see JsonValue#size()
 	 */
-	@Override
 	public int size() {
 		return 1;
 	}
 
-	@Override
 	public int compareTo(JsonValue other) {
 		if (other == null) {
 			return 1;
@@ -207,12 +203,10 @@ public class JsonString implements JsonAtomic, Serializable {
 		return this.strValue.compareTo(((JsonString) other).strValue);
 	}
 
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeJsonString(this);
 	}
 	
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		this.strValue = jsonParser.nextJsonString().strValue;
 	}

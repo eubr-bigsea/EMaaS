@@ -87,7 +87,6 @@ public class JsonBoolean implements JsonAtomic {
 	 * 
 	 * @see JsonValue#getType()
 	 */
-	@Override
 	public JsonType getType() {
 		return JsonValue.JsonType.Boolean;
 	}
@@ -128,12 +127,10 @@ public class JsonBoolean implements JsonAtomic {
 	 * 
 	 * @see JsonValue#size()
 	 */
-	@Override
 	public int size() {
 		return 1;
 	}
 
-	@Override
 	public int compareTo(JsonValue other) {
 		if (other == null) {
 			return 1;
@@ -161,17 +158,14 @@ public class JsonBoolean implements JsonAtomic {
 		return this.boolValue;
 	}
 
-	@Override
 	public void toJson(GenericJsonGenerator jsonGenerator) throws JsonGenerationException, IOException {
 		jsonGenerator.writeJsonBoolean(this);
 	}
 
-	@Override
 	public void fromJson(GenericJsonParser<?> jsonParser) throws JsonParseException, IOException {
 		this.boolValue = jsonParser.nextJsonBoolean().boolValue;
 	}
 
-	@Override
 	public String getStringValue() {
 		if (this.boolValue) {
 			return "true";
