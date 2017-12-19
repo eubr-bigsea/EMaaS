@@ -1,8 +1,6 @@
 package BULMA;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -84,16 +82,7 @@ public class MatchingRoutesShapeGPS {
 			JavaRDD<String> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getPath().getName(),
 					minPartitions, context);
 			
-//			Save as text file
 			rddOutputBuLMA.saveAsTextFile(pathOutput + SLASH + file.getPath().getName().substring(0, file.getPath().getName().lastIndexOf(".csv")));
-			
-//			Save as parquet
-//			SQLContext sqlContext = new org.apache.spark.sql.SQLContext(context);
-//			Dataset<String> output = sqlContext.createDataset(rddOutputBuLMA.rdd(), Encoders.STRING());			
-//			output.write().save(pathOutput + file.getPath().getName());
-			
-			
-//			saveOutputFile(rddOutputBuLMA, pathOutput + file.getPath().getName());
 		}
 	}
 
@@ -123,9 +112,6 @@ public class MatchingRoutesShapeGPS {
 					public Tuple2<String, GeoPoint> call(String s) throws Exception {
 						GPSPoint gpsPoint = GPSPoint.createGPSPointWithId(s);
 						
-//						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode() + gpsPoint.getLineCode(), gpsPoint);
-						
-//						Uncomment the line below to execute with CURITIBA data
 						return new Tuple2<String, GeoPoint>(gpsPoint.getBusCode(), gpsPoint);
 					}
 					
@@ -337,7 +323,6 @@ public class MatchingRoutesShapeGPS {
 												possibleShape.addPossibleLastPoint(
 	 													new Tuple2<String, Integer>(blockingKeyFromTime, i));
 											}
-											
 											
 										}
 									}
@@ -584,110 +569,4 @@ public class MatchingRoutesShapeGPS {
 		return rddOutput;		
 	}
 	
-	private static void saveOutputFile(JavaRDD<List<GPSLine>> rddClosestPoint, String pathOutput) {
-		FileWriter output;
-		try {
-			output = new FileWriter(pathOutput);
-
-			PrintWriter printWriter = new PrintWriter(output);
-			printWriter.print("TRIP_NUM" + FILE_SEPARATOR);
-			printWriter.print("ROUTE" + FILE_SEPARATOR);
-			printWriter.print("SHAPE_ID" + FILE_SEPARATOR);
-			printWriter.print("SHAPE_SEQ" + FILE_SEPARATOR);
-			printWriter.print("LAT_SHAPE" + FILE_SEPARATOR);
-			printWriter.print("LON_SHAPE" + FILE_SEPARATOR);
-			printWriter.print("GPS_POINT_ID" + FILE_SEPARATOR);
-			printWriter.print("BUS_CODE" + FILE_SEPARATOR);
-			printWriter.print("TIMESTAMP" + FILE_SEPARATOR);
-			printWriter.print("LAT_GPS" + FILE_SEPARATOR);
-			printWriter.print("LON_GPS" + FILE_SEPARATOR);
-			printWriter.print("DISTANCE" + FILE_SEPARATOR);
-			printWriter.print("THRESHOLD_PROBLEM" + FILE_SEPARATOR);
-			printWriter.println("TRIP_PROBLEM");
-
-			for (List<GPSLine> listGPS : rddClosestPoint.collect()) {
-				for (GPSLine gpsLine : listGPS) {
-
-					if (gpsLine != null) {
-
-						if (gpsLine.getMapTrips().isEmpty()) {
-							GPSPoint gpsPoint;
-							for (GeoPoint geoPoint: gpsLine.getListGeoPoints()) {
-								gpsPoint = (GPSPoint) geoPoint;
-								printWriter.print(Problem.NO_SHAPE.getCode() + FILE_SEPARATOR);
-								printWriter.print(gpsPoint.getLineCode() + FILE_SEPARATOR);
-								
-								printWriter.print("-" + FILE_SEPARATOR);
-								printWriter.print("-" + FILE_SEPARATOR);
-								printWriter.print("-" + FILE_SEPARATOR);
-								printWriter.print("-" + FILE_SEPARATOR);
-								
-
-								printWriter.print(gpsPoint.getGpsId() + FILE_SEPARATOR);
-								printWriter.print(gpsPoint.getBusCode() + FILE_SEPARATOR);
-								printWriter.print(gpsPoint.getTimeStamp() + FILE_SEPARATOR);
-								printWriter.print(gpsPoint.getLatitude() + FILE_SEPARATOR);
-								printWriter.print(gpsPoint.getLongitude() + FILE_SEPARATOR);
-								
-								printWriter.print("-" + FILE_SEPARATOR);
-								printWriter.print("-" + FILE_SEPARATOR);
-								
-								printWriter.println(Problem.NO_SHAPE.getCode());
-							}
-						}
-
-						for (Integer key : gpsLine.getMapTrips().keySet()) {
-							for (Trip trip : gpsLine.getTrip(key)) {
-
-								for (GeoPoint geoPoint : trip.getGPSPoints()) {
-
-									GPSPoint gpsPoint = (GPSPoint) geoPoint;
-
-									printWriter.print(key  + FILE_SEPARATOR);
-									printWriter.print(gpsPoint.getLineCode()  + FILE_SEPARATOR);
-									if (trip.getShapeLine() == null) {
-										printWriter.print("-" + FILE_SEPARATOR);
-										printWriter.print("-" + FILE_SEPARATOR);
-										printWriter.print("-" + FILE_SEPARATOR);
-										printWriter.print("-" + FILE_SEPARATOR);
-									} else {
-										printWriter.print(gpsPoint.getClosestPoint().getId() + FILE_SEPARATOR);
-										printWriter.print(gpsPoint.getClosestPoint().getPointSequence() + FILE_SEPARATOR);
-										printWriter.print(gpsPoint.getClosestPoint().getLatitude() + FILE_SEPARATOR);
-										printWriter.print(gpsPoint.getClosestPoint().getLongitude() + FILE_SEPARATOR);
-									}
-
-									printWriter.print(gpsPoint.getGpsId() + FILE_SEPARATOR);
-									printWriter.print(gpsPoint.getBusCode() + FILE_SEPARATOR);
-									printWriter.print(gpsPoint.getTimeStamp() + FILE_SEPARATOR);
-									printWriter.print(gpsPoint.getLatitude() + FILE_SEPARATOR);
-									printWriter.print(gpsPoint.getLongitude() + FILE_SEPARATOR);
-
-									if (trip.getShapeLine() == null) {
-										printWriter.print("-" + FILE_SEPARATOR);
-										printWriter.print("-" + FILE_SEPARATOR);
-									} else {
-										printWriter.print(gpsPoint.getDistanceClosestShapePoint() + FILE_SEPARATOR);
-										printWriter.print(gpsPoint.getThresholdShape() + FILE_SEPARATOR);
-									}
-
-									if (trip.getProblem().equals(Problem.TRIP_PROBLEM)) {
-										printWriter.println(trip.getProblem().getCode());
-									} else if (gpsPoint.getDistanceClosestShapePoint() > gpsPoint.getThresholdShape()) {
-										printWriter.println(Problem.OUTLIER_POINT.getCode());
-									} else {
-										printWriter.println(trip.getProblem().getCode());
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-
-			output.close();
-		} catch (Exception e) {
-			System.err.println(e.getMessage());
-		}
-	}
 }

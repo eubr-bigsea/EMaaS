@@ -23,8 +23,8 @@ public class Trip {
 	
 	public Trip(){
 		this.distanceToInitialPoint = Float.MAX_VALUE;
-		this.path = new HashMap<>();
-		this.outliersInSequence = new ArrayList<>();
+		this.path = new HashMap<GPSPoint, Tuple2<ShapePoint, Float>>();
+		this.outliersInSequence = new ArrayList<GPSPoint>();
 	}
 
 	public boolean hasFoundInitialPoint() {
@@ -86,7 +86,7 @@ public class Trip {
 	}
 
 	public void cleanOutliersInSequenceList() {
-		this.outliersInSequence = new ArrayList<>();
+		this.outliersInSequence = new ArrayList<GPSPoint>();
 	}
 	
 	public void addOutlierInSequence(GPSPoint outlier) {

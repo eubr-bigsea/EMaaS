@@ -50,14 +50,14 @@ import scala.Tuple3;
 
 public class BULMAStreaming {
 
-	private static Map<String, Map<String, ShapeLine>> mapShapeLines = new HashMap<>(); // key =  route
-	private static Map<String, Trip> mapCurrentTrip = new HashMap<>(); // key = bus code + route
-	private static Map<String, List<ShapeLine>> mapTrueShapes = new HashMap<>();
-	private static Map<String, Tuple2<Float, Float>> mapPreviousDistances = new HashMap<>();
-	private static Map<String, List<GPSPoint>> mapRetrocessingPoints = new HashMap<>();
-	private static Map<String, Integer> mapExtraThreshold = new HashMap<>();
-	private static Map<String, List<Trip>> mapPreviousTrips = new HashMap<>();
-	private static Map<String, List<String>> mapStopTimes = new HashMap<>();
+	private static Map<String, Map<String, ShapeLine>> mapShapeLines = new HashMap<String, Map<String, ShapeLine>>(); // key =  route
+	private static Map<String, Trip> mapCurrentTrip = new HashMap<String, Trip>(); // key = bus code + route
+	private static Map<String, List<ShapeLine>> mapTrueShapes = new HashMap<String, List<ShapeLine>>();
+	private static Map<String, Tuple2<Float, Float>> mapPreviousDistances = new HashMap<String, Tuple2<Float, Float>>();
+	private static Map<String, List<GPSPoint>> mapRetrocessingPoints = new HashMap<String, List<GPSPoint>>();
+	private static Map<String, Integer> mapExtraThreshold = new HashMap<String, Integer>();
+	private static Map<String, List<Trip>> mapPreviousTrips = new HashMap<String, List<Trip>>();
+	private static Map<String, List<String>> mapStopTimes = new HashMap<String, List<String>>();
 
 	private static final double PERCENTAGE_DISTANCE = 0.09;
 	private static final int THRESHOLD_RETROCESSING_POINTS = 1;
@@ -84,24 +84,25 @@ public class BULMAStreaming {
 		int minPartitions = Integer.valueOf(args[5]);
 		int batchDuration = Integer.valueOf(args[6]);
 
-		SparkConf sparkConf = new SparkConf().setMaster("local[2]")
-				.setAppName("BulmaRT");
+//		SparkConf sparkConf = new SparkConf().setMaster("local[2]")
+//				.setAppName("BulmaRT");
+		SparkConf sparkConf = new SparkConf().setAppName("BulmaRT");
 		JavaStreamingContext context = new JavaStreamingContext(sparkConf, Durations.seconds(batchDuration));
 
-		Broadcast<Map<String, Map<String, ShapeLine>>> mapShapeLinesBroadcast = context.sparkContext()
+		final Broadcast<Map<String, Map<String, ShapeLine>>> mapShapeLinesBroadcast = context.sparkContext()
 				.broadcast(mapShapeLines);
-		Broadcast<Map<String, Trip>> mapCurrentTripBroadcast = context.sparkContext().broadcast(mapCurrentTrip);
-		Broadcast<Map<String, List<ShapeLine>>> mapTrueShapesBroadcast = context.sparkContext()
+		final Broadcast<Map<String, Trip>> mapCurrentTripBroadcast = context.sparkContext().broadcast(mapCurrentTrip);
+		final Broadcast<Map<String, List<ShapeLine>>> mapTrueShapesBroadcast = context.sparkContext()
 				.broadcast(mapTrueShapes);
-		Broadcast<Map<String, Tuple2<Float, Float>>> mapPreviousDistancesBroadcast = context.sparkContext()
+		final Broadcast<Map<String, Tuple2<Float, Float>>> mapPreviousDistancesBroadcast = context.sparkContext()
 				.broadcast(mapPreviousDistances);
-		Broadcast<Map<String, List<GPSPoint>>> mapRetrocessingPointsBroadcast = context.sparkContext()
+		final Broadcast<Map<String, List<GPSPoint>>> mapRetrocessingPointsBroadcast = context.sparkContext()
 				.broadcast(mapRetrocessingPoints);
-		Broadcast<Map<String, Integer>> mapExtraThresholdBroadcast = context.sparkContext()
+		final Broadcast<Map<String, Integer>> mapExtraThresholdBroadcast = context.sparkContext()
 				.broadcast(mapExtraThreshold);
-		Broadcast<Map<String, List<Trip>>> mapPreviousTripsBroadcast = context.sparkContext()
+		final Broadcast<Map<String, List<Trip>>> mapPreviousTripsBroadcast = context.sparkContext()
 				.broadcast(mapPreviousTrips);
-		Broadcast<Map<String, List<String>>> mapStopTimesBroadcast = context.sparkContext().broadcast(mapStopTimes);
+		final Broadcast<Map<String, List<String>>> mapStopTimesBroadcast = context.sparkContext().broadcast(mapStopTimes);
 
 		// =======================================================================
 		
@@ -117,7 +118,7 @@ public class BULMAStreaming {
 				String timestamp = splittedLine[0];
 				String shapeSequence = splittedLine[7] + "-" + splittedLine[8];
 				if (!mapStopTimesBroadcast.getValue().containsKey(shapeSequence)) {
-					mapStopTimesBroadcast.getValue().put(shapeSequence, new LinkedList<>());
+					mapStopTimesBroadcast.getValue().put(shapeSequence, new LinkedList<String>());
 				}
 				mapStopTimesBroadcast.getValue().get(shapeSequence).add(timestamp);
 			}
@@ -143,7 +144,7 @@ public class BULMAStreaming {
 		 * @return the file without the header
 		 */
 		Function2<Integer, Iterator<String>, Iterator<String>> removeHeader = new Function2<Integer, Iterator<String>, Iterator<String>>() {
-			@Override
+			
 			public Iterator<String> call(Integer index, Iterator<String> iterator) throws Exception {
 				if (index == 0 && iterator.hasNext()) {
 					iterator.next();
@@ -168,7 +169,6 @@ public class BULMAStreaming {
 		JavaPairRDD<String, Iterable<GeoPoint>> rddShapePointsPair = shapeString
 				.mapToPair(new PairFunction<String, String, GeoPoint>() {
 
-					@Override
 					public Tuple2<String, GeoPoint> call(String s) throws Exception {
 						ShapePoint shapePoint = ShapePoint.createShapePointRoute(s);
 						String shapeSequence = shapePoint.getId()  + "-" +  shapePoint.getPointSequence();
@@ -195,10 +195,9 @@ public class BULMAStreaming {
 					@SuppressWarnings("deprecation")
 					GeometryFactory geometryFactory = JtsSpatialContext.GEO.getGeometryFactory();
 
-					@Override
 					public Tuple2<String, GeoLine> call(Tuple2<String, Iterable<GeoPoint>> pair) throws Exception {
 
-						List<Coordinate> coordinates = new ArrayList<>();
+						List<Coordinate> coordinates = new ArrayList<Coordinate>();
 						Double latitude;
 						Double longitude;
 						ShapePoint lastPoint = null;
@@ -209,7 +208,7 @@ public class BULMAStreaming {
 
 						Tuple2<Float, List<String>> previousStopPoint = null;
 						Tuple2<Float, List<String>> nextStopPoint = null;
-						List<Integer> pointsBetweenStops = new LinkedList<>();
+						List<Integer> pointsBetweenStops = new LinkedList<Integer>();
 
 						for (int i = 0; i < listGeoPoint.size(); i++) {
 							GeoPoint currentGeoPoint = listGeoPoint.get(i);
@@ -278,7 +277,7 @@ public class BULMAStreaming {
 										
 										previousStopPoint = nextStopPoint;
 										nextStopPoint = null;
-										pointsBetweenStops = new LinkedList<>();
+										pointsBetweenStops = new LinkedList<Integer>();
 									}
 								}
 							}
@@ -298,7 +297,7 @@ public class BULMAStreaming {
 						shapeLine.setThresholdDistance(thresholdDistanceCurrentShape);
 
 						if (!mapShapeLinesBroadcast.getValue().containsKey(route)) {
-							mapShapeLinesBroadcast.getValue().put(route, new HashMap<>());
+							mapShapeLinesBroadcast.getValue().put(route, new HashMap<String, ShapeLine>());
 						}
 
 						mapShapeLinesBroadcast.getValue().get(route).put(pair._1, shapeLine);
@@ -325,7 +324,6 @@ public class BULMAStreaming {
 		 */
 		JavaDStream<GPSPoint> gpsPointsRDD = gpsStream.map(new Function<String, GPSPoint>() {
 
-			@Override
 			public GPSPoint call(String entry) throws Exception {
 				return GPSPoint.createGPSPointWithId(entry);
 			}
@@ -341,11 +339,10 @@ public class BULMAStreaming {
 		JavaDStream<Tuple3<GPSPoint, ShapePoint, Float>> similarityOutput = gpsPointsRDD
 				.flatMap(new FlatMapFunction<GPSPoint, Tuple3<GPSPoint, ShapePoint, Float>>() {
 
-					@Override
 					public Iterator<Tuple3<GPSPoint, ShapePoint, Float>> call(GPSPoint currentGPSPoint)
 							throws Exception {
 
-						List<Tuple3<GPSPoint, ShapePoint, Float>> listOutput = new ArrayList<>();
+						List<Tuple3<GPSPoint, ShapePoint, Float>> listOutput = new ArrayList<Tuple3<GPSPoint, ShapePoint, Float>>();
 						String route = currentGPSPoint.getLineCode();
 						String keyMaps = currentGPSPoint.getBusCode() + route;
 						Trip trip = mapCurrentTripBroadcast.getValue().get(keyMaps);
@@ -394,7 +391,7 @@ public class BULMAStreaming {
 						} else {
 							if (mapTrueShapesBroadcast.getValue().get(currentBusCodeAndRoute) == null) {
 
-								List<ShapeLine> listMatchedShapes = new ArrayList<>();
+								List<ShapeLine> listMatchedShapes = new ArrayList<ShapeLine>();
 								Map<String, ShapeLine> mapPossibleShapeLines = mapShapeLinesBroadcast.getValue()
 										.get(route);
 
@@ -454,7 +451,7 @@ public class BULMAStreaming {
 
 						Tuple2<ShapePoint, Float> closestPoint;
 						for (ShapeLine currentShapeLine : listTrueShapes) {
-							matchedShapesList = new ArrayList<>();
+							matchedShapesList = new ArrayList<ShapePoint>();
 							for (GPSPoint outlierPoint : trip.getOutliersInSequence()) {
 
 								closestPoint = getClosestShapePoint(outlierPoint, currentShapeLine);
@@ -630,7 +627,7 @@ public class BULMAStreaming {
 								mapExtraThresholdBroadcast.getValue().put(keyMaps, extraThreshold);
 							}
 							if (listRetrocessingPoints == null) {
-								listRetrocessingPoints = new ArrayList<>();
+								listRetrocessingPoints = new ArrayList<GPSPoint>();
 							}
 
 							if (listRetrocessingPoints.size() < THRESHOLD_RETROCESSING_POINTS + extraThreshold) {
@@ -644,7 +641,7 @@ public class BULMAStreaming {
 
 								List<Trip> previousTrips = mapPreviousTripsBroadcast.getValue().get(keyMaps);
 								if (previousTrips == null) {
-									previousTrips = new ArrayList<>();
+									previousTrips = new ArrayList<Trip>();
 								}
 								previousTrips.add(trip);
 								mapPreviousTripsBroadcast.getValue().put(keyMaps, previousTrips);
@@ -684,7 +681,7 @@ public class BULMAStreaming {
 								}
 
 								// clean maps
-								mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<>());
+								mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<GPSPoint>());
 								mapExtraThresholdBroadcast.getValue().put(keyMaps, 0);
 
 								currentClosestShapePoint = getClosestShapePoint(currentGPSPoint,
@@ -733,7 +730,7 @@ public class BULMAStreaming {
 
 							// clean maps
 							mapExtraThresholdBroadcast.getValue().put(keyMaps, 0);
-							mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<>());
+							mapRetrocessingPointsBroadcast.getValue().put(keyMaps, new ArrayList<GPSPoint>());
 
 							if (currentClosestShapePoint._2 > THRESHOLD_DISTANCE_BETWEEN_POINTS) {
 								currentGPSPoint.setProblem(Problem.OUTLIER_POINT.getCode());
@@ -763,7 +760,6 @@ public class BULMAStreaming {
 					private final String[] SITUATIONS = { "NO SHAPE", "NO TIME", "LATE", "IN TIME", "IN ADVANCE" };
 					private final long DELAY_TOLERANCE_TIME = 300000L; // 5minutes
 					
-					@Override
 					public String call(Tuple3<GPSPoint, ShapePoint, Float> t) throws Exception {
 						String stringOutput = "";
 
@@ -846,6 +842,7 @@ public class BULMAStreaming {
 		try {
 			context.awaitTermination();
 		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
