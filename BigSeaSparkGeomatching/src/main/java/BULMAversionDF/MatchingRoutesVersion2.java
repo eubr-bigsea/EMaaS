@@ -1,4 +1,4 @@
-package BULMAversion20;
+package BULMAversionDF;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -284,9 +284,13 @@ public class MatchingRoutesVersion2 {
 											}
 
 											timePreviousPointGPS = currentPoint.getTime();
-											possibleShape.addPossibleLastPoint(
-													new Tuple2<String, Integer>(blockingKeyFromTime, i));
-											
+											if (possibleShape.isRoundShape()) {
+												possibleShape.addPossibleFirstPoint(
+														new Tuple2<String, Integer>(blockingKeyFromTime, i));
+											} else {
+												possibleShape.addPossibleLastPoint(
+	 													new Tuple2<String, Integer>(blockingKeyFromTime, i));
+											}
 										}
 									}
 								}

@@ -38,7 +38,7 @@ public class RunBUSTE {
 
 		if (args.length < 6) {
 			System.err.println(
-					"Usage: <Output Bulma directory> <shape file>  <Bus stops file> <Bus tickets directory> <outputPath> <number of partitions>");
+					"Usage: <Output Bulma directory> <shape file> <Bus stops file> <Bus tickets directory> <outputPath> <number of partitions>");
 			System.exit(1);
 		}
 
@@ -52,7 +52,7 @@ public class RunBUSTE {
 		final Integer minPartitions = Integer.valueOf(args[5]);
 
 		SparkSession spark = SparkSession.builder()
-				.master("local")
+//				.master("local")
 				.config("spark.some.config.option", "DataFrameBUSTE")
 				.config("spark.sql.warehouse.dir", "file:///tmp/spark-warehouse")
 				.getOrCreate();
@@ -85,7 +85,7 @@ public class RunBUSTE {
 			JavaRDD<Row> bulmaOutputRow = bulmaOutputString.filter(new FilterFunction<Row>() {
 
 				private static final long serialVersionUID = 1L;
-				@Override
+
 				public boolean call(Row value) throws Exception {
 					
 					return !value.getString(0).isEmpty();
@@ -102,7 +102,6 @@ public class RunBUSTE {
 			JavaPairRDD<String, Iterable<TicketInformation>> rddTicketsMapped = busTicketsRow
 					.mapToPair(new PairFunction<Row, String, TicketInformation>() {
 
-						@Override
 						public Tuple2<String, TicketInformation> call(Row t) throws Exception {
 							String entry = t.get(0) + " ";
 							String[] splittedEntry = entry.split("(?<=" + FILE_SEPARATOR + ")");

@@ -54,7 +54,6 @@ public class GenerateDataFrameBUSTE {
 		
 		JavaPairRDD<String, Iterable<BulmaOutput>> rddBulmaOutpupGrouped = bulmaOutputRow.mapToPair(new PairFunction<Row, String, BulmaOutput>() {
 
-			@Override
 			public Tuple2<String, BulmaOutput> call(Row t) throws Exception {
 				StringTokenizer st = new StringTokenizer(t.getString(0), SEPARATOR);
 				System.out.println(t.toString());
@@ -73,7 +72,6 @@ public class GenerateDataFrameBUSTE {
 		
 		JavaPairRDD<String, Iterable<ShapePoint>> rddShapePointsGrouped = shapeFileDS.mapToPair(new PairFunction<Row, String, ShapePoint>() {
 
-			@Override
 			public Tuple2<String, ShapePoint> call(Row t) throws Exception {
 				ShapePoint shapePoint = ShapePoint.createShapePointRoute(t.getString(0));
 				return new Tuple2<String, ShapePoint>(shapePoint.getId(), shapePoint);
@@ -83,7 +81,6 @@ public class GenerateDataFrameBUSTE {
 		
 		JavaPairRDD<String, Object> rddBusStops = busStopsFile.mapToPair(new PairFunction<Row, String, Object>() {
 
-			@Override
 			public Tuple2<String, Object> call(Row t) throws Exception {
 				String[] splittedEntry = t.getString(0).split(SEPARATOR);
 				// shapeID , shapeSequence + '.' + stopId
@@ -467,7 +464,7 @@ public class GenerateDataFrameBUSTE {
 						Date nextTime = sdf.parse(nextTimeString);
 //						int count = 0;
 						List<TicketInformation> ticketsInformationList = mapTicketsBroadcast.getValue().get(currentBusCode);
-						List<TicketInformation> listOutput = new LinkedList<>();
+						List<TicketInformation> listOutput = new LinkedList<TicketInformation>();
 						
 						if (ticketsInformationList != null) {
 							for (TicketInformation TicketInformation : ticketsInformationList) {

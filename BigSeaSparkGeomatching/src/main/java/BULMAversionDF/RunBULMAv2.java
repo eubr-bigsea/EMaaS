@@ -1,4 +1,4 @@
-package BULMAversion20;
+package BULMAversionDF;
 import java.net.URI;
 
 import org.apache.hadoop.conf.Configuration;
