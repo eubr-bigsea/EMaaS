@@ -12,7 +12,7 @@
 5. To share your image, log in to Docker and enter your username and password:
 	docker login
 
-6. To control the version, tag the image
+6. To control the version, tag the image:
 	docker tag emmas-api <your username>/emmas-api:v0
 
 7. Upload your tagged image to the repository:
@@ -20,4 +20,4 @@
 
 That's it! Your image is now available for use on other machines with the 3rd step or Marathon.
 
-Links: https://docs.docker.com/get-started/part2/
+Link: https://docs.docker.com/get-started/part2/
