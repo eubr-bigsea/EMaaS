@@ -151,7 +151,7 @@ public class GPSLine extends GeoLine {
 
 		}
 
-		LinkedList<PossibleShape> newList = new LinkedList<>();
+		LinkedList<PossibleShape> newList = new LinkedList<PossibleShape>();
 		newList.add(entryShape);
 		newList.add(complementaryShape);
 
@@ -172,7 +172,7 @@ public class GPSLine extends GeoLine {
 				if (i == 1 && !currentlistTrip.isEmpty()) {
 					int currentFirstIndex = currentlistTrip.get(0).getFirstIndex();
 					if (currentFirstIndex > 0) {
-						pointsTripGPS = new LinkedList<>();
+						pointsTripGPS = new LinkedList<GeoPoint>();
 						pointsTripGPS.addAll(this.getListGeoPoints().subList(0, currentFirstIndex));
 						try {
 							currentlistTrip.add(0, new Trip(null, pointsTripGPS, Problem.OUTLIER_POINT));
@@ -185,7 +185,7 @@ public class GPSLine extends GeoLine {
 				if (i > 1 && i == getMapTrips().keySet().size()) {
 					if (this.getListGeoPoints().size() - 1 > currentLastIndex) {
 
-						pointsTripGPS = new LinkedList<>();
+						pointsTripGPS = new LinkedList<GeoPoint>();
 						pointsTripGPS.addAll(
 								this.getListGeoPoints().subList(currentLastIndex + 1, this.getListGeoPoints().size()));
 						try {
@@ -201,7 +201,7 @@ public class GPSLine extends GeoLine {
 						int nextFirstIndex = nextListTrip.get(0).getFirstIndex();
 						if (nextFirstIndex > currentLastIndex + 1) {
 
-							pointsTripGPS = new LinkedList<>();
+							pointsTripGPS = new LinkedList<GeoPoint>();
 							pointsTripGPS.addAll(this.getListGeoPoints().subList(currentLastIndex + 1, nextFirstIndex));
 
 							try {
@@ -252,7 +252,7 @@ public class GPSLine extends GeoLine {
 			int indexPreviousLastPoint = listTrips.get(listTrips.size() - 1).getLastIndex() + 1;
 			if (firstIndex > indexPreviousLastPoint) {
 
-				pointsTripGPS = new LinkedList<>();
+				pointsTripGPS = new LinkedList<GeoPoint>();
 				pointsTripGPS.addAll(this.getListGeoPoints().subList(indexPreviousLastPoint, firstIndex));
 
 				try {
@@ -269,7 +269,7 @@ public class GPSLine extends GeoLine {
 		}
 
 		if (firstIndex < lastIndex) {
-			pointsTripGPS = new LinkedList<>();
+			pointsTripGPS = new LinkedList<GeoPoint>();
 			pointsTripGPS.addAll(this.getListGeoPoints().subList(firstIndex, lastIndex + 1));
 
 			try {
@@ -318,7 +318,7 @@ public class GPSLine extends GeoLine {
 			}
 		}
 
-		LinkedList<PossibleShape> possibleShapeCurrentGPS = new LinkedList<>();
+		LinkedList<PossibleShape> possibleShapeCurrentGPS = new LinkedList<PossibleShape>();
 		possibleShapeCurrentGPS.add(bestShape);
 		setListPossibleShapeLines(possibleShapeCurrentGPS);
 

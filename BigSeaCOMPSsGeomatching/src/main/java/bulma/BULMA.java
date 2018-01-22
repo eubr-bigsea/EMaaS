@@ -3,7 +3,9 @@ package bulma;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,15 +35,20 @@ public class BULMA {
 	private static GeometryFactory geometryFactory = JtsSpatialContext.GEO.getGeometryFactory();
 	private static final double THRESHOLD_TIME = 600000; // 20 minutes
 	private static final double PERCENTAGE_DISTANCE = 0.09;
-	private static final String FILE_SEPARATOR = ",";
+	private static final String FILE_SEPARATOR = ",";  
 
+	private static final String OUTPUT_HEADER  = "tripNum,route,shapeId,shapeSequence,latShape,lonShape,"
+												 +"gpsPointId,busCode,timestamp,latGPS,lonGPS,"
+												 +"distance,thresholdProblem,tripProblem";
+	
 	public static void main(String[] args) throws Exception {
 
-		String shapeFile = "C:/Users/Andreza/Desktop/TESTAR/inputsBULMA/shapes.csv";
-		String gpsFiles = "inputsBULMA/gps/2017_05_03/";
-		int numPartitions = 2;
-		boolean list = false;
-
+		Long initialTime = System.currentTimeMillis();	
+		String shapeFile = "";
+		String gpsFiles = "";
+		String outputDirectory = "";
+		int numPartitions = 1;
+		
 		int argIndex = 0;
 		while (argIndex < args.length) {
 
@@ -52,17 +59,21 @@ public class BULMA {
 			} else if (arg.equals("-gps")) {
 				gpsFiles = args[argIndex++];
 
+			} else if (arg.equals("-outputDirectory")) {
+				outputDirectory = args[argIndex++];
+				
 			} else if (arg.equals("-partitions")) {
 				numPartitions = Integer.parseInt(args[argIndex++]);
 
-			} else if (arg.equals("-list")) {
-				list = true;
-			}
+			} 
 		}
-
-		Long initialTime = System.currentTimeMillis();
 		
-		LinkedList<String> results = new LinkedList<String>();
+		if (shapeFile == null || shapeFile.isEmpty() || gpsFiles == null 
+			|| gpsFiles.isEmpty() || outputDirectory == null || outputDirectory.isEmpty()) {
+			System.err.println("[ERROR] Some parameter(s) is(are) missing. Parameter list: {-shape, -gps, -outputDirectory, -partitions}");
+			System.exit(1);
+		}		
+		
 		HashMap<String, LinkedList<GeoPoint>> mapShape = mapShape(shapeFile);
 		HashMap<String, LinkedList<ShapeLine>> groupedShape = groupShape(mapShape);
 
@@ -72,18 +83,42 @@ public class BULMA {
 			HashMap<String, LinkedList<GPSLine>> groupedGPS = groupGPSFile(mapGPS);
 			LinkedList<GPSLine> possibleShapes = mapPossibleShapes(groupedGPS, groupedShape);
 			LinkedList<GPSLine> trueShapes = getTrueShapes(possibleShapes);
-			LinkedList<GPSLine> closestPoints = getClosestPoints(trueShapes);
-			results = generateOutput(closestPoints, results);
-		}
+			LinkedList<GPSLine> closestPoints = getClosestPoints(trueShapes);		
+			
+			String outputPath = outputDirectory + "/_bo" + String.format("%02d", i) + ".csv";	
+			String output = generateOutput(closestPoints);
+			write(output, outputPath);
+			
+		}		
 
-		if (list) {
-			for (String result : results) {
-				System.out.println(result);
+		System.out.println("[LOG] Execution time: " + (System.currentTimeMillis() - initialTime) + " ms");
+	}
+	
+	public static void write(String output, String outputPath) {
+		
+		FileWriter file = null;
+		PrintWriter write = null;
+		
+		try{
+			 file = new FileWriter(outputPath);
+			 write = new PrintWriter(file);
+			 write.println(OUTPUT_HEADER);
+			 write.println(output);
+		} catch (IOException e) {
+			
+		} finally {
+			if (file != null) {
+				try {
+					file.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (write != null) {
+				write.close();
 			}
 			
-		} 
-		System.out.println("[LOG] Result size = " + results.size());
-		System.out.println("[LOG] Execution time: " + (System.currentTimeMillis() - initialTime));
+		}
 	}
 
 	public static HashMap<String, LinkedList<GeoPoint>> mapShape(String filePath) {
@@ -115,8 +150,8 @@ public class BULMA {
 			e.printStackTrace();
 
 		} finally {
+			
 			try {
-
 				if (br != null)
 					br.close();
 
@@ -124,7 +159,6 @@ public class BULMA {
 					fr.close();
 
 			} catch (IOException ex) {
-
 				ex.printStackTrace();
 
 			}
@@ -237,7 +271,7 @@ public class BULMA {
 
 		for (Entry<String, LinkedList<GeoPoint>> entrySet : mapGPSPoints.entrySet()) {
 
-			LinkedList<Coordinate> coordinates = new LinkedList<>();
+			LinkedList<Coordinate> coordinates = new LinkedList<Coordinate>();
 			Double latitude;
 			Double longitude;
 			String lineBlockingKey = null;
@@ -358,9 +392,14 @@ public class BULMA {
 									}
 
 									timePreviousPointGPS = currentPoint.getTime();
-									possibleShape
-											.addPossibleLastPoint(new Tuple2<String, Integer>(blockingKeyFromTime, i));
-
+									
+									if (possibleShape.isRoundShape()) {
+										possibleShape.addPossibleFirstPoint(
+												new Tuple2<String, Integer>(blockingKeyFromTime, i));
+									} else {
+										possibleShape.addPossibleLastPoint(
+													new Tuple2<String, Integer>(blockingKeyFromTime, i));
+									}
 								}
 							}
 						}
@@ -506,8 +545,11 @@ public class BULMA {
 
 	}
 
-	public static LinkedList<String> generateOutput(LinkedList<GPSLine> closestPoints, LinkedList<String> results)
+	public static String generateOutput(LinkedList<GPSLine> closestPoints)
 			throws Exception {
+		
+		String output = "";
+		
 		for (GPSLine gpsLine : closestPoints) {
 			if (gpsLine != null) {
 
@@ -534,8 +576,10 @@ public class BULMA {
 						stringOutput += "-" + FILE_SEPARATOR;
 
 						stringOutput += Problem.NO_SHAPE.getCode();
-						results.add(stringOutput);
-
+						
+//					 	System.out.println(stringOutput);
+						output += stringOutput+ "\n";
+//						output.add(stringOutput);
 					}
 				}
 
@@ -582,25 +626,15 @@ public class BULMA {
 							} else {
 								stringOutput += trip.getProblem().getCode();
 							}
-							results.add(stringOutput);
+//							System.out.println(stringOutput);
+							output += stringOutput+ "\n";
+//							output.add(stringOutput);
+							
 						}
 					}
 				}
 			}
 		}
-		return results;
-
-	}
-
-	public static void removeTmpFiles(int numPartitions, String gpsTmp) {
-		File file;
-		for (int i = 0; i < numPartitions; i++) {
-			String filePath = gpsTmp + String.format("%02d", i) + ".csv";
-			file = new File(filePath);
-			if (!file.delete()) {
-				System.err.println("Error deleting file: " + filePath);
-			}
-		}
-
+		return output;
 	}
 }
