@@ -31,7 +31,7 @@ import scala.Tuple3;
  * 
  * This class does the post-processing of Bulma, get its output and
  * interpolates the shape file. Besides, this class add the stop points file to
- * the output. In this version (V2), this class includes the bus tickets file to
+ * the output. In this version (V3), this class includes the bus tickets file to
  * the output.
  * 
  * @author Andreza

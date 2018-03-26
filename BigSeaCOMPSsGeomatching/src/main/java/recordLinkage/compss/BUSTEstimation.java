@@ -29,7 +29,7 @@ import scala.Tuple3;
  * (COMPSs implementation version)
  * 
  *  This class does the post-processing of Bulma, get its output and interpolates the shape file. 
- *  Besides, this class add the stop points file to the output
+ *  Besides, this class adds the stop points file to the output
  * 
  * @author Andreza
  *

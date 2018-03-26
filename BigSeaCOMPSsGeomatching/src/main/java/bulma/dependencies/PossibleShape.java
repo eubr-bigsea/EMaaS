@@ -31,9 +31,9 @@ public class PossibleShape implements Serializable, Comparable<PossibleShape> {
 	public PossibleShape(List<GeoPoint> listGPSPoints, ShapeLine shapeLine) {
 		this.listGPSPoints = listGPSPoints;
 		this.shapeLine = shapeLine;
-		this.possibleFirtGPSPoints = new LinkedList<>();
-		this.possibleLastGPSPoints = new LinkedList<>();
-		this.listIndexFirstAndLastGPSPoints = new ArrayList<>();
+		this.possibleFirtGPSPoints = new LinkedList<Tuple2<String, Integer>>();
+		this.possibleLastGPSPoints = new LinkedList<Tuple2<String, Integer>>();
+		this.listIndexFirstAndLastGPSPoints = new ArrayList<Integer>();
 	}
 
 	public void addPossibleFirstPoint(Tuple2<String, Integer> possiblePoint) {
@@ -71,10 +71,10 @@ public class PossibleShape implements Serializable, Comparable<PossibleShape> {
 			return this.possibleFirtGPSPoints;
 		}
 		
-		Queue<Tuple2<String, Integer>> outputList = new LinkedList<>();
+		Queue<Tuple2<String, Integer>> outputList = new LinkedList<Tuple2<String, Integer>>();
 		Tuple2<String, Integer> tupleKeyPosition = null;
 		String lastKey = null;
-		List<Integer> listPointsOfTheGroup = new ArrayList<>();
+		List<Integer> listPointsOfTheGroup = new ArrayList<Integer>();
 		
 					
 		while(!this.possibleFirtGPSPoints.isEmpty()) {
@@ -86,7 +86,7 @@ public class PossibleShape implements Serializable, Comparable<PossibleShape> {
 			} else{
 				Integer indexClosestPoint = getFirstGPSPoint(listPointsOfTheGroup);
 				outputList.add(new Tuple2<String, Integer>(lastKey, indexClosestPoint));
-				listPointsOfTheGroup = new ArrayList<>();
+				listPointsOfTheGroup = new ArrayList<Integer>();
 				listPointsOfTheGroup.add(tupleKeyPosition._2);
 			}
 			lastKey = currentKey;
@@ -102,10 +102,10 @@ public class PossibleShape implements Serializable, Comparable<PossibleShape> {
 			return this.possibleLastGPSPoints;
 		}
 		
-		Queue<Tuple2<String, Integer>> outputList = new LinkedList<>();		
+		Queue<Tuple2<String, Integer>> outputList = new LinkedList<Tuple2<String, Integer>>();		
 		Tuple2<String, Integer> tupleKeyPosition = null;
 		String lastKey = null;
-		List<Integer> listPointsOfTheGroup = new ArrayList<>();
+		List<Integer> listPointsOfTheGroup = new ArrayList<Integer>();
 		
 		
 		while(!this.possibleLastGPSPoints.isEmpty()) {
@@ -116,7 +116,7 @@ public class PossibleShape implements Serializable, Comparable<PossibleShape> {
 			} else {
 				Integer indexClosestPoint = getLastGPSPoint(listPointsOfTheGroup);
 				outputList.add(new Tuple2<String, Integer>(lastKey, indexClosestPoint));				
-				listPointsOfTheGroup = new ArrayList<>();
+				listPointsOfTheGroup = new ArrayList<Integer>();
 				listPointsOfTheGroup.add(tupleKeyPosition._2);
 			}	
 			lastKey = currentKey;
@@ -148,7 +148,7 @@ public class PossibleShape implements Serializable, Comparable<PossibleShape> {
 	private LineString createLineString(List<GeoPoint> listGeoPoint) {
 		@SuppressWarnings("deprecation")
 		GeometryFactory geometryFactory = JtsSpatialContext.GEO.getGeometryFactory();
-		List<Coordinate> coordinates = new ArrayList<>();
+		List<Coordinate> coordinates = new ArrayList<Coordinate>();
 
 		for (GeoPoint geoPoint : listGeoPoint) {
 			coordinates.add(new Coordinate(Double.valueOf(geoPoint.getLatitude()), 
@@ -218,7 +218,6 @@ public class PossibleShape implements Serializable, Comparable<PossibleShape> {
 		return "PossibleShape (" + getFirstGPSPoints() + getLastGPSPoints()+ ")";
 	}
 	
-	@Override
 	public int compareTo(PossibleShape otherShape) {
 		if (this.listIndexFirstAndLastGPSPoints.size() == 0 && otherShape.getListIndexFirstAndLastGPSPoints().size() == 0) {
 			return 0;
