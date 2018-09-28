@@ -70,8 +70,8 @@ public class MatchingRoutesShapeGPS {
 		String pathOutput = args[2];
 		int minPartitions = Integer.valueOf(args[3]);
 
-		SparkConf sparkConf = new SparkConf().setAppName("BULMA").setMaster("local");
-		// SparkConf sparkConf = new SparkConf().setAppName("BULMA");
+//		SparkConf sparkConf = new SparkConf().setAppName("BULMA").setMaster("local");
+		SparkConf sparkConf = new SparkConf().setAppName("BULMA");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
 		generateOutputFiles(pathFileShapes, pathGPSFile, pathOutput, minPartitions, context);
@@ -91,6 +91,9 @@ public class MatchingRoutesShapeGPS {
 		for (FileStatus file : fileStatus) {
 			JavaRDD<String> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getPath().getName(),
 					minPartitions, context);
+			
+//			JavaPairRDD<String, Iterable<GeoPoint>> rddOutputBuLMA = executeBULMA(pathFileShapes, pathGPSFiles + file.getPath().getName(),
+//					minPartitions, context);
 
 			rddOutputBuLMA.saveAsTextFile(pathOutput + SLASH
 					+ file.getPath().getName().substring(0, file.getPath().getName().lastIndexOf(".csv")));
@@ -153,6 +156,9 @@ public class MatchingRoutesShapeGPS {
 						float greaterDistance = 0;
 
 						List<GeoPoint> listGeoPoint = Lists.newArrayList(pair._2);
+						
+						Collections.sort(listGeoPoint);
+						
 						for (int i = 0; i < listGeoPoint.size(); i++) {
 							GeoPoint currentGeoPoint = listGeoPoint.get(i);
 							if (i < listGeoPoint.size() - 1) {
@@ -208,6 +214,8 @@ public class MatchingRoutesShapeGPS {
 						float greaterDistance = 0;
 
 						List<GeoPoint> listGeoPoint = Lists.newArrayList(pair._2);
+						Collections.sort(listGeoPoint);
+						
 						for (int i = 0; i < listGeoPoint.size(); i++) {
 							GeoPoint currentGeoPoint = listGeoPoint.get(i);
 							if (i < listGeoPoint.size() - 1) {
@@ -879,6 +887,7 @@ public class MatchingRoutesShapeGPS {
 				});
 
 		return rddOutput;
+//		return rddGPSPointsPair;
 	}
 
 }

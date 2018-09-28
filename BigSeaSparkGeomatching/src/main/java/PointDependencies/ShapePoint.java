@@ -163,4 +163,16 @@ public class ShapePoint extends GeoPoint {
 			return false;
 		return true;
 	}
+
+	@Override
+	public int compareTo(GeoPoint otherGeoPoint) {
+		ShapePoint otherShape = (ShapePoint) otherGeoPoint;
+		if (Integer.parseInt(this.pointSequence) < Integer.parseInt(otherShape.pointSequence)) {
+            return -1;
+        }
+        if (Integer.parseInt(this.pointSequence) > Integer.parseInt(otherShape.pointSequence)) {
+            return 1;
+        }
+        return 0;
+	}
 }

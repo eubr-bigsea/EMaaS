@@ -7,8 +7,9 @@ import java.util.List;
 import com.vividsolutions.jts.geom.Point;
 
 import BULMADependences.GeoObject;
+import scala.tools.nsc.typechecker.ContextErrors.ImplicitsContextErrors;
 
-public abstract class GeoPoint extends GeoObject implements Serializable{
+public abstract class GeoPoint extends GeoObject implements Serializable, Comparable<GeoPoint>{
 
 	//shape: 3217,-25.4757686477818,-49.2923877163312,3281146,24.441
 	//stopLine: 3167295,"06:11:12","06:11:12",25681,2,1,"Terminal Campina do Siqueira",0,

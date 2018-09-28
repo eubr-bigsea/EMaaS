@@ -290,5 +290,11 @@ public class StopPoint extends GeoPoint{
 			return false;
 		return true;
 	}
+
+	@Override
+	public int compareTo(GeoPoint o) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 	
 }

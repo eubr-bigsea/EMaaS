@@ -200,4 +200,16 @@ public class GPSPoint extends GeoPoint {
 		return true;
 	}
 
+	@Override
+	public int compareTo(GeoPoint otherGeoPoint) {
+		GPSPoint otherGPS = (GPSPoint) otherGeoPoint;
+		if (Integer.parseInt(this.timeStamp.replaceAll(":", "")) < Integer.parseInt(otherGPS.timeStamp.replaceAll(":", ""))) {
+            return -1;
+        }
+        if (Integer.parseInt(this.timeStamp.replaceAll(":", "")) > Integer.parseInt(otherGPS.timeStamp.replaceAll(":", ""))) {
+            return 1;
+        }
+        return 0;
+	}
+
 }
