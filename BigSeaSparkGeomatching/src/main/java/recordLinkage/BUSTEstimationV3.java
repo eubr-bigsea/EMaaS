@@ -202,12 +202,13 @@ public class BUSTEstimationV3 {
 		};
 		
 		Map<String, List<TicketInformation>> mapTickets = new HashMap<String, List<TicketInformation>>();
-		File ticketsFile = new File(busTicketFile);
+					
 		
-		if (ticketsFile.exists()) {
-			JavaRDD<String> busTicketsString = context.textFile(busTicketFile, minPartitions)
-					.mapPartitionsWithIndex(removeHeader, false);
+		try	{
+		JavaRDD<String> busTicketsString = context.textFile(busTicketFile, minPartitions)
+				.mapPartitionsWithIndex(removeHeader, false);		
 
+		
 			JavaPairRDD<String, Iterable<TicketInformation>> rddTicketsMapped = busTicketsString
 					.mapToPair(new PairFunction<String, String, TicketInformation>() {
 
@@ -226,13 +227,14 @@ public class BUSTEstimationV3 {
 						}
 					}).groupByKey();
 
-			for (Tuple2<String, Iterable<TicketInformation>> entry : rddTicketsMapped.collect()) {
-				mapTickets.put(entry._1, Lists.newArrayList(entry._2));
-			}
+				for (Tuple2<String, Iterable<TicketInformation>> entry : rddTicketsMapped.collect()) {
+					mapTickets.put(entry._1, Lists.newArrayList(entry._2));
+				}
+		} catch (Exception e) {
+			System.err.println("There is no ticket file for this day.");
 		}
-
-		final Broadcast<Map<String, List<TicketInformation>>> mapTicketsBroadcast = context.broadcast(mapTickets);
 		
+		final Broadcast<Map<String, List<TicketInformation>>> mapTicketsBroadcast = context.broadcast(mapTickets);
 
 		JavaRDD<String> busStopsString = context.textFile(busStopsFile, minPartitions)
 				.mapPartitionsWithIndex(removeHeader, false);
@@ -614,6 +616,7 @@ public class BUSTEstimationV3 {
 						// int count = 0;
 						List<TicketInformation> ticketsInformationList = mapTicketsBroadcast.getValue()
 								.get(currentBusCode);
+						
 						List<TicketInformation> listOutput = new LinkedList<TicketInformation>();
 
 						if (ticketsInformationList != null) {
