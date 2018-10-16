@@ -2,7 +2,7 @@ package recordLinkage.dependencies;
 
 import java.io.Serializable;
 
-public class BulmaOutput implements Serializable {
+public class BulmaOutput implements Serializable, Comparable<BulmaOutput> {
 	
 	private static final long serialVersionUID = 3518929651995019131L;
 	private String tripNum;
@@ -23,7 +23,7 @@ public class BulmaOutput implements Serializable {
 	public BulmaOutput() {
 		super();
 	}
-	
+		
 	public BulmaOutput(String tripNum, String route, String shapeId, String shapeSequence, String latShape,
 			String lonShape, String gpsPointId, String busCode, String timestamp, String latGPS, String lonGPS,
 			String dinstance, String thresholdProblem, String tripProblem) {
@@ -161,6 +161,17 @@ public class BulmaOutput implements Serializable {
 				+ shapeSequence + "," + latShape + "," + lonShape + "," + gpsPointId
 				+ "," + busCode + "," + timestamp + "," + latGPS + "," + lonGPS
 				+ "," + dinstance + "," + thresholdProblem + "," + tripProblem;
+	}	
+	
+	@Override
+	public int compareTo(BulmaOutput otherOutput) {
+		if (Integer.parseInt(this.timestamp.replaceAll(":", "")) < Integer.parseInt(otherOutput.timestamp.replaceAll(":", ""))) {
+            return -1;
+        }
+        if (Integer.parseInt(this.timestamp.replaceAll(":", "")) > Integer.parseInt(otherOutput.timestamp.replaceAll(":", ""))) {
+            return 1;
+        }
+        return 0;
 	}
 	
 }
