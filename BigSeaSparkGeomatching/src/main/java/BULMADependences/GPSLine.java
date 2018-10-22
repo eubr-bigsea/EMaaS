@@ -284,10 +284,6 @@ public class GPSLine extends GeoLine {
 		}
 	}
 
-	@Override
-	public String toString() {
-		return "GPS[ BlockingKey: " + getId() + getListPossibleShapeLines() + "]";
-	}
 
 	public void findBestShape() throws ParseException {
 		

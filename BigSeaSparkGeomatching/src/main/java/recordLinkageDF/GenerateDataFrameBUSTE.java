@@ -433,7 +433,7 @@ public class GenerateDataFrameBUSTE {
 										for (TicketInformation selectedTicket : selectedTickets) {
 											listOutput.add(0, currentString 
 												+ SEPARATOR + selectedTicket.getBirthDate()
-												+ SEPARATOR + selectedTicket.getTimeOfUse()
+												+ SEPARATOR + selectedTicket.getBoarding_time()
 												+ SEPARATOR + selectedTicket.getNameLine()
 												+ SEPARATOR + selectedTicket.getTicketNumber()
 												+ SEPARATOR + selectedTicket.getGender());
@@ -468,7 +468,7 @@ public class GenerateDataFrameBUSTE {
 						
 						if (ticketsInformationList != null) {
 							for (TicketInformation TicketInformation : ticketsInformationList) {
-								String timeString = TicketInformation.getTimeOfUse();
+								String timeString = TicketInformation.getBoarding_time();
 								Date date = sdf.parse(timeString);
 								if (date.after(currentTime) && (date.before(nextTime) || date.equals(nextTime))) {
 //									count++;

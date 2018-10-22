@@ -170,7 +170,7 @@ public class BUSTEstimationV2 {
 								splittedEntry[5].replace(SEPARATOR, ""), splittedEntry[6].replace(SEPARATOR, ""),
 								splittedEntry[7].replace(SEPARATOR, ""));
 
-						return new Tuple2<String, String>(ticket.getBusCode(), ticket.getTimeOfUse());
+						return new Tuple2<String, String>(ticket.getBusCode(), ticket.getBoarding_time());
 					}
 				}).groupByKey();
 

@@ -1,6 +1,5 @@
 package recordLinkage;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -29,7 +28,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.broadcast.Broadcast;
@@ -40,7 +38,6 @@ import BULMADependences.Problem;
 import PointDependencies.ShapePoint;
 import recordLinkage.dependencies.BulmaOutput;
 import recordLinkage.dependencies.BulmaOutputGrouping;
-import recordLinkage.dependencies.Comparator;
 import recordLinkage.dependencies.ShapeLine;
 import recordLinkage.dependencies.TicketInformation;
 import scala.Tuple2;
@@ -62,7 +59,7 @@ public class BUSTEstimationV3 {
 	private static final String SLASH = "/";
 	protected static final String OUTPUT_HEADER = "route,tripNum,shapeId,shapeSequence,shapeLat,shapeLon,distanceTraveledShape,"
 			+ "busCode,gpsPointId,gpsLat,gpsLon,distanceToShapePoint,timestamp,stopPointId,problem,"
-			+ "birthdate,cardTimestamp,lineName,cardNum,gender,date";
+			+ "boarding_id,lineName,cardNum,birthdate,gender,boarding_datetime";
 
 	public static void main(String[] args) throws IOException, URISyntaxException, ParseException {
 
@@ -80,8 +77,8 @@ public class BUSTEstimationV3 {
 		String outputPath = args[4];
 		final Integer minPartitions = Integer.valueOf(args[5]);
 
-		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimationV3").setMaster("local");
-//		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimationV3");
+//		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimationV3").setMaster("local");
+		SparkConf sparkConf = new SparkConf().setAppName("BUSTEstimationV3");
 		JavaSparkContext context = new JavaSparkContext(sparkConf);
 
 		generateOutputFilesHDFS(context, pathBulmaOutput, pathFileShapes, busStopsFile, busTicketPath, outputPath,
@@ -146,19 +143,13 @@ public class BUSTEstimationV3 {
 			
 			String stringDate = file.getPath().getName().substring(0, file.getPath().getName().lastIndexOf("_veiculos"));
 			
-			String ticketPathFile = busTicketPath + SLASH + "doc1-"					
-					+ stringDate + ".csv";
-			
-					
 			String previousDate = subtractDay(stringDate);
 			
-//			System.out.println(previousDate);
-			
-//			JavaRDD<String> result = execute(context, bulmaOutputString, pathFileShapes, ticketPathFile, busStopsFile,
-//					minPartitions, previousDate);
-			
+			String ticketPathFile = busTicketPath + SLASH 			
+					+ previousDate.replace("_", "-") + "_indexed_ticketing.csv";			
+
 			JavaRDD<String> result = execute(context, bulmaOutputString, pathFileShapes, ticketPathFile, busStopsFile,
-					minPartitions, previousDate);
+					minPartitions);
 
 			/**
 			 * Inserts a header into each output file
@@ -187,7 +178,7 @@ public class BUSTEstimationV3 {
 
 	@SuppressWarnings("serial")
 	private static JavaRDD<String> execute(JavaSparkContext context, JavaRDD<String> bulmaOutputString,
-			String pathFileShapes, String busTicketFile, String busStopsFile, int minPartitions, final String previousDate) {
+			String pathFileShapes, String busTicketFile, String busStopsFile, int minPartitions) {
 
 		/**
 		 * Removes header (first line) from file
@@ -586,7 +577,7 @@ public class BUSTEstimationV3 {
 									if (nextTimeString == null) {
 										nextTimeString = currentTimeString;
 										listOutput.add(0, currentString + SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR
-												+ "-" + SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR + previousDate);
+												+ "-" + SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR + "-");
 
 									} else {
 										List<TicketInformation> selectedTickets = getTicketsOfBusStop(
@@ -594,21 +585,17 @@ public class BUSTEstimationV3 {
 
 										if (selectedTickets.size() == 0) {
 											listOutput.add(0, currentString + SEPARATOR + "-" + SEPARATOR + "-"
-													+ SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR + previousDate);
+													+ SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR + "-");
 										}
 
 										for (TicketInformation selectedTicket : selectedTickets) {
 											listOutput.add(0,
-													currentString + SEPARATOR + selectedTicket.getBirthDate()
-															+ SEPARATOR + selectedTicket.getTimeOfUse() + SEPARATOR
-															+ selectedTicket.getNameLine() + SEPARATOR
+													currentString + SEPARATOR + selectedTicket.getBoarding_id()
+															+ SEPARATOR + selectedTicket.getNameLine() + SEPARATOR
 															+ selectedTicket.getTicketNumber() + SEPARATOR
-															+ selectedTicket.getGender() + SEPARATOR + previousDate);
-											if (currentBusCode.equals("GA143") && currentTimeString.equals("12:57:39")) {
-												System.out.println("NEXT TIMESTAMP: " + nextTimeString);
-												
-											}
-
+															+ selectedTicket.getBirthDate() + SEPARATOR
+															+ selectedTicket.getGender() + SEPARATOR + selectedTicket.getString_date_time());
+											
 										}
 										
 										
@@ -617,7 +604,7 @@ public class BUSTEstimationV3 {
 									}
 								} else {
 									listOutput.add(0, currentString + SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR
-											+ "-" + SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR + previousDate);
+											+ "-" + SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR + "-");
 								}
 
 							}
@@ -639,7 +626,7 @@ public class BUSTEstimationV3 {
 
 						if (ticketsInformationList != null) {
 							for (TicketInformation TicketInformation : ticketsInformationList) {
-								String timeTicketString = TicketInformation.getTimeOfUse().replaceAll(":", "");
+								String timeTicketString = TicketInformation.getBoarding_time().replaceAll(":", "");
 								
 								if (Integer.parseInt(timeTicketString) > Integer.parseInt(currentTimeString) 
 										& (Integer.parseInt(timeTicketString) <= Integer.parseInt(nextTimeString))) {

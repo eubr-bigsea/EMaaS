@@ -8,37 +8,64 @@ public class TicketInformation implements Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = -4004323352664123659L;
-	private String codLine;
+
+	private String boarding_id;
+	private String route;
 	private String nameLine;
 	private String busCode;
 	private String ticketNumber;
-	private String timeOfUse;
-	private String dateOfUse;
 	private String birthDate;
 	private String gender;
+	private String boarding_time;
+	private String boarding_date;
+	private String string_date_time;
+	
 	
 	public TicketInformation() {
 		super();
 	}
 	
-	public TicketInformation(String codLine, String nameLine, String busCode, String ticketNumber, String timeOfUse,
-			String dateOfUse, String birthDate, String gender) {
-		this.codLine = codLine;
+	public TicketInformation(String boarding_id, String route, 
+			String nameLine, String busCode,
+			String ticketNumber, String birthDate, 
+			String gender, String string_date_time) {
+		
+		this.string_date_time = string_date_time;
+		String[] boarding_datetime = string_date_time.split(" ");
+	
+		this.boarding_id = boarding_id;
+		this.route = route;
 		this.nameLine = nameLine;
 		this.busCode = busCode;
 		this.ticketNumber = ticketNumber;
-		this.timeOfUse = timeOfUse;
-		this.dateOfUse = dateOfUse;
+		this.boarding_time = boarding_datetime[1];
+		this.boarding_date = boarding_datetime[0];
 		this.birthDate = birthDate;
 		this.gender = gender;
 	}
-
-	public String getCodLine() {
-		return codLine;
+	
+	public String getString_date_time() {
+		return string_date_time;
 	}
 
-	public void setCodLine(String codLine) {
-		this.codLine = codLine;
+	public void setString_date_time(String string_date_time) {
+		this.string_date_time = string_date_time;
+	}
+
+	public String getBoarding_id() {
+		return boarding_id;
+	}
+
+	public void setBoarding_id(String boarding_id) {
+		this.boarding_id = boarding_id;
+	}
+
+	public String getRoute() {
+		return route;
+	}
+
+	public void setRoute(String route) {
+		this.route = route;
 	}
 
 	public String getNameLine() {
@@ -65,22 +92,6 @@ public class TicketInformation implements Serializable {
 		this.ticketNumber = ticketNumber;
 	}
 
-	public String getTimeOfUse() {
-		return timeOfUse;
-	}
-
-	public void setTimeOfUse(String timeOfUse) {
-		this.timeOfUse = timeOfUse;
-	}
-
-	public String getDateOfUse() {
-		return dateOfUse;
-	}
-
-	public void setDateOfUse(String dateOfUse) {
-		this.dateOfUse = dateOfUse;
-	}
-
 	public String getBirthDate() {
 		return birthDate;
 	}
@@ -96,11 +107,27 @@ public class TicketInformation implements Serializable {
 	public void setGender(String gender) {
 		this.gender = gender;
 	}
-	
+
+	public String getBoarding_time() {
+		return boarding_time;
+	}
+
+	public void setBoarding_time(String boarding_time) {
+		this.boarding_time = boarding_time;
+	}
+
+	public String getBoarding_date() {
+		return boarding_date;
+	}
+
+	public void setBoarding_date(String boarding_date) {
+		this.boarding_date = boarding_date;
+	}
+
 	@Override
 	public String toString() {
-		return codLine + "," + nameLine + "," + busCode
-				+ "," + ticketNumber + "," + timeOfUse + "," + dateOfUse
+		return route + "," + nameLine + "," + busCode
+				+ "," + ticketNumber + "," + boarding_time + "," + boarding_date
 				+ "," + birthDate + "," + gender;
 	}
 	
