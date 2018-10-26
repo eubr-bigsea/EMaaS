@@ -193,7 +193,7 @@ public class BUSTEstimationV2 {
 						BulmaOutput bulmaOutput = new BulmaOutput(st.nextToken(), st.nextToken(), st.nextToken(),
 								st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
 								st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
-								st.nextToken());
+								st.nextToken(), "");
 
 						String key = bulmaOutput.getBusCode() + ":" + bulmaOutput.getTripNum() + ":"
 								+ bulmaOutput.getShapeId();
@@ -521,7 +521,7 @@ public class BUSTEstimationV2 {
 							String currentBusStop = currentString.split(SEPARATOR)[13];
 
 							if (!currentBusStop.equals("-")) {
-								String currentTimeString = currentString.split(SEPARATOR)[12];
+								String currentTimeString = currentString.split(SEPARATOR)[12].split(" ")[1];
 								if (!currentTimeString.equals("-")) {
 									if (nextTimeString == null) {
 										nextTimeString = currentTimeString;

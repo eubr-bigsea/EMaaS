@@ -26,10 +26,13 @@ public class OutputString implements Serializable, Comparable<OutputString>{
 	}
 
 	public String getTimestampField() {
-		String timestamp = this.outputString.split(",")[12];
+		String gps_date_time = this.outputString.split(",")[12];
+		String timestamp;
 //		System.out.println("Timestamp : " + timestamp);
-		if (timestamp.equals("-")) {
+		if (gps_date_time.equals("-")) {
 			timestamp = "0";
+		} else {
+			timestamp = gps_date_time.split(" ")[1];
 		}
 		return timestamp.replaceAll(":", "");
 	}

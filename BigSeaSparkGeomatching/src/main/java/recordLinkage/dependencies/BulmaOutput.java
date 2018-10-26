@@ -19,6 +19,7 @@ public class BulmaOutput implements Serializable, Comparable<BulmaOutput> {
 	private String dinstance;
 	private String thresholdProblem;
 	private String tripProblem;
+	private String gps_datetime;
 	
 	public BulmaOutput() {
 		super();
@@ -26,7 +27,7 @@ public class BulmaOutput implements Serializable, Comparable<BulmaOutput> {
 		
 	public BulmaOutput(String tripNum, String route, String shapeId, String shapeSequence, String latShape,
 			String lonShape, String gpsPointId, String busCode, String timestamp, String latGPS, String lonGPS,
-			String dinstance, String thresholdProblem, String tripProblem) {
+			String dinstance, String thresholdProblem, String tripProblem, String gps_date) {
 		this.tripNum = tripNum;
 		this.route = route;
 		this.shapeId = shapeId;
@@ -41,6 +42,7 @@ public class BulmaOutput implements Serializable, Comparable<BulmaOutput> {
 		this.dinstance = dinstance;
 		this.thresholdProblem = thresholdProblem;
 		this.tripProblem = tripProblem;
+		this.gps_datetime = gps_date + " " + timestamp;
 	}
 
 	public String getTripNum() {
@@ -153,6 +155,14 @@ public class BulmaOutput implements Serializable, Comparable<BulmaOutput> {
 
 	public void setTripProblem(String tripProblem) {
 		this.tripProblem = tripProblem;
+	}
+	
+	public String getGps_datetime() {
+		return gps_datetime;
+	}
+
+	public void setGps_datetime(String gps_datetime) {
+		this.gps_datetime = gps_datetime;
 	}
 	
 	@Override

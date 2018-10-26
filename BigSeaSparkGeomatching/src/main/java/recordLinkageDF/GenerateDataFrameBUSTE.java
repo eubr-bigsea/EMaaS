@@ -61,7 +61,7 @@ public class GenerateDataFrameBUSTE {
 				BulmaOutput bulmaOutput = new BulmaOutput(st.nextToken(), st.nextToken(), st.nextToken(),
 						st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
 						st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
-						st.nextToken());
+						st.nextToken(), "");
 
 				String key = bulmaOutput.getBusCode() + ":" + bulmaOutput.getTripNum() + ":"
 						+ bulmaOutput.getShapeId();

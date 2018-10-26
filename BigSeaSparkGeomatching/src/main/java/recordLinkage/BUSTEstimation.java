@@ -147,7 +147,7 @@ public class BUSTEstimation {
 							bulmaOutput = new BulmaOutput(st.nextToken(), st.nextToken(), st.nextToken(),
 									st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
 									st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
-									st.nextToken());
+									st.nextToken(), "");
 
 							key = bulmaOutput.getShapeId() + ":" + bulmaOutput.getBusCode() + ":"
 									+ bulmaOutput.getTripNum();

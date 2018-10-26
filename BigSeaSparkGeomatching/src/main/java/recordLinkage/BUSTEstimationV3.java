@@ -58,7 +58,7 @@ public class BUSTEstimationV3 {
 	private static final String SEPARATOR = ",";
 	private static final String SLASH = "/";
 	protected static final String OUTPUT_HEADER = "route,tripNum,shapeId,shapeSequence,shapeLat,shapeLon,distanceTraveledShape,"
-			+ "busCode,gpsPointId,gpsLat,gpsLon,distanceToShapePoint,timestamp,stopPointId,problem,"
+			+ "busCode,gpsPointId,gpsLat,gpsLon,distanceToShapePoint,gps_datetime,stopPointId,problem,"
 			+ "boarding_id,lineName,cardNum,birthdate,gender,boarding_datetime";
 
 	public static void main(String[] args) throws IOException, URISyntaxException, ParseException {
@@ -149,7 +149,7 @@ public class BUSTEstimationV3 {
 					+ previousDate.replace("_", "-") + "_indexed_ticketing.csv";			
 
 			JavaRDD<String> result = execute(context, bulmaOutputString, pathFileShapes, ticketPathFile, busStopsFile,
-					minPartitions);
+					minPartitions, previousDate.replace("_", "-"));
 
 			/**
 			 * Inserts a header into each output file
@@ -178,7 +178,7 @@ public class BUSTEstimationV3 {
 
 	@SuppressWarnings("serial")
 	private static JavaRDD<String> execute(JavaSparkContext context, JavaRDD<String> bulmaOutputString,
-			String pathFileShapes, String busTicketFile, String busStopsFile, int minPartitions) {
+			String pathFileShapes, String busTicketFile, String busStopsFile, int minPartitions, String previousDate) {
 
 		/**
 		 * Removes header (first line) from file
@@ -243,7 +243,7 @@ public class BUSTEstimationV3 {
 						BulmaOutput bulmaOutput = new BulmaOutput(st.nextToken(), st.nextToken(), st.nextToken(),
 								st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
 								st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(), st.nextToken(),
-								st.nextToken());
+								st.nextToken(), previousDate);
 
 						String codeTripShapeKey = bulmaOutput.getBusCode() + ":" + bulmaOutput.getTripNum() + ":"
 								+ bulmaOutput.getShapeId();
@@ -370,6 +370,7 @@ public class BUSTEstimationV3 {
 								String currentRoute = shapeLine.getRoute();
 
 								String currentTimestamp;
+								String currentGPSDateTime;
 
 								if (previousPoint == null) {
 									if (bulmaOutputGrouping.containsShapeSequence(currentShapeSequence)) {
@@ -378,6 +379,8 @@ public class BUSTEstimationV3 {
 												.get(currentShapeSequence);
 
 										currentTimestamp = currentOutput.getTimestamp();
+										currentGPSDateTime = currentOutput.getGps_datetime();
+										
 										previousPoint = new Tuple2<Float, String>(
 												currentShapePoint.getDistanceTraveled(), currentTimestamp);
 
@@ -391,7 +394,7 @@ public class BUSTEstimationV3 {
 
 										addOutput(currentRoute, tripNum, currentShapeId, currentShapeSequence,
 												currentLatShape, currentLonShape, currentDistanceTraveled, busCode,
-												gpsPointId, latGPS, lonGPS, distanceToShape, currentTimestamp,
+												gpsPointId, latGPS, lonGPS, distanceToShape, currentGPSDateTime,
 												problemCode, listOutput);
 
 									} else {
@@ -413,17 +416,18 @@ public class BUSTEstimationV3 {
 										String lonGPS = currentOutput.getLonGPS();
 										String distanceToShape = currentOutput.getDinstance();
 										currentTimestamp = currentOutput.getTimestamp();
+										currentGPSDateTime = currentOutput.getGps_datetime();
 
 										nextPoint = new Tuple2<Float, String>(
 												currentShapePoint.getDistanceTraveled(), currentTimestamp);
 
 										generateOutputFromPointsInBetween(currentShapeId, tripNum, previousPoint,
 												pointsBetweenGPS, nextPoint, shapeLine.getListGeoPoint(), busCode,
-												listOutput);
+												listOutput, previousDate);
 
 										addOutput(currentRoute, tripNum, currentShapeId, currentShapeSequence,
 												currentLatShape, currentLonShape, currentDistanceTraveled, busCode,
-												gpsPointId, latGPS, lonGPS, distanceToShape, currentTimestamp,
+												gpsPointId, latGPS, lonGPS, distanceToShape, currentGPSDateTime,
 												problemCode, listOutput);
 
 										previousPoint = nextPoint;
@@ -463,7 +467,7 @@ public class BUSTEstimationV3 {
 					private void addOutput(String route, String tripNum, String shapeId, String shapeSequence,
 							String shapeLat, String shapeLon, String distanceTraveledShape, String busCode,
 							String gpsPointId, String gpsLat, String gpsLon, String distanceToShapePoint,
-							String timestamp, String problemCode, List<String> listOutput) {
+							String gps_date_time, String problemCode, List<String> listOutput) {
 
 						String stopPointId = mapStopPoints.get(shapeSequence);
 						mapAux.remove(shapeSequence);
@@ -480,7 +484,7 @@ public class BUSTEstimationV3 {
 									+ shapeSequence + SEPARATOR + shapeLat + SEPARATOR + shapeLon + SEPARATOR
 									+ distanceTraveledShape + SEPARATOR + busCode + SEPARATOR + gpsPointId + SEPARATOR
 									+ gpsLat + SEPARATOR + gpsLon + SEPARATOR + distanceToShapePoint + SEPARATOR
-									+ timestamp + SEPARATOR + stopPointId + SEPARATOR + problem;
+									+ gps_date_time + SEPARATOR + stopPointId + SEPARATOR + problem;
 
 							listOutput.add(outputString);
 						}
@@ -490,7 +494,7 @@ public class BUSTEstimationV3 {
 					private void generateOutputFromPointsInBetween(String shapeId, String tripNum,
 							Tuple2<Float, String> previousGPSPoint, List<Integer> pointsBetweenGPS,
 							Tuple2<Float, String> nextGPSPoint, List<ShapePoint> listGeoPointsShape, String busCode,
-							List<String> listOutput) throws ParseException {
+							List<String> listOutput, String previousDate) throws ParseException {
 
 						Float previousDistanceTraveled = previousGPSPoint._1;
 						long previousTime = getTimeLong(previousGPSPoint._2);
@@ -498,6 +502,7 @@ public class BUSTEstimationV3 {
 						long nextTime = getTimeLong(nextGPSPoint._2);
 						Float distanceTraveled = nextDistanceTraveled - previousDistanceTraveled;
 						long time = nextTime - previousTime;
+						String gpsDateTime;
 
 						Float currentDistanceTraveled;
 						long generatedTimeDifference;
@@ -515,6 +520,7 @@ public class BUSTEstimationV3 {
 							generatedTimeDifference = (long) ((currentDistanceTraveled * time) / distanceTraveled);
 							generatedTime = previousTime + generatedTimeDifference;
 							generatedTimeString = getTimeString(generatedTime);
+							gpsDateTime = previousDate + " " + generatedTimeString;
 							sequence = listGeoPointsShape.get(indexPointsInBetween).getPointSequence();
 							latShape = listGeoPointsShape.get(indexPointsInBetween).getLatitude();
 							lonShape = listGeoPointsShape.get(indexPointsInBetween).getLongitude();
@@ -522,7 +528,7 @@ public class BUSTEstimationV3 {
 							distance = listGeoPointsShape.get(indexPointsInBetween).getDistanceTraveled().toString();
 
 							addOutput(route, tripNum, shapeId, sequence, latShape, lonShape, distance, busCode, "-",
-									"-", "-", "-", generatedTimeString, "-", listOutput);
+									"-", "-", "-", gpsDateTime, "-", listOutput);
 						}
 
 					}
@@ -544,8 +550,6 @@ public class BUSTEstimationV3 {
 
 					public Tuple2<String, OutputString> call(String stringOutput) throws Exception {
 						String[] splittedEntry = stringOutput.split(SEPARATOR);
-						// [7] = busCode, [12] = timestamp,
-						
 						OutputString str = new OutputString(stringOutput);
 						
 						return new Tuple2<String, OutputString>(splittedEntry[7], str);
@@ -574,6 +578,7 @@ public class BUSTEstimationV3 {
 							if (!currentBusStop.equals("-")) {
 								String currentTimeString = currentString.split(SEPARATOR)[12];
 								if (!currentTimeString.equals("-")) {
+									currentTimeString = currentTimeString.split(" ")[1];
 									if (nextTimeString == null) {
 										nextTimeString = currentTimeString;
 										listOutput.add(0, currentString + SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR
@@ -602,7 +607,7 @@ public class BUSTEstimationV3 {
 										nextTimeString = currentTimeString;
 
 									}
-								} else {
+								} else {									
 									listOutput.add(0, currentString + SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR
 											+ "-" + SEPARATOR + "-" + SEPARATOR + "-" + SEPARATOR + "-");
 								}
